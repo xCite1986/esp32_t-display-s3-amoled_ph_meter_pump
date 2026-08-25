@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1000" width="1280" height="1000" font-family="Segoe UI, Arial, sans-serif">
+<style>
+  .bx   { fill:#ffffff; stroke:#333333; stroke-width:2; }
+  .bxa  { fill:#f3f8f3; stroke:#2e7d32; stroke-width:2; }
+  .bxp  { fill:#fdf4f4; stroke:#b32b2b; stroke-width:2; }
+  .bxo  { fill:#fafafa; stroke:#999999; stroke-width:2; stroke-dasharray:6 4; }
+  .t    { font-size:15px; font-weight:600; fill:#111; }
+  .s    { font-size:11px; fill:#555; }
+  .p    { font-size:11px; fill:#111; }
+  .lbl  { font-size:11px; fill:#333; }
+  .note { font-size:12px; fill:#444; }
+  .w12  { stroke:#d32f2f; stroke-width:3; fill:none; }
+  .w5   { stroke:#ef6c00; stroke-width:2.5; fill:none; }
+  .w33  { stroke:#b58900; stroke-width:2.5; fill:none; }
+  .wg   { stroke:#000000; stroke-width:3; fill:none; }
+  .wsig { stroke:#1565c0; stroke-width:2; fill:none; }
+  .wana { stroke:#2e7d32; stroke-width:2; fill:none; }
+  .mr   { stroke:#d32f2f; stroke-width:2.5; fill:none; }
+  .mg   { stroke:#2e7d32; stroke-width:2.5; fill:none; }
+  .mb   { stroke:#1565c0; stroke-width:2.5; fill:none; }
+  .mk   { stroke:#000000; stroke-width:2.5; fill:none; }
+  .comp { stroke:#111; stroke-width:2; fill:#fff; }
+</style>
+
+<rect x="0" y="0" width="1280" height="1000" fill="#ffffff"/>
+<text x="24" y="34" font-size="22" font-weight="700" fill="#111">pH-Minus-Dosieranlage &#8211; Verdrahtungsplan (ESP32-C3 Super Mini)</text>
+<text x="24" y="54" class="note">Firmware: firmware/ph_dosieranlage &#183; Stand 1.0.0 &#183; Kreuzung ohne Punkt = keine Verbindung</text>
+
+<!-- ================= 12 V Bus oben ================= -->
+<!-- GND aussen (y=88), +12V innen (y=108) -->
+<path class="wg"  d="M 1190 620 L 1190 88 L 470 88 L 470 250"/>
+<path class="w12" d="M 1160 610 L 1160 108 L 500 108 L 500 210"/>
+<path class="w12" d="M 500 210 L 560 210"/>
+<path class="wg"  d="M 470 250 L 560 250"/>
+
+<!-- C1 zwischen 12V und GND direkt am Treiber -->
+<path class="w12" d="M 500 170 L 494 170"/>
+<line x1="494" y1="158" x2="494" y2="182" class="comp"/>
+<path d="M 486 158 L 486 182" class="comp"/>
+<path class="wg" d="M 486 170 L 470 170"/>
+<text x="462" y="150" text-anchor="end" class="lbl">C1</text>
+<text x="462" y="164" text-anchor="end" class="lbl">100 &#181;F</text>
+<text x="462" y="178" text-anchor="end" class="lbl">25 V</text>
+<circle cx="500" cy="170" r="3.5" fill="#d32f2f"/>
+<circle cx="470" cy="170" r="3.5" fill="#000"/>
+
+<!-- ================= TMC2209 ================= -->
+<rect x="560" y="120" width="240" height="240" rx="6" class="bxp"/>
+<text x="680" y="146" text-anchor="middle" class="t">TMC2209</text>
+<text x="680" y="163" text-anchor="middle" class="s">Steppertreiber &#183; 1/16 Microstep</text>
+<text x="680" y="180" text-anchor="middle" class="s">VREF vor dem 1. Lauf einstellen!</text>
+
+<text x="568" y="214" class="p">VMOT</text>
+<text x="568" y="254" class="p">GND</text>
+<text x="568" y="294" class="p">MS1</text>
+<text x="568" y="324" class="p">MS2</text>
+<text x="792" y="184" text-anchor="end" class="p">1A</text>
+<text x="792" y="214" text-anchor="end" class="p">1B</text>
+<text x="792" y="244" text-anchor="end" class="p">2A</text>
+<text x="792" y="274" text-anchor="end" class="p">2B</text>
+<text x="600" y="352" text-anchor="middle" class="p">EN</text>
+<text x="640" y="352" text-anchor="middle" class="p">STEP</text>
+<text x="682" y="352" text-anchor="middle" class="p">DIR</text>
+<text x="722" y="352" text-anchor="middle" class="p">VIO</text>
+<text x="762" y="352" text-anchor="middle" class="p">GND</text>
+
+<!-- MS1/MS2 auf VIO -->
+<path class="w33" d="M 560 290 L 520 290 L 520 320 L 560 320"/>
+<path class="w33" d="M 520 305 L 496 305"/>
+<text x="490" y="309" text-anchor="end" class="lbl">3,3 V (VIO)</text>
+
+<!-- ================= NEMA17 ================= -->
+<rect x="900" y="150" width="220" height="150" rx="6" class="bx"/>
+<text x="1010" y="176" text-anchor="middle" class="t">NEMA17</text>
+<text x="1010" y="193" text-anchor="middle" class="s">12 V &#183; 1,8&#176; &#183; ca. 28 Ncm</text>
+<text x="1010" y="288" text-anchor="middle" class="s">Spulen vorher durchmessen!</text>
+<text x="908" y="184" class="p">rot</text>
+<text x="908" y="214" class="p">gr&#252;n</text>
+<text x="908" y="244" class="p">blau</text>
+<text x="908" y="274" class="p">schwarz</text>
+
+<path class="mr" d="M 800 180 L 900 180"/>
+<path class="mg" d="M 800 210 L 900 210"/>
+<path class="mb" d="M 800 240 L 900 240"/>
+<path class="mk" d="M 800 270 L 900 270"/>
+<text x="850" y="174" text-anchor="middle" class="lbl">Spule 1</text>
+<text x="850" y="234" text-anchor="middle" class="lbl">Spule 2</text>
+
+<!-- ================= Netzteil ================= -->
+<rect x="900" y="440" width="220" height="120" rx="6" class="bxp"/>
+<text x="1010" y="470" text-anchor="middle" class="t">Netzteil 12 V DC</text>
+<text x="1010" y="490" text-anchor="middle" class="s">min. 2 A, Hohlstecker-Buchse</text>
+<text x="1010" y="508" text-anchor="middle" class="s">+ Sicherung 2 A tr&#228;ge</text>
+<text x="940" y="552" text-anchor="middle" class="p">+12V</text>
+<text x="1000" y="552" text-anchor="middle" class="p">GND</text>
+
+<!-- ================= Buck ================= -->
+<rect x="900" y="640" width="220" height="130" rx="6" class="bx"/>
+<text x="1010" y="670" text-anchor="middle" class="t">Buck 12 V &#8594; 5 V</text>
+<text x="1010" y="689" text-anchor="middle" class="s">MP1584 / LM2596</text>
+<text x="1010" y="706" text-anchor="middle" class="s">VOR Anschluss auf 5,0 V</text>
+<text x="1010" y="722" text-anchor="middle" class="s">einstellen und messen!</text>
+<text x="940" y="634" text-anchor="middle" class="p">IN+</text>
+<text x="1000" y="634" text-anchor="middle" class="p">IN&#8722;</text>
+<text x="940" y="784" text-anchor="middle" class="p">OUT+</text>
+<text x="1000" y="784" text-anchor="middle" class="p">OUT&#8722;</text>
+
+<!-- 12V vom Netzteil zum Buck + nach oben zum TMC -->
+<path class="w12" d="M 940 560 L 940 640"/>
+<path class="wg"  d="M 1000 560 L 1000 640"/>
+<path class="w12" d="M 940 610 L 1160 610"/>
+<path class="wg"  d="M 1000 620 L 1190 620"/>
+<circle cx="940" cy="610" r="3.5" fill="#d32f2f"/>
+<circle cx="1000" cy="620" r="3.5" fill="#000"/>
+
+<!-- Schottky-Diode in der 5V-Leitung -->
+<path class="w5" d="M 940 770 L 940 830"/>
+<path d="M 932 806 L 948 806 L 940 820 Z" class="comp"/>
+<line x1="932" y1="820" x2="948" y2="820" class="comp"/>
+<text x="954" y="810" class="lbl">D1 SS34</text>
+<path class="w5" d="M 940 830 L 940 900 L 600 900 L 600 800"/>
+<path class="w5" d="M 600 900 L 300 900 L 300 850"/>
+<circle cx="600" cy="900" r="3.5" fill="#ef6c00"/>
+<path class="wg" d="M 1000 770 L 1000 935 L 660 935 L 660 800"/>
+<path class="wg" d="M 660 935 L 360 935 L 360 850"/>
+<circle cx="660" cy="935" r="3.5" fill="#000"/>
+
+<!-- ================= ESP32-C3 ================= -->
+<rect x="560" y="440" width="240" height="360" rx="6" class="bx"/>
+<text x="680" y="470" text-anchor="middle" class="t">ESP32-C3 Super Mini</text>
+<text x="680" y="488" text-anchor="middle" class="s">USB-C: Programmierung / Konsole</text>
+<text x="680" y="686" text-anchor="middle" class="s">Firmware:</text>
+<text x="680" y="703" text-anchor="middle" class="s">ph_dosieranlage.ino</text>
+<text x="680" y="728" text-anchor="middle" class="s">WLAN + Webinterface</text>
+
+<text x="600" y="432" text-anchor="middle" class="p">GPIO7</text>
+<text x="640" y="432" text-anchor="middle" class="p">GPIO3</text>
+<text x="682" y="432" text-anchor="middle" class="p">GPIO4</text>
+<text x="722" y="432" text-anchor="middle" class="p">3V3</text>
+<text x="762" y="432" text-anchor="middle" class="p">GND</text>
+<text x="568" y="524" class="p">3V3</text>
+<text x="568" y="564" class="p">GND</text>
+<text x="568" y="604" class="p">GPIO5 (SDA)</text>
+<text x="568" y="644" class="p">GPIO6 (SCL)</text>
+<text x="792" y="764" text-anchor="end" class="p">GPIO1</text>
+<text x="600" y="792" text-anchor="middle" class="p">5V</text>
+<text x="660" y="792" text-anchor="middle" class="p">GND</text>
+
+<!-- ESP <-> TMC -->
+<path class="wsig" d="M 600 440 L 600 360"/>
+<path class="wsig" d="M 640 440 L 640 360"/>
+<path class="wsig" d="M 680 440 L 680 360"/>
+<path class="w33"  d="M 720 440 L 720 360"/>
+<path class="wg"   d="M 760 440 L 760 360"/>
+
+<!-- R1: EN Pull-up nach 3V3 -->
+<path class="w33" d="M 600 400 L 545 400 L 520 400 L 520 520"/>
+<rect x="548" y="394" width="26" height="12" class="comp"/>
+<circle cx="600" cy="400" r="3.5" fill="#b58900"/>
+<circle cx="520" cy="520" r="3.5" fill="#b58900"/>
+<text x="516" y="392" text-anchor="end" class="lbl">R1 10 k&#8486;</text>
+<text x="516" y="406" text-anchor="end" class="lbl">EN sicher HIGH</text>
+
+<!-- ================= ADS1115 ================= -->
+<rect x="240" y="440" width="200" height="220" rx="6" class="bxa"/>
+<text x="340" y="470" text-anchor="middle" class="t">ADS1115</text>
+<text x="340" y="488" text-anchor="middle" class="s">16-Bit ADC, I&#178;C 0x48</text>
+<text x="340" y="506" text-anchor="middle" class="s">ADDR &#8594; GND</text>
+<text x="340" y="622" text-anchor="middle" class="s">VDD = 3,3 V!</text>
+<text x="432" y="524" text-anchor="end" class="p">VDD</text>
+<text x="432" y="564" text-anchor="end" class="p">GND</text>
+<text x="432" y="604" text-anchor="end" class="p">SDA</text>
+<text x="432" y="644" text-anchor="end" class="p">SCL</text>
+<text x="290" y="652" text-anchor="middle" class="p">A0</text>
+
+<path class="w33"  d="M 440 520 L 560 520"/>
+<path class="wg"   d="M 440 560 L 560 560"/>
+<path class="wsig" d="M 440 600 L 560 600"/>
+<path class="wsig" d="M 440 640 L 560 640"/>
+
+<!-- A0 <- PO mit Schutzwiderstand R2 -->
+<path class="wana" d="M 290 660 L 290 674"/>
+<rect x="284" y="674" width="12" height="26" class="comp"/>
+<path class="wana" d="M 290 700 L 290 720"/>
+<text x="306" y="694" class="lbl">R2 10 k&#8486;</text>
+
+<!-- ================= pH-Board ================= -->
+<rect x="240" y="720" width="200" height="130" rx="6" class="bxa"/>
+<text x="340" y="748" text-anchor="middle" class="t">pH-Signalboard</text>
+<text x="340" y="766" text-anchor="middle" class="s">TO &#183; DO &#183; PO &#183; G &#183; G &#183; V+</text>
+<text x="340" y="800" text-anchor="middle" class="s">TO und DO bleiben frei</text>
+<text x="302" y="714" class="p">PO</text>
+<text x="300" y="864" text-anchor="middle" class="p">V+</text>
+<text x="360" y="864" text-anchor="middle" class="p">G</text>
+<text x="248" y="822" class="p">BNC</text>
+
+<!-- ================= pH-Sonde ================= -->
+<rect x="30" y="760" width="170" height="90" rx="6" class="bxa"/>
+<text x="115" y="790" text-anchor="middle" class="t">pH-Sonde</text>
+<text x="115" y="810" text-anchor="middle" class="s">BNC, hochohmig</text>
+<text x="115" y="828" text-anchor="middle" class="s">Kabel kurz halten</text>
+<path class="wana" d="M 200 818 L 240 818"/>
+
+<!-- ================= Optionale Umwaelzrueckmeldung ================= -->
+<rect x="860" y="820" width="260" height="90" rx="6" class="bxo"/>
+<text x="990" y="848" text-anchor="middle" class="t">Umw&#228;lz-R&#252;ckmeldung</text>
+<text x="990" y="866" text-anchor="middle" class="s">optional: Str&#246;mungsw&#228;chter oder</text>
+<text x="990" y="882" text-anchor="middle" class="s">potenzialfreier Kontakt der Poolpumpe</text>
+<text x="990" y="900" text-anchor="middle" class="s">Kontakt geschlossen = Umw&#228;lzung l&#228;uft</text>
+<path class="wsig" d="M 800 760 L 830 760 L 830 860 L 860 860"/>
+
+<!-- ================= Legende ================= -->
+<rect x="30" y="440" width="185" height="196" rx="6" fill="#fbfbfb" stroke="#ccc" stroke-width="1.5"/>
+<text x="45" y="464" class="t">Legende</text>
+<line x1="45" y1="482" x2="80" y2="482" class="w12"/><text x="88" y="486" class="lbl">12 V</text>
+<line x1="45" y1="502" x2="80" y2="502" class="w5"/><text x="88" y="506" class="lbl">5 V</text>
+<line x1="45" y1="522" x2="80" y2="522" class="w33"/><text x="88" y="526" class="lbl">3,3 V</text>
+<line x1="45" y1="542" x2="80" y2="542" class="wg"/><text x="88" y="546" class="lbl">GND</text>
+<line x1="45" y1="562" x2="80" y2="562" class="wsig"/><text x="88" y="566" class="lbl">Digitalsignal</text>
+<line x1="45" y1="582" x2="80" y2="582" class="wana"/><text x="88" y="586" class="lbl">Analogsignal</text>
+<circle cx="62" cy="602" r="3.5" fill="#000"/><text x="88" y="606" class="lbl">Verbindung</text>
+<text x="45" y="626" class="lbl">Kreuzung ohne Punkt:</text>
+<text x="45" y="638" class="lbl" font-style="italic">keine Verbindung</text>
+
+<!-- ================= Hinweise ================= -->
+<rect x="30" y="120" width="380" height="270" rx="6" fill="#fffdf5" stroke="#d9c98a" stroke-width="1.5"/>
+<text x="46" y="146" class="t">Vor dem Einschalten pr&#252;fen</text>
+<text x="46" y="170" class="note">1. Alle GND sternf&#246;rmig auf einen Punkt.</text>
+<text x="46" y="190" class="note">2. Buck-Ausgang OHNE Last auf 5,0 V einstellen.</text>
+<text x="46" y="210" class="note">3. Motorstecker nie bei eingeschaltetem VMOT ziehen.</text>
+<text x="46" y="230" class="note">4. C1 direkt an VMOT/GND des TMC2209.</text>
+<text x="46" y="250" class="note">5. VREF am TMC2209 einstellen, bevor 12 V an den</text>
+<text x="46" y="266" class="note">    Motor gehen (Startwert ca. 0,5 &#215; Nennstrom).</text>
+<text x="46" y="290" class="note">6. Spannung an PO messen, bevor sie an A0 geht.</text>
+<text x="46" y="306" class="note">    &#62; 3,2 V &#8594; zus&#228;tzlich Spannungsteiler vorsehen.</text>
+<text x="46" y="330" class="note">7. ADS1115 zwingend an 3,3 V &#8211; der ESP32-C3 ist</text>
+<text x="46" y="346" class="note">    nicht 5-V-tolerant.</text>
+<text x="46" y="370" class="note">8. D1 verhindert R&#252;ckspeisung, wenn USB und</text>
+<text x="46" y="386" class="note">    Netzteil gleichzeitig stecken.</text>
+
+<text x="24" y="975" class="note">Signalweg: pH-Sonde &#8594; BNC &#8594; pH-Signalboard &#8594; PO &#8594; R2 &#8594; ADS1115 A0 &#8594; I&#178;C &#8594; ESP32-C3 &#8594; STEP/DIR/EN &#8594; TMC2209 &#8594; NEMA17 &#8594; Peristaltikpumpe</text>
+</svg>
