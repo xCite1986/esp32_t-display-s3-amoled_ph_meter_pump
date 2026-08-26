@@ -245,8 +245,20 @@ Das Web-Passwort dient gleichzeitig als OTA-Passwort. Danach sind Updates
 auch ohne USB möglich:
 
 ```bash
-powershell -File scripts/build.ps1
+powershell -File scripts/ota.ps1 -Target 192.168.0.61
 ```
+
+Ist ein Web-Passwort gesetzt, zusätzlich `-Password <passwort>` angeben.
+
+> **Wenn OTA mit „No response from device" abbricht**, blockt die Windows-
+> Firewall den Rückkanal: `espota` überträgt nicht selbst, sondern lädt das
+> Board ein, sich zum PC **zurück** zu verbinden. Die Freigaben in der
+> Firewall hängen am Dateipfad und damit an der Core-Version — nach einem
+> Core-Update fehlen sie wieder. Die betroffene Datei nennt das Skript im
+> Fehlerfall.
+>
+> Vor jedem OTA-Update löst die Firmware selbst einen Not-Halt aus. Die Pumpe
+> steht während der Übertragung also garantiert still.
 
 ---
 
