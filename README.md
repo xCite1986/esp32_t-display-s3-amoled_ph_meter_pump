@@ -121,9 +121,10 @@ Die Automatik lässt sich ohne gültige Kalibrierung nicht einschalten.
 Sensorfehler, instabiler Messwert oder Not-Halt verhindern beziehungsweise
 brechen eine Dosierung ab. Tages- und Gesamtmenge überleben einen Neustart.
 
-Für die Umwälzung gibt es bewusst keinen verdrahteten Eingang: Die Anlage
-hängt am selben geschalteten Stromkreis wie die Poolpumpe und kann dadurch
-physisch nicht in stehendes Wasser dosieren.
+Für die Umwälzung gibt es bewusst keinen verdrahteten Eingang. Entweder hängt
+die Anlage am selben geschalteten Stromkreis wie die Poolpumpe — dann kann sie
+physisch nicht in stehendes Wasser dosieren — oder sie fragt unmittelbar vor
+jeder Dosierung eine Home-Assistant-Entität ab.
 
 ---
 

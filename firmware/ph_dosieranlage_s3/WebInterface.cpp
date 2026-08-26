@@ -5,6 +5,7 @@
 #include "StepperPump.h"
 #include "PHController.h"
 #include "PanelUi.h"
+#include "Circulation.h"
 #include "Config.h"
 
 #include <WiFi.h>
@@ -116,6 +117,9 @@ String WebInterface::statusJson() const {
   j += ",\"estop\":" + jbool(controller.estopActive());
   j += ",\"fault\":" + jbool(pump.timeoutFault());
   j += ",\"disp\":" + jstr(uiStateText());
+  j += ",\"circ\":" + jstr(settings.circEnabled ? circStateText() : "nicht geprueft");
+  j += ",\"circRaw\":" + jstr(circRawState());
+  j += ",\"circN\":" + String(circQueryCount());
 
   j += ",\"pump\":{\"run\":" + jbool(pump.running()) +
        ",\"ml\":" + jnum(pump.mlDone(), 3) +
@@ -164,6 +168,14 @@ String WebInterface::statusJson() const {
   j += ",\"nite\":" + jbool(s.nightEnabled);
   j += ",\"nfrom\":" + String(s.nightFrom);
   j += ",\"nto\":" + String(s.nightTo);
+  j += ",\"circen\":" + jbool(s.circEnabled);
+  j += ",\"hahost\":" + jstr(s.haHost);
+  j += ",\"haent\":" + jstr(s.haEntity);
+  j += ",\"haon\":" + jstr(s.haOnState);
+  j += ",\"hatok\":" + jbool(strlen(s.haToken) > 0);   // nie den Token selbst
+  j += ",\"circfr\":" + String(s.circFreshS);
+  j += ",\"circrt\":" + String(s.circRetryS);
+  j += ",\"circof\":" + String(s.circOffRetryS);
   j += ",\"srate\":" + jnum(s.stepRate, 0);
   j += ",\"sacc\":" + jnum(s.stepAccel, 0);
   j += ",\"invdir\":" + jbool(s.invertDir);
@@ -258,6 +270,14 @@ void WebInterface::setupRoutes() {
       reply(true, String(n, 1) + " Umdr. = " + String(ml, 2) + " ml");
     else
       reply(false, err + " (" + String(ml, 2) + " ml)");
+  });
+
+  // Einmalige Abfrage der Entitaet - fuer die Einrichtung
+  server.on("/api/circ/test", HTTP_POST, [this]() {
+    if (!guard()) return;
+    String info;
+    bool ok = circProbe(info);
+    reply(ok, info);
   });
 
   server.on("/api/stop", HTTP_POST, [this]() {
@@ -356,6 +376,21 @@ void WebInterface::setupRoutes() {
     s.nightEnabled= argB("nite", s.nightEnabled);
     s.nightFrom   = (uint8_t)argI("nfrom", s.nightFrom);
     s.nightTo     = (uint8_t)argI("nto", s.nightTo);
+    s.circEnabled = argB("circen", s.circEnabled);
+    if (server.hasArg("hahost"))
+      strncpy(s.haHost, server.arg("hahost").c_str(), sizeof(s.haHost) - 1);
+    if (server.hasArg("haent") && server.arg("haent").length())
+      strncpy(s.haEntity, server.arg("haent").c_str(), sizeof(s.haEntity) - 1);
+    if (server.hasArg("haon") && server.arg("haon").length())
+      strncpy(s.haOnState, server.arg("haon").c_str(), sizeof(s.haOnState) - 1);
+    // Leeres Feld heisst "unveraendert lassen" - sonst wuerde ein Speichern
+    // in einem anderen Abschnitt den Token loeschen.
+    if (server.hasArg("hatok") && server.arg("hatok").length())
+      strncpy(s.haToken, server.arg("hatok").c_str(), sizeof(s.haToken) - 1);
+    s.circFreshS  = (uint16_t)argI("circfr", s.circFreshS);
+    s.circRetryS  = (uint16_t)argI("circrt", s.circRetryS);
+    s.circOffRetryS = (uint16_t)argI("circof", s.circOffRetryS);
+    circInvalidate();          // geaenderte Adresse sofort neu pruefen
     s.stepRate    = argF("srate", s.stepRate);
     s.stepAccel   = argF("sacc", s.stepAccel);
     s.invertDir   = argB("invdir", s.invertDir);

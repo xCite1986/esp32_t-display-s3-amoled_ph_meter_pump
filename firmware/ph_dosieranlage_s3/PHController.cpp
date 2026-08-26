@@ -2,6 +2,7 @@
 #include "PHMeasurement.h"
 #include "StepperPump.h"
 #include "Settings.h"
+#include "Circulation.h"
 #include "Config.h"
 #include <time.h>
 #include <Preferences.h>
@@ -195,6 +196,16 @@ void PHController::tick() {
   if (locks_ & hardBlock) { state_ = ST_LOCKED; return; }
   if (locks_ & softBlock) { state_ = ST_IDLE;   return; }
 
+  // Letzte Instanz vor dem Start: laeuft die Umwaelzung? Diese Abfrage geht
+  // ueber das Netz und steht deshalb bewusst ganz am Ende - erst wenn alles
+  // andere bereits "dosieren" sagt. Damit liegen zwei Abfragen mindestens
+  // eine Mindestpause auseinander.
+  if (!circAllowsDosing()) {
+    locks_ |= LK_NO_CIRC;
+    state_ = ST_LOCKED;
+    return;
+  }
+
   // Alles frei: eine einzelne, begrenzte Dosis abgeben.
   float ml = settings.doseMl;
   if (ml > settings.maxSingleMl)    ml = settings.maxSingleMl;
@@ -220,6 +231,12 @@ bool PHController::manualDose(float ml, String &err) {
   // Liegt ein gueltiger Messwert vor, gilt die pH-Sperre auch manuell.
   if (phMeas.valid() && phMeas.ph() < settings.phMinLock) {
     err = "pH unter Sperrschwelle";
+    return false;
+  }
+
+  // Auch von Hand wird nicht in stehendes Wasser dosiert.
+  if (!circAllowsDosing()) {
+    err = String("Umwaelzung: ") + circStateText();
     return false;
   }
 
@@ -289,6 +306,7 @@ String PHController::lockText() const {
   struct LockName { uint16_t bit; const char *txt; };
   static const LockName map[] = {
     { LK_ESTOP,      "Not-Halt" },
+    { LK_NO_CIRC,    "keine Umwaelzung" },
     { LK_PUMP_FAULT, "Pumpen-Laufzeitfehler" },
     { LK_AUTO_OFF,   "Automatik aus" },
     { LK_NO_CALIB,   "nicht kalibriert" },

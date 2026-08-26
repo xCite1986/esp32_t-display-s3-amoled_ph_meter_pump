@@ -37,7 +37,7 @@ Beispielantwort (gekürzt):
   "ph": 7.31, "phValid": true, "phStatus": "OK", "stable": true,
   "volt": 1.71234, "raw": 14021, "slope": -238.4,
   "state": "Bereit", "locks": "Sollwert erreicht", "lockBits": 2048,
-  "auto": true, "estop": false, "fault": false,
+  "auto": true, "estop": false, "fault": false, "circ": "Umwaelzung laeuft",
   "pump": { "run": false, "ml": 0.0, "target": 0.0 },
   "dose": { "today": 12.5, "remain": 47.5, "count": 4, "last": 3.0,
             "pauseS": 280, "total": 312.4 },
@@ -148,7 +148,90 @@ Home Assistant sollte beobachten und im Notfall abschalten, nicht regeln.
 
 ---
 
-## 4. Sicherheitshinweis
+## 4. Umwälz-Verriegelung über eine HA-Entität
+
+Die Anlage kann sich vor jeder Dosierung bei Home Assistant vergewissern, dass
+die Umwälzpumpe läuft. Abgefragt wird der Zustand einer Entität:
+
+```text
+GET http://<ha-host>:8123/api/states/switch.poolpumpe
+Authorization: Bearer <Long-Lived Access Token>
+```
+
+Erwartet wird `"state": "on"`. Alles andere — `off`, `unavailable`, `unknown`,
+keine Antwort — verhindert die Dosierung.
+
+### Wann genau abgefragt wird
+
+**Nicht zyklisch.** Die Abfrage ist die *letzte* Prüfung vor dem Pumpenstart und
+läuft erst, wenn alles andere bereits „dosieren" sagt:
+
+```text
+Automatik an → kalibriert → Sensor gültig → Messwert stabil
+→ pH über Soll+Totband → Tagesbudget übrig → Durchmischungspause abgelaufen
+→ ERST JETZT: Entität abfragen
+```
+
+Daraus folgt der Abfragetakt von selbst:
+
+| | |
+|---|---|
+| frühester Abstand zweier Abfragen | die Durchmischungspause, Standard **1800 s** |
+| Obergrenze pro Tag | Tagesmenge ÷ Einzeldosis, also 60 ml ÷ 3 ml = **20** |
+| bei erreichtem Sollwert | **0** — `LK_AT_TARGET` greift vorher |
+
+Dazu kommen Wiederholungen: nach einem Fehlversuch nach 60 s, bei stehender
+Umwälzung nach 120 s. Eine Antwort, die jünger als 120 s ist, wird
+wiederverwendet statt neu abgefragt. Alle drei Zeiten sind einstellbar.
+
+### Einrichten
+
+Im Webinterface unter *Umwälzung (Home Assistant)*:
+
+| Feld | Beispiel |
+|---|---|
+| Home Assistant Host:Port | `192.168.0.10:8123` |
+| Entität | `switch.poolpumpe` |
+| Zustand für „läuft" | `on` |
+| Long-Lived Access Token | *(in HA unter Profil → Sicherheit erzeugen)* |
+
+Danach **Jetzt testen** drücken — die Antwort nennt den gelesenen Zustand im
+Klartext, etwa `switch.poolpumpe = on`, oder den Grund des Fehlschlags
+(`Token abgelehnt (401)`, `Entitaet unbekannt (404)`).
+
+Alternativ über die serielle Konsole:
+
+```text
+ha 192.168.0.10:8123 switch.poolpumpe
+hatoken <token>
+set circen 1
+circ
+```
+
+### Zum Token
+
+Ein Long-Lived Access Token gibt **vollen Zugriff auf die Home-Assistant-API** —
+nicht nur auf diese eine Entität. Deshalb:
+
+* In HA einen **eigenen, nicht-administrativen Benutzer** anlegen und den Token
+  unter dessen Profil erzeugen.
+* Der Token wird nur gespeichert, nie zurückgeliefert. Im Webinterface zeigt
+  das Feld *Token hinterlegt* lediglich `ja`/`nein`; ein leeres Eingabefeld
+  lässt ihn unverändert.
+* Nur HTTP auf dem lokalen Port 8123. Für HTTPS bräuchte das Gerät eine
+  Zertifikatsverwaltung, die den Aufwand hier nicht wert ist — deshalb gehört
+  die Anlage ohnehin nicht ins Internet.
+
+### Wenn Home Assistant ausfällt
+
+Dann wird **nicht dosiert**. Das ist die sichere Richtung, aber es heißt auch:
+Die Regelung hängt an der Verfügbarkeit von HA. Wer das nicht will, hängt die
+Anlage stattdessen an denselben geschalteten Stromkreis wie die Pumpe — siehe
+[SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 2.6. Beides zusammen geht auch.
+
+---
+
+## 5. Sicherheitshinweis
 
 Die Anlage kann über das Netzwerk Säure dosieren. Deshalb:
 

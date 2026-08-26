@@ -192,9 +192,10 @@ Kontakt, keine Leitung, keine Software, die versagen könnte. Der Preis ist,
 dass die Messung nur läuft, während die Pumpe läuft; für die Regelung ist das
 kein Nachteil, weil ohne Umwälzung ohnehin nicht dosiert werden darf.
 
-> Wird die Anlage dauerhaft versorgt, muss die Umwälzung anders sichergestellt
-> werden — etwa über eine Automation, die den Sollwert-Betrieb außerhalb der
-> Pumpenzeiten abschaltet.
+Wird die Anlage dauerhaft versorgt — etwa weil der pH-Wert auch außerhalb der
+Pumpenzeiten sichtbar sein soll —, prüft die Firmware die Umwälzung stattdessen
+**über eine Home-Assistant-Entität**. Details in
+[HOMEASSISTANT.md](HOMEASSISTANT.md), Abschnitt 4.
 
 ---
 

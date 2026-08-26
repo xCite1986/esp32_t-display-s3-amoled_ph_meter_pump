@@ -179,7 +179,7 @@ set db 0.05         Totband
 set dose 3.0        Einzeldosis in ml
 set maxs 5.0        maximale Einzeldosis
 set maxd 60.0       maximale Tagesmenge
-set pause 900       15 min Durchmischung zwischen Dosierungen
+set pause 1800      30 min Durchmischung zwischen Dosierungen
 set phlock 6.80     unter pH 6,80 wird nie dosiert
 set phmax 9.50      darüber gilt der Messwert als unplausibel
 set srate 1200      in Phase 2 ermittelte Schrittrate
@@ -257,7 +257,9 @@ Vor dem ersten unbeaufsichtigten Lauf:
 - [ ] Wasser im System durch pH-Minus ersetzt, Leitungen entlüftet
 - [ ] Rückschlagventil am Einspritzpunkt montiert
 - [ ] Säurebehälter tiefer als die Pumpe
-- [ ] Anlage hängt am selben geschalteten Stromkreis wie die Umwälzpumpe
+- [ ] Umwälzung sichergestellt: entweder hängt die Anlage am selben
+      geschalteten Stromkreis wie die Pumpe, **oder** die Prüfung über
+      Home Assistant ist eingerichtet und getestet
       (sonst kann in stehendes Wasser dosiert werden)
 - [ ] Tagesmenge konservativ eingestellt
 - [ ] Web-Login gesetzt

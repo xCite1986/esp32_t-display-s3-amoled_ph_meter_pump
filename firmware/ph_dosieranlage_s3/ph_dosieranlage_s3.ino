@@ -26,6 +26,7 @@
 #include "PHController.h"
 #include "WebInterface.h"
 #include "PanelUi.h"
+#include "Circulation.h"
 
 #include <LilyGo_AMOLED.h>
 #include <LV_Helper.h>
@@ -70,9 +71,13 @@ static void printHelp() {
     "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax spml\n"
     "                        sprev prevs srate sacc gain invdir hold\n"
     "                        stby shft nite nfrom nto\n"
+    "                        circen circfr circrt circof\n"
+    "  ha <host> <entity>    Home Assistant fuer die Umwaelzpruefung\n"
+    "  hatoken <token>       Long-Lived Access Token hinterlegen\n"
     "  wifi <ssid> <pass>    WLAN speichern und neu starten\n"
     "  ap                    WLAN verwerfen, Einrichtungs-AP oeffnen\n"
     "  wake                  Display aufwecken\n"
+    "  circ                  Umwaelzung jetzt bei Home Assistant abfragen\n"
     "  daily reset           Tageszaehler zuruecksetzen\n"
     "  reboot | factory      Neustart / Werkseinstellungen\n"));
 }
@@ -106,6 +111,12 @@ static void printStatus() {
                 uiStateText(), settings.standbyS, settings.shiftS,
                 settings.nightEnabled ? "ein" : "aus",
                 settings.nightFrom, settings.nightTo);
+  if (settings.circEnabled)
+    Serial.printf("Umwaelzung: %s | %s = \"%s\" | %lu Abfragen seit Start\n",
+                  circStateText(), settings.haEntity, circRawState(),
+                  (unsigned long)circQueryCount());
+  else
+    Serial.println("Umwaelzung: nicht geprueft");
   Serial.printf("Netz: %s %s\n", web.modeText().c_str(), web.ip().c_str());
 }
 
@@ -139,6 +150,12 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "nite")    s.nightEnabled= b;
   else if (key == "nfrom")   s.nightFrom   = (uint8_t)i;
   else if (key == "nto")     s.nightTo     = (uint8_t)i;
+  else if (key == "circen")  s.circEnabled = b;
+  else if (key == "haon")    { strncpy(s.haOnState, val.c_str(), sizeof(s.haOnState) - 1);
+                               s.haOnState[sizeof(s.haOnState) - 1] = 0; circInvalidate(); }
+  else if (key == "circfr")  s.circFreshS  = (uint16_t)i;
+  else if (key == "circrt")  s.circRetryS  = (uint16_t)i;
+  else if (key == "circof")  s.circOffRetryS = (uint16_t)i;
   else { Serial.println("unbekannter Parameter: " + key); return; }
 
   s.save();
@@ -167,6 +184,29 @@ static void handleCommand(String line) {
   else if (cmd == "json")   Serial.println(web.statusJson());
   else if (cmd == "scan")   i2cScan();
   else if (cmd == "wake")   { uiWake(); Serial.println("Display geweckt"); }
+  else if (cmd == "circ") {
+    String info;
+    bool ok = circProbe(info);
+    Serial.println((ok ? "OK: " : "Fehler: ") + info);
+  }
+  else if (cmd == "ha") {
+    if (a1.length()) strncpy(settings.haHost, a1.c_str(), sizeof(settings.haHost) - 1);
+    if (a2.length()) strncpy(settings.haEntity, a2.c_str(), sizeof(settings.haEntity) - 1);
+    settings.save();
+    circInvalidate();
+    Serial.printf("Home Assistant: %s | Entitaet: %s\n",
+                  settings.haHost, settings.haEntity);
+  }
+  else if (cmd == "hatoken") {
+    String rest = line.substring(line.indexOf(' ') + 1);
+    rest.trim();
+    if (!rest.length()) { Serial.println("Aufruf: hatoken <token>"); return; }
+    strncpy(settings.haToken, rest.c_str(), sizeof(settings.haToken) - 1);
+    settings.haToken[sizeof(settings.haToken) - 1] = 0;
+    settings.save();
+    circInvalidate();
+    Serial.printf("Token gespeichert (%u Zeichen)\n", (unsigned)strlen(settings.haToken));
+  }
   else if (cmd == "mon") {
     uint32_t n = a1.length() ? (uint32_t)a1.toInt() : 30;
     if (n > 3600) n = 3600;

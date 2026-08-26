@@ -24,6 +24,16 @@ struct Settings {
   // --- Pumpe ---
   float stepsPerMl     = DEFAULT_STEPS_PER_ML;
   float stepsPerRev    = DEFAULT_STEPS_PER_REV;  // fuer Bedienpanel: Umdrehungen -> ml
+
+  // --- Umwaelzung ueber Home Assistant ---
+  bool  circEnabled    = false;             // Pruefung aktiv
+  char  haHost[64]     = "";                // z.B. 192.168.0.10:8123
+  char  haToken[260]   = "";                // Long-Lived Access Token
+  char  haEntity[64]   = "switch.poolpumpe";
+  char  haOnState[16]  = "on";              // Zustand, der "laeuft" bedeutet
+  uint16_t circFreshS  = 120;               // juengere Antwort gilt als aktuell
+  uint16_t circRetryS  = 60;                // Wartezeit nach Fehlversuch
+  uint16_t circOffRetryS = 120;             // Wartezeit, wenn die Umwaelzung steht
   float stepRate       = DEFAULT_STEP_RATE;
   float stepAccel      = DEFAULT_STEP_ACCEL;
   bool  invertDir      = false;
@@ -36,7 +46,8 @@ struct Settings {
   float doseMl         = 3.00f;    // Einzeldosis
   float maxSingleMl    = 5.00f;    // Obergrenze Einzeldosis (Benutzer)
   float maxDailyMl     = 60.00f;   // Obergrenze Tagesmenge (Benutzer)
-  uint32_t pauseS      = 600;      // Wartezeit/Durchmischung nach Dosierung
+  uint32_t pauseS      = 1800;     // Durchmischung nach Dosierung: rund 30 min,
+                                   // bis die Saeure wirklich verteilt ist
   float phMinLock      = 6.80f;    // darunter Dosiersperre
   float phMaxPlaus     = 9.50f;    // darueber unplausibel -> Sperre
 

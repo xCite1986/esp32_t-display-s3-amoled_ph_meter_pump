@@ -105,6 +105,13 @@ static void onYes(lv_event_t *) {
   if (swallowWakeTap()) return;
   closeDialog();
 
+  // Die Umwaelzpruefung geht ueber das Netz und kann einige Sekunden dauern.
+  // Erst anzeigen, dann sofort zeichnen - sonst wirkt das Geraet eingefroren.
+  if (settings.circEnabled) {
+    uiToast("Pruefe Umwaelzung ...", true);
+    lv_refr_now(NULL);
+  }
+
   float ml = (settings.panelRevs * settings.stepsPerRev) / settings.stepsPerMl;
   String err;
   if (controller.manualDose(ml, err))
@@ -363,7 +370,7 @@ void uiRefresh() {
     lv_label_set_text_fmt(lblState, "Dosiert  %.2f / %.2f ml",
                           pump.mlDone(), pump.mlTarget());
     lv_obj_set_style_text_color(lblState, lv_color_hex(C_TEXT), 0);
-    lv_label_set_text(lblLocks, "");
+    lv_label_set_text(lblLocks, web.ip().c_str());
   } else {
     lv_label_set_text(lblState, controller.stateText());
     uint32_t col = C_MUTED;
@@ -376,8 +383,13 @@ void uiRefresh() {
       lv_label_set_text(lblLocks, (String("WLAN ") + AP_SSID_DEFAULT +
                                    " / " + AP_PASS_DEFAULT + "  ->  " + web.ip()).c_str());
     } else {
-      lv_label_set_text(lblLocks, phMeas.valid() ? controller.lockText().c_str()
-                                                 : phMeas.statusText());
+      // Die IP steht immer mit in dieser Zeile - sie ist der Weg ins
+      // Webinterface und wird genau dann gebraucht, wenn etwas klemmt.
+      String line = web.ip();
+      const char *why = phMeas.valid() ? controller.lockText().c_str()
+                                       : phMeas.statusText();
+      if (why && why[0] && strcmp(why, "keine") != 0) line += String("  |  ") + why;
+      lv_label_set_text(lblLocks, line.c_str());
     }
   }
   lv_obj_align(lblLocks, LV_ALIGN_TOP_RIGHT, -14, 216);

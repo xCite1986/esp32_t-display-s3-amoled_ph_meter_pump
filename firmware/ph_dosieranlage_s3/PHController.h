@@ -28,6 +28,7 @@ enum LockBits : uint16_t {
   LK_PAUSE      = 1 << 7,   // Mindestpause laeuft noch
   LK_PUMP_FAULT = 1 << 9,   // Pumpen-Laufzeitfehler
   LK_ESTOP      = 1 << 10,  // manueller Not-Halt aktiv
+  LK_NO_CIRC    = 1 << 12,  // Umwaelzpumpe laeuft nicht bzw. nicht pruefbar
   LK_AT_TARGET  = 1 << 11   // Sollwert erreicht (kein Fehler)
 };
 
