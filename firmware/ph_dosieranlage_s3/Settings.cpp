@@ -29,6 +29,13 @@ void Settings::clampAll() {
   if (circOffRetryS < 15) circOffRetryS = 15;
   if (circOffRetryS > 3600) circOffRetryS = 3600;
   haHost[sizeof(haHost) - 1]     = 0;
+  // Ohne Portangabe landet die Anfrage auf Port 80. Dort laeuft haeufig ein
+  // anderer Webserver, der mit 404 antwortet - was wie eine falsche Entitaet
+  // aussieht. Home Assistant hoert standardmaessig auf 8123, also ergaenzen.
+  if (strlen(haHost) > 0 && strchr(haHost, ':') == nullptr &&
+      strlen(haHost) + 5 < sizeof(haHost)) {
+    strcat(haHost, ":8123");
+  }
   haToken[sizeof(haToken) - 1]   = 0;
   haEntity[sizeof(haEntity) - 1] = 0;
   haOnState[sizeof(haOnState) - 1] = 0;

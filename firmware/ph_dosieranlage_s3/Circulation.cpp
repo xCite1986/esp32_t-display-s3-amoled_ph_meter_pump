@@ -98,9 +98,12 @@ static bool query(String &info) {
   if (code != 200) {
     http.end();
     g_state = CIRC_UNREACHABLE;
-    // Die haeufigsten Faelle beim Namen nennen statt nur einer Zahl
-    if      (code == 401) info = "Token abgelehnt (401)";
-    else if (code == 404) info = "Entitaet unbekannt (404)";
+    // Die haeufigsten Faelle beim Namen nennen statt nur einer Zahl.
+    // 404 ist zweideutig: entweder kennt HA die Entitaet nicht, oder unter
+    // der Adresse antwortet gar kein HA. Beides nennen, statt zu raten.
+    if      (code == 401) info = "Token abgelehnt (401) - aber HA antwortet";
+    else if (code == 404) info = "404: Entitaet unbekannt ODER kein HA unter "
+                                 + String(settings.haHost);
     else                  info = "HTTP " + String(code);
     return false;
   }
