@@ -55,7 +55,7 @@ werden bei jedem Dosierauftrag geprüft.
 | GND-12V | Netzteil − | Buck `IN−` | 0,5 mm² | schwarz |
 | C1 | TMC2209 `VMOT` | TMC2209 `GND` | 100 µF / 25 V, **direkt am Modul** | – |
 | +5 V | Buck `OUT+` | D1 Anode | 0,25 mm² | orange |
-| +5 V | D1 Kathode | S3 AMOLED `5V` | 0,25 mm² | orange |
+| +5 V | D1 Kathode | S3 AMOLED `VBUS` (linke Leiste) | 0,25 mm² | orange |
 | +5 V | D1 Kathode | pH-Board `V+` *(nach Messung, s. Abschnitt 5)* | 0,25 mm² | orange |
 | GND | Buck `OUT−` | GND-Sternpunkt | 0,5 mm² | schwarz |
 
@@ -66,9 +66,13 @@ Sie verhindert, dass beim gleichzeitigen Anstecken von USB und Netzteil
 **Strombedarf:** Der S3 mit AMOLED zieht je nach Helligkeit 150–300 mA, dazu
 das pH-Board (~20 mA) und Reserve. **Buck mit mindestens 1 A auslegen.**
 
-> **Vor dem Anlöten prüfen:** An welchem Pad des T-Display S3 AMOLED 5 V
-> eingespeist werden dürfen, steht im Pinout deines Boards. Es hat zusätzlich
-> einen Akkuanschluss mit Ladeelektronik — hier nicht raten.
+**Einspeisepunkt:** Die 5 V gehen auf einen der beiden **`VBUS`**-Pads der
+linken Stiftleiste, GND auf ein `GND`-Pad daneben.
+
+`VBUS` liegt board-intern parallel zur 5-V-Schiene des USB-C-Anschlusses.
+Genau deshalb sitzt **D1** in der Zuleitung: ohne sie würden Netzteil und USB
+gegeneinander arbeiten, sobald beide stecken. Der Akkuanschluss (JST GH
+1,25 mm) bleibt frei — die Ladeelektronik wird nicht gebraucht.
 
 ### 2.2 Masse (Sternpunkt)
 
@@ -195,15 +199,19 @@ die SPI/SD-Variante hätte zusätzlich den Ladechip BQ25896 auf `0x6B`.
 
 | GPIO | Funktion |
 |---|---|
-| 5, 6, 7, 9, 17, 18, 47, 48 | AMOLED QSPI (Daten, SCK, CS, RST, TE) |
-| 2, 3, 21 | Touch CST816T (SCL, SDA, IRQ) |
+| 5, 6, 7, 9, 17, 18, 47, 48 | AMOLED QSPI: D3, CS, D1, TE, RES, D0, CLK, D2 |
+| 8 | TFT_SDO |
+| **2, 3, 21** | **Touch CST816T (SCL, SDA, IRQ)** |
 | 0 | BOOT-Taster, Strapping-Pin |
-| 4 | Akkuspannungsmessung |
-| 38 | PMIC Enable |
+| 4 | Akkuspannungsmessung (BAT ADC) |
+| 38 | grüne LED / PMIC Enable |
 | 19, 20 | USB D− / D+ |
 | 26–37 | Flash und OPI-PSRAM |
-| 43, 44 | UART0 (TX/RX) — freihalten |
 | 45, 46 | Strapping-Pins — freihalten |
+
+> **Achtung, verlockende Falle:** GPIO **2 und 3 sind auf der linken
+> Stiftleiste herausgeführt** und sehen dort frei aus. Bei der Touch-Variante
+> hängt aber der CST816T daran. Wer sie belegt, verliert die Touchbedienung.
 
 ### Für dieses Projekt vorgesehen
 
@@ -217,15 +225,38 @@ die SPI/SD-Variante hätte zusätzlich den Ladechip BQ25896 auf `0x6B`.
 | 15 | Reserve für TMC-UART |
 | 16 | Umwälz-Rückmeldung |
 
-Frei bleiben zusätzlich: **1, 8, 39, 40, 41, 42**.
+**Alle sieben liegen auf der linken Stiftleiste** und sind damit gegen das
+offizielle Pinout bestätigt. Die Leiste führt von oben nach unten:
 
-> **Das ist die offene Stelle im Plan.** GPIO 10–16 sind auf dieser
-> Boardvariante elektrisch frei — bei der SPI/SD-Variante wären 11–14 von der
-> SD-Karte belegt. Ob sie auf deinem Board tatsächlich als Lötpad oder
-> Stiftleiste **herausgeführt** sind, steht nur im Pinout des Boards.
-> Vor dem Löten nachsehen und die tatsächlich verfügbaren Pads durchgeben —
-> dann werden Plan und Firmware darauf angepasst. Bis dahin ist die obige
-> Zuordnung ein begründeter Vorschlag, keine bestätigte Belegung.
+```text
+links:   3V3 · 1 · 2 · 3 · 10 · 11 · 12 · 13 · 14 · 15 · GND · VBUS · VBUS · 16
+rechts:  GND · GND · 46 · 45 · 44 · 43 · 42 · 41 · 40 · GND · GND · 3V3 · 3V3 · 39
+```
+
+Frei bleiben zusätzlich: **1** (links) sowie **39, 40, 41, 42** (rechts).
+`43`/`44` sind UART0 und gleichzeitig der Qwiic-Port, siehe unten.
+
+### Alternative: ADS1115 über den Qwiic-Port
+
+Das Board hat einen **STEMMA-QT/Qwiic-Anschluss** (JST-SH 1,0 mm, 4-polig) mit
+`GND · 3V3 · GPIO43 · GPIO44`. Wer einen ADS1115 mit Qwiic-Buchse hat, spart
+sich damit vier Lötstellen und bekommt Versorgung und Bus in einem Stecker.
+
+Dafür in `Config.h` ändern:
+
+```cpp
+static const uint8_t PIN_I2C_SDA = 43;
+static const uint8_t PIN_I2C_SCL = 44;
+```
+
+Zwei Punkte dazu:
+
+* Die Zuordnung SDA/SCL am Stecker ist die übliche Qwiic-Reihenfolge
+  (GND, 3V3, SDA, SCL) — vor dem ersten Versuch am Board gegenprüfen. Falls
+  nichts gefunden wird, die beiden Pins tauschen.
+* GPIO43/44 sind zugleich UART0 (TXD/RXD). Solange die Konsole über USB-CDC
+  läuft, ist das unkritisch — man verliert nur die serielle Notfallebene über
+  UART0. **Der Standard bleibt deshalb GPIO13/14.**
 
 ---
 

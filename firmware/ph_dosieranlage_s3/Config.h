@@ -13,11 +13,19 @@
 // ---------------------------------------------------------------------------
 // Pinbelegung LilyGo T-Display S3 AMOLED (Variante BOARD_AMOLED_191)
 //
+// Gegen das offizielle Pinout bestaetigt. Linke Stiftleiste von oben:
+//   3V3 . 1 . 2 . 3 . 10 . 11 . 12 . 13 . 14 . 15 . GND . VBUS . VBUS . 16
+// Rechte Stiftleiste von oben:
+//   GND . GND . 46 . 45 . 44 . 43 . 42 . 41 . 40 . GND . GND . 3V3 . 3V3 . 39
+//
 // Vom Board belegt und tabu:
-//   5,6,7,9,17,18,47,48  AMOLED QSPI      2,3,21  Touch CST816T
-//   0 BOOT   4 Akku-ADC   38 PMIC-EN   19,20 USB   26-37 Flash/PSRAM
-//   43,44 UART0          45,46 Strapping
-// Frei bleiben ausserdem: 1, 8, 39, 40, 41, 42
+//   5,6,7,8,9,17,18,47,48  AMOLED QSPI     2,3,21  Touch CST816T
+//   0 BOOT   4 Akku-ADC   38 gruene LED   19,20 USB   26-37 Flash/PSRAM
+//   45,46 Strapping
+// ACHTUNG: 2 und 3 sind zwar herausgefuehrt, haengen aber am Touchcontroller.
+// 5 V werden auf VBUS eingespeist (parallel zur USB-Schiene, daher D1).
+// Frei bleiben ausserdem: 1, 39, 40, 41, 42
+// Alternative fuer den ADS1115: Qwiic-Port GND/3V3/GPIO43/GPIO44
 // ---------------------------------------------------------------------------
 
 // Zweiter I2C-Bus (Wire1) zum ADS1115. Bewusst NICHT der Touchbus:

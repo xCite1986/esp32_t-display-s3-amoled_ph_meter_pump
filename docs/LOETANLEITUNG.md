@@ -158,9 +158,10 @@ darf **nirgends** piepen. Lötbrücken jetzt finden, nicht später.
 angeschlossen) muss an D1-Kathode gegen GND ca. **4,6–4,8 V** liegen
 (5,0 V minus Diodenspannung).
 
-> **Bevor diese Leitung an das Displayboard geht:** im Pinout nachsehen, an
-> welchem Pad 5 V eingespeist werden dürfen. Das Board hat einen
-> Akkuanschluss mit Ladeelektronik — hier nicht raten.
+Die 5 V gehen auf ein **`VBUS`**-Pad der linken Stiftleiste (dort gibt es
+zwei davon, direkt über `GPIO16`). `VBUS` liegt board-intern parallel zur
+5-V-Schiene des USB-C-Anschlusses — genau deshalb sitzt D1 in der Zuleitung.
+Der Akkuanschluss bleibt frei.
 
 ---
 
@@ -175,9 +176,11 @@ Mit 0,25 mm² Litze, möglichst kurz und nicht parallel zu den Motorleitungen:
 | S3 `GPIO10` | TMC2209 `EN` | weiß |
 | S3 `3V3` | TMC2209 `VIO` | rot dünn |
 
-> **Vorher klären:** Ob GPIO 10–16 auf deinem Board herausgeführt sind, steht
-> nur im Pinout. Elektrisch frei sind sie bei dieser Boardvariante —
-> siehe [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 3.
+Alle benötigten Pins liegen auf der **linken Stiftleiste**, von oben nach
+unten: `3V3 · 1 · 2 · 3 · 10 · 11 · 12 · 13 · 14 · 15 · GND · VBUS · VBUS · 16`.
+
+> **Nicht an GPIO 2 und 3 gehen.** Die sehen auf der Leiste frei aus, hängen
+> bei der Touch-Variante aber am CST816T. Wer sie belegt, verliert den Touch.
 
 Dann die drei Ergänzungen am TMC2209-Sockel:
 
@@ -205,6 +208,12 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 3. `SDA` an S3 `GPIO13`, `SCL` an S3 `GPIO14` — das ist der **zweite**
    I²C-Bus (`Wire1`). Der Touchcontroller des Displays hat seinen eigenen
    Bus auf GPIO2/3; der bleibt unangetastet.
+
+   > Hat dein ADS1115 eine **Qwiic-Buchse**, geht es auch ohne diese vier
+   > Lötstellen: Das Board hat einen STEMMA-QT/Qwiic-Port mit GND, 3V3,
+   > GPIO43 und GPIO44. Dann in `Config.h` `PIN_I2C_SDA = 43` und
+   > `PIN_I2C_SCL = 44` setzen — Details in
+   > [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 3.
 4. `ADDR` an `GND` (I²C-Adresse 0x48).
 5. **R2 (10 kΩ)** von KL4 `PO` zum ADS1115-Sockel `A0`.
    Den Widerstand direkt an der Klemme anlöten und die Verbindung zu `A0`
@@ -342,8 +351,8 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 - [ ] Kühlkörper auf dem TMC2209
 - [ ] Sondenkabel getrennt von den Motorleitungen verlegt
 - [ ] Firmware geflasht
-- [ ] GPIO 10–16 am Board als herausgeführt bestätigt
-- [ ] 5-V-Einspeisepunkt am Displayboard anhand des Pinouts bestätigt
+- [ ] Nichts an GPIO 2 oder 3 angeschlossen (Touch!)
+- [ ] 5 V liegen auf `VBUS`, nicht auf `3V3`
 - [ ] Buck-Converter für mindestens 1 A ausgelegt
 - [ ] Spannung am Displayboard unter Last gemessen (> 4,7 V bei laufendem Motor)
 
