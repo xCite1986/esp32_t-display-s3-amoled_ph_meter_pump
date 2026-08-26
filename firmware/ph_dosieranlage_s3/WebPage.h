@@ -130,8 +130,6 @@ button.d{background:var(--err);border-color:var(--err);color:#fff;font-weight:60
       <div><label>Pause/Durchmischung [s]</label><input data-k="pause" type="number" step="10"></div>
       <div><label>Sperre unter pH</label><input data-k="phlock" type="number" step="0.05"></div>
       <div><label>unplausibel ueber pH</label><input data-k="phmax" type="number" step="0.1"></div>
-      <div><label>Umwaelzung erforderlich</label><input data-k="flowreq" type="checkbox"></div>
-      <div><label>Umwaelz-Eingang invertieren</label><input data-k="flowinv" type="checkbox"></div>
     </div>
     <div class="row" style="margin-top:12px"><button class="p" onclick="saveCfg()">Speichern</button></div>
   </section>
@@ -198,7 +196,6 @@ button.d{background:var(--err);border-color:var(--err);color:#fff;font-weight:60
     <div class="kv"><span>Laufzeit</span><b id="up">-</b></div>
     <div class="kv"><span>Netz</span><b id="net">-</b></div>
     <div class="kv"><span>Uhrzeit</span><b id="clk">-</b></div>
-    <div class="kv"><span>Umwaelzung</span><b id="flow">-</b></div>
     <div class="kv"><span>Gesamtmenge</span><b id="tot">-</b></div>
     <div class="kv"><span>Freier Heap</span><b id="heap">-</b></div>
     <div class="row" style="margin-top:12px">
@@ -281,7 +278,6 @@ function refresh(){
     el('up').textContent = fmtDur(s.up);
     el('net').textContent = s.wifi.mode+' '+s.wifi.ip+' ('+s.wifi.rssi+' dBm)';
     el('clk').textContent = s.time;
-    el('flow').textContent = s.flow ? 'OK' : 'fehlt';
     el('tot').textContent = s.dose.total.toFixed(1)+' ml';
     el('heap').textContent = (s.heap/1024).toFixed(1)+' kB';
     el('dispst').textContent = s.disp;

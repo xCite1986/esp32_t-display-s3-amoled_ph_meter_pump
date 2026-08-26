@@ -48,9 +48,6 @@ struct Settings {
   uint8_t nightTo      = 5;        // bis Stunde
   float panelRevs      = 5.0f;     // Umdrehungen pro Touch-Freigabe
 
-  // --- Umwaelzung ---
-  bool  flowRequired   = false;    // Dosierung nur bei aktiver Umwaelzung
-  bool  flowInvert     = false;    // Eingangslogik invertieren
 
   // --- Zaehler (persistent, damit ein Reboot das Tageslimit nicht umgeht) ---
   float    dailyMl     = 0.0f;

@@ -174,18 +174,27 @@ Touchbus aufzubürden hieße, die Bedienbarkeit des Displays von der Qualität d
 Sensorverkabelung abhängig zu machen. Getrennte Busse kosten zwei GPIOs und
 lösen das Problem vollständig.
 
-### 2.6 Optional: Umwälz-Rückmeldung
+### 2.6 Umwälzung
 
-| S3 AMOLED | Nach | Bemerkung |
-|---|---|---|
-| GPIO16 | potenzialfreier Kontakt | zweite Seite des Kontakts an GND |
+Es gibt **keinen** verdrahteten Rückmelde-Eingang. Statt einen
+Strömungswächter anzuschließen, wird die Anlage an denselben geschalteten
+Stromkreis wie die Umwälzpumpe gehängt:
 
-Der Pin ist in der Firmware mit internem Pull-up konfiguriert.
-Standard: **Kontakt geschlossen = Umwälzung läuft**. Über `set flowinv 1`
-lässt sich die Logik umdrehen, aktiviert wird sie mit `set flowreq 1`.
+```text
+Zeitschaltung / Shelly der Poolpumpe
+        │
+        ├──> Umwälzpumpe
+        └──> 12-V-Netzteil der Dosieranlage
+```
 
-Es darf **keine Netzspannung** an GPIO16 gelangen — nur ein potenzialfreier
-Relais- oder Strömungswächterkontakt.
+Damit kann die Anlage **physisch nicht** in stehendes Wasser dosieren — kein
+Kontakt, keine Leitung, keine Software, die versagen könnte. Der Preis ist,
+dass die Messung nur läuft, während die Pumpe läuft; für die Regelung ist das
+kein Nachteil, weil ohne Umwälzung ohnehin nicht dosiert werden darf.
+
+> Wird die Anlage dauerhaft versorgt, muss die Umwälzung anders sichergestellt
+> werden — etwa über eine Automation, die den Sollwert-Betrieb außerhalb der
+> Pumpenzeiten abschaltet.
 
 ---
 
@@ -223,7 +232,6 @@ die SPI/SD-Variante hätte zusätzlich den Ladechip BQ25896 auf `0x6B`.
 | 13 | ADS1115 `SDA` (Wire1) |
 | 14 | ADS1115 `SCL` (Wire1) |
 | 15 | Reserve für TMC-UART |
-| 16 | Umwälz-Rückmeldung |
 
 **Alle sieben liegen auf der linken Stiftleiste** und sind damit gegen das
 offizielle Pinout bestätigt. Die Leiste führt von oben nach unten:
@@ -233,7 +241,8 @@ links:   3V3 · 1 · 2 · 3 · 10 · 11 · 12 · 13 · 14 · 15 · GND · VBUS �
 rechts:  GND · GND · 46 · 45 · 44 · 43 · 42 · 41 · 40 · GND · GND · 3V3 · 3V3 · 39
 ```
 
-Frei bleiben zusätzlich: **1** (links) sowie **39, 40, 41, 42** (rechts).
+Frei bleiben zusätzlich: **1** und **16** (links) sowie
+**39, 40, 41, 42** (rechts).
 `43`/`44` sind UART0 und gleichzeitig der Qwiic-Port, siehe unten.
 
 ### Alternative: ADS1115 über den Qwiic-Port

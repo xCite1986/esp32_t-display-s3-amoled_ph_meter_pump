@@ -257,7 +257,7 @@ Vor dem ersten unbeaufsichtigten Lauf:
 - [ ] Wasser im System durch pH-Minus ersetzt, Leitungen entlüftet
 - [ ] Rückschlagventil am Einspritzpunkt montiert
 - [ ] Säurebehälter tiefer als die Pumpe
-- [ ] Umwälz-Rückmeldung verdrahtet und `set flowreq 1` gesetzt
+- [ ] Anlage hängt am selben geschalteten Stromkreis wie die Umwälzpumpe
       (sonst kann in stehendes Wasser dosiert werden)
 - [ ] Tagesmenge konservativ eingestellt
 - [ ] Web-Login gesetzt
@@ -313,8 +313,8 @@ begrenzen jede Benutzereingabe:
 Zusätzlich gilt immer:
 
 * Ohne gültige Kalibrierung lässt sich die Automatik nicht einschalten.
-* Bei Sensorfehler, instabilem Messwert oder fehlender Umwälzung (sofern
-  aktiviert) wird nicht dosiert — eine laufende Dosierung wird abgebrochen.
+* Bei Sensorfehler oder instabilem Messwert wird nicht dosiert — ein
+  Not-Halt bricht eine laufende Dosierung sofort ab.
 * Tages- und Gesamtmenge liegen im nichtflüchtigen Speicher; ein Neustart
   umgeht das Tageslimit nicht.
 * Während eines OTA-Updates wird der Treiber zwangsweise abgeschaltet.

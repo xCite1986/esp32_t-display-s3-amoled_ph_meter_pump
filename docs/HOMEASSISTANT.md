@@ -33,11 +33,11 @@ Beispielantwort (gekürzt):
 
 ```json
 {
-  "fw": "1.0.0", "up": 84213,
+  "fw": "2.0.0", "up": 84213,
   "ph": 7.31, "phValid": true, "phStatus": "OK", "stable": true,
   "volt": 1.71234, "raw": 14021, "slope": -238.4,
   "state": "Bereit", "locks": "Sollwert erreicht", "lockBits": 2048,
-  "auto": true, "estop": false, "fault": false, "flow": true,
+  "auto": true, "estop": false, "fault": false,
   "pump": { "run": false, "ml": 0.0, "target": 0.0 },
   "dose": { "today": 12.5, "remain": 47.5, "count": 4, "last": 3.0,
             "pauseS": 280, "total": 312.4 },
@@ -137,9 +137,9 @@ in YAML:
   über 80 % der eingestellten Tagesmenge. Das ist ein Hinweis auf eine
   driftende Sonde oder ein hydraulisches Problem, nicht auf normalen Betrieb.
 * **Automatik an Poolpumpe koppeln** — wenn die Umwälzpumpe aus ist,
-  `ph_automatik` mit `on: 0` aufrufen. Sauberer ist allerdings die
-  Hardware-Rückmeldung an GPIO1 (`set flowreq 1`), weil die dann auch
-  ohne Home Assistant wirkt.
+  `ph_automatik` mit `on: 0` aufrufen. Robuster ist allerdings, die Anlage
+  gleich an denselben geschalteten Stromkreis wie die Pumpe zu hängen: das
+  wirkt auch dann, wenn Home Assistant gerade nicht läuft.
 
 **Bewusst nicht empfohlen:** eine Automation, die zyklisch `ph_dosieren`
 aufruft. Die Dosierlogik samt Wartezeiten und Tageslimit gehört in die

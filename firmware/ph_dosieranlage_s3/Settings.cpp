@@ -102,8 +102,6 @@ void Settings::load() {
   phMinLock  = prefs.getFloat("phlock", 6.80f);
   phMaxPlaus = prefs.getFloat("phmax", 9.50f);
 
-  flowRequired = prefs.getBool("flowreq", false);
-  flowInvert   = prefs.getBool("flowinv", false);
 
   dailyMl    = prefs.getFloat("dml", 0.0f);
   dayStamp   = prefs.getULong("dstamp", 0);
@@ -153,8 +151,6 @@ void Settings::save() {
   prefs.putFloat("phlock", phMinLock);
   prefs.putFloat("phmax", phMaxPlaus);
 
-  prefs.putBool("flowreq", flowRequired);
-  prefs.putBool("flowinv", flowInvert);
 
   prefs.putFloat("dml", dailyMl);
   prefs.putULong("dstamp", dayStamp);

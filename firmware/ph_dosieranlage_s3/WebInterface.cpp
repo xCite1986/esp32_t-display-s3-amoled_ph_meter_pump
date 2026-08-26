@@ -115,7 +115,6 @@ String WebInterface::statusJson() const {
   j += ",\"auto\":" + jbool(s.autoEnabled);
   j += ",\"estop\":" + jbool(controller.estopActive());
   j += ",\"fault\":" + jbool(pump.timeoutFault());
-  j += ",\"flow\":" + jbool(controller.flowOk());
   j += ",\"disp\":" + jstr(uiStateText());
 
   j += ",\"pump\":{\"run\":" + jbool(pump.running()) +
@@ -157,8 +156,6 @@ String WebInterface::statusJson() const {
   j += ",\"pause\":" + String(s.pauseS);
   j += ",\"phlock\":" + jnum(s.phMinLock, 2);
   j += ",\"phmax\":" + jnum(s.phMaxPlaus, 2);
-  j += ",\"flowreq\":" + jbool(s.flowRequired);
-  j += ",\"flowinv\":" + jbool(s.flowInvert);
   j += ",\"spml\":" + jnum(s.stepsPerMl, 1);
   j += ",\"sprev\":" + jnum(s.stepsPerRev, 0);
   j += ",\"prevs\":" + jnum(s.panelRevs, 0);
@@ -350,8 +347,6 @@ void WebInterface::setupRoutes() {
     s.pauseS      = (uint32_t)argI("pause", s.pauseS);
     s.phMinLock   = argF("phlock", s.phMinLock);
     s.phMaxPlaus  = argF("phmax", s.phMaxPlaus);
-    s.flowRequired= argB("flowreq", s.flowRequired);
-    s.flowInvert  = argB("flowinv", s.flowInvert);
 
     s.stepsPerMl  = argF("spml", s.stepsPerMl);
     s.stepsPerRev = argF("sprev", s.stepsPerRev);

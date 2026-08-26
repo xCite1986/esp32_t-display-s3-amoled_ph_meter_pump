@@ -24,7 +24,7 @@
 //   45,46 Strapping
 // ACHTUNG: 2 und 3 sind zwar herausgefuehrt, haengen aber am Touchcontroller.
 // 5 V werden auf VBUS eingespeist (parallel zur USB-Schiene, daher D1).
-// Frei bleiben ausserdem: 1, 39, 40, 41, 42
+// Frei bleiben ausserdem: 1, 16, 39, 40, 41, 42
 // Alternative fuer den ADS1115: Qwiic-Port GND/3V3/GPIO43/GPIO44
 // ---------------------------------------------------------------------------
 
@@ -40,8 +40,6 @@ static const uint8_t PIN_DIR     = 12;
 static const uint8_t PIN_EN      = 10;  // LOW = Treiber aktiv (active low!)
 static const uint8_t PIN_TMC_PDN = 15;  // reserviert fuer spaeteres UART
 
-// Rueckmeldung Umwaelzung / Durchflussschalter (optional, per Settings aktivierbar)
-static const uint8_t PIN_FLOW    = 16;
 
 // ---------------------------------------------------------------------------
 // ADS1115

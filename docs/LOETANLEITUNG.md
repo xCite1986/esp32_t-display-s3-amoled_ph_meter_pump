@@ -58,7 +58,7 @@ insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
 | 3 | Buchsenleiste 1×8 (für TMC2209) | 2 |
 | 4 | Buchsenleiste 1×10 (für ADS1115) | 1 |
 | 5 | Schraubklemme 2-polig, RM 5,0 (12 V, Motor) | 3 |
-| 6 | Schraubklemme 3-polig, RM 3,5 (pH-Board, Flow) | 2 |
+| 6 | Schraubklemme 3-polig, RM 3,5 (pH-Board, Reserve) | 2 |
 | 7 | Elko 100 µF / 25 V, low ESR (**C1**) | 1 |
 | 8 | Widerstand 10 kΩ (**R1**, EN-Pull-up) | 1 |
 | 9 | Widerstand 10 kΩ (**R2**, Schutz vor A0) | 1 |
@@ -104,7 +104,7 @@ Zusätzlich (siehe Abschnitt 12):
    * KL2 (2-polig, RM 5,0): Motor Spule 1
    * KL3 (2-polig, RM 5,0): Motor Spule 2
    * KL4 (3-polig, RM 3,5): pH-Board (V+, G, PO)
-   * KL5 (3-polig, RM 3,5): Umwälz-Rückmeldung + Reserve
+   * KL5 (3-polig, RM 3,5): Reserve
    * KL6 (6-polig oder Stiftleiste): Leitung zum Displayboard
      (5 V, GND, 3V3, STEP, DIR, EN, SDA, SCL — Aufteilung nach Platzangebot)
 5. **GND-Sternpunkt** anlegen: ein kräftiger Lötpunkt (oder ein 2-poliger

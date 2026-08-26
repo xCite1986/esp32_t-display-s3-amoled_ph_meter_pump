@@ -26,7 +26,6 @@ enum LockBits : uint16_t {
   LK_PH_HIGH    = 1 << 5,   // pH unplausibel hoch
   LK_DAILY_MAX  = 1 << 6,   // Tagesmenge erschoepft
   LK_PAUSE      = 1 << 7,   // Mindestpause laeuft noch
-  LK_NO_FLOW    = 1 << 8,   // keine Umwaelzung
   LK_PUMP_FAULT = 1 << 9,   // Pumpen-Laufzeitfehler
   LK_ESTOP      = 1 << 10,  // manueller Not-Halt aktiv
   LK_AT_TARGET  = 1 << 11   // Sollwert erreicht (kein Fehler)
@@ -52,7 +51,6 @@ class PHController {
   void clearFault();
   bool estopActive() const { return estop_; }
 
-  bool  flowOk() const;
   float dailyMl() const;
   float dailyRemainingMl() const;
   uint32_t secondsSinceLastDose() const;

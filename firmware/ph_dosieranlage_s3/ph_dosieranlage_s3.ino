@@ -69,7 +69,7 @@ static void printHelp() {
     "  calreset              Kalibrierung verwerfen\n"
     "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax spml\n"
     "                        sprev prevs srate sacc gain invdir hold\n"
-    "                        flowreq flowinv stby shft nite nfrom nto\n"
+    "                        stby shft nite nfrom nto\n"
     "  wifi <ssid> <pass>    WLAN speichern und neu starten\n"
     "  ap                    WLAN verwerfen, Einrichtungs-AP oeffnen\n"
     "  wake                  Display aufwecken\n"
@@ -134,8 +134,6 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "gain")    s.adcGain     = (uint8_t)i;
   else if (key == "invdir")  s.invertDir   = b;
   else if (key == "hold")    s.holdEnabled = b;
-  else if (key == "flowreq") s.flowRequired= b;
-  else if (key == "flowinv") s.flowInvert  = b;
   else if (key == "stby")    s.standbyS    = (uint16_t)i;
   else if (key == "shft")    s.shiftS      = (uint16_t)i;
   else if (key == "nite")    s.nightEnabled= b;

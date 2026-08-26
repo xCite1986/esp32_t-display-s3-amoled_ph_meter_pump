@@ -118,8 +118,12 @@ max. 20 ml Einzeldosis · max. 500 ml/Tag · max. 180 s Pumpenlauf am Stück ·
 min. 60 s Pause · nie unter pH 6,20 · gültiger pH nur zwischen 3,00 und 11,00.
 
 Die Automatik lässt sich ohne gültige Kalibrierung nicht einschalten.
-Sensorfehler, instabiler Messwert, fehlende Umwälzung oder Not-Halt brechen
-eine laufende Dosierung ab. Tages- und Gesamtmenge überleben einen Neustart.
+Sensorfehler, instabiler Messwert oder Not-Halt verhindern beziehungsweise
+brechen eine Dosierung ab. Tages- und Gesamtmenge überleben einen Neustart.
+
+Für die Umwälzung gibt es bewusst keinen verdrahteten Eingang: Die Anlage
+hängt am selben geschalteten Stromkreis wie die Poolpumpe und kann dadurch
+physisch nicht in stehendes Wasser dosieren.
 
 ---
 

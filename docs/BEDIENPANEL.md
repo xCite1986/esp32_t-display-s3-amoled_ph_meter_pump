@@ -27,7 +27,6 @@ volle Pruefkette:
 * maximale Einzeldosis (Benutzer **und** harte Grenze)
 * verbleibende Tagesmenge
 * pH-Sperrschwelle, sofern ein gültiger Messwert vorliegt
-* Umwälzung, falls aktiviert
 * Not-Halt, Pumpenstörung, laufende Pumpe
 
 Die Freigabe geht bewusst über `manualDose()` und **nicht** über den

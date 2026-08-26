@@ -9,7 +9,6 @@
 PHController controller;
 
 void PHController::begin() {
-  pinMode(PIN_FLOW, INPUT_PULLUP);
   dayWindowStartMs_ = millis();
   memset(doseLog_, 0, sizeof(doseLog_));
   loadDoseLog();
@@ -85,12 +84,6 @@ void PHController::checkDayRollover() {
   }
 }
 
-bool PHController::flowOk() const {
-  if (!settings.flowRequired) return true;
-  bool level = digitalRead(PIN_FLOW);           // Pullup: offen = HIGH
-  return settings.flowInvert ? level : !level;  // Default: Kontakt geschlossen = OK
-}
-
 float PHController::dailyMl() const { return settings.dailyMl; }
 
 float PHController::dailyRemainingMl() const {
@@ -132,7 +125,6 @@ uint16_t PHController::evaluateLocks() {
 
   if (dailyRemainingMl() <= 0.001f) l |= LK_DAILY_MAX;
   if (pauseRemainingS() > 0)        l |= LK_PAUSE;
-  if (!flowOk())                    l |= LK_NO_FLOW;
 
   return l;
 }
@@ -167,9 +159,9 @@ void PHController::tick() {
 
   if (pump.running()) {
     state_ = ST_DOSING;
-    // Laufende Ueberwachung waehrend der Dosierung: Not-Halt oder wegfallende
-    // Umwaelzung brechen sofort ab. Ein reiner Servicelauf ist davon ausgenommen.
-    if (!serviceRun_ && (locks_ & (LK_ESTOP | LK_NO_FLOW))) {
+    // Laufende Ueberwachung waehrend der Dosierung: ein Not-Halt bricht sofort
+    // ab. Ein reiner Servicelauf ist davon ausgenommen.
+    if (!serviceRun_ && (locks_ & LK_ESTOP)) {
       float done = pump.mlDone();
       pump.stop();
       lastDoseEndMs_ = millis();
@@ -196,7 +188,7 @@ void PHController::tick() {
 
   // --- Automatikentscheidung ---
   const uint16_t hardBlock = LK_ESTOP | LK_PUMP_FAULT | LK_SENSOR | LK_NO_CALIB |
-                             LK_UNSTABLE | LK_PH_LOW | LK_PH_HIGH | LK_NO_FLOW |
+                             LK_UNSTABLE | LK_PH_LOW | LK_PH_HIGH |
                              LK_DAILY_MAX;
   const uint16_t softBlock = LK_AUTO_OFF | LK_PAUSE | LK_AT_TARGET;
 
@@ -224,7 +216,6 @@ bool PHController::manualDose(float ml, String &err) {
   if (ml > HARD_MAX_SINGLE_DOSE_ML) { err = "ueber harte Sicherheitsgrenze"; return false; }
   checkDayRollover();
   if (ml > dailyRemainingMl())      { err = "Tagesmenge reicht nicht mehr"; return false; }
-  if (!flowOk())                    { err = "keine Umwaelzung"; return false; }
 
   // Liegt ein gueltiger Messwert vor, gilt die pH-Sperre auch manuell.
   if (phMeas.valid() && phMeas.ph() < settings.phMinLock) {
@@ -307,7 +298,6 @@ String PHController::lockText() const {
     { LK_PH_HIGH,    "pH unplausibel hoch" },
     { LK_DAILY_MAX,  "Tagesmenge erreicht" },
     { LK_PAUSE,      "Mindestpause laeuft" },
-    { LK_NO_FLOW,    "keine Umwaelzung" },
     { LK_AT_TARGET,  "Sollwert erreicht" },
   };
   for (const LockName &m : map) {
