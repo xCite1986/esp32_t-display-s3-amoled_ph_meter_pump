@@ -1,5 +1,5 @@
 // Config.h - Pinbelegung, harte Sicherheitsgrenzen, Konstanten
-// Projekt: Automatische pH-Minus-Dosieranlage (ESP32-C3 Super Mini)
+// Projekt: Automatische pH-Minus-Dosieranlage (LilyGo T-Display S3 AMOLED)
 #pragma once
 
 #include <Arduino.h>

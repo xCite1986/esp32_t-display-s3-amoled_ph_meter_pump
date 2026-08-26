@@ -1,4 +1,4 @@
-# flash.ps1 - compilieren und auf den ESP32-C3 an COM3 uebertragen
+# flash.ps1 - compilieren und auf das T-Display S3 AMOLED an COM6 uebertragen
 #   .\scripts\flash.ps1                 -> Hauptfirmware
 #   .\scripts\flash.ps1 -Sketch i2c     -> Phase-1-Test
 #   .\scripts\flash.ps1 -Sketch motor   -> Phase-2-Test
@@ -32,7 +32,7 @@ Write-Host "Uebertrage auf $dest" -ForegroundColor Cyan
 & $cli upload -p $dest --fqbn $Fqbn $path
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Upload fehlgeschlagen. Falls der Port belegt ist: seriellen Monitor schliessen." -ForegroundColor Yellow
-    Write-Host "Notfalls den ESP32-C3 in den Bootloader zwingen: BOOT halten, RESET tippen, BOOT loslassen." -ForegroundColor Yellow
+    Write-Host "Notfalls den S3 in den Bootloader zwingen: BOOT halten, RESET tippen, BOOT loslassen." -ForegroundColor Yellow
     throw "Upload fehlgeschlagen"
 }
 Write-Host "Fertig. Monitor starten mit: .\scripts\monitor.ps1" -ForegroundColor Green

@@ -4,6 +4,15 @@ LilyGo T-Display S3 AMOLED · ADS1115 · pH-Signalboard · TMC2209 · NEMA17 · 
 
 Umsetzung des Vorhabens aus [ph_minus_dosieranlage_entwicklung.md](ph_minus_dosieranlage_entwicklung.md).
 
+> Jenes Dokument ist die **ursprüngliche Projektbeschreibung** und unverändert
+> erhalten. Es geht noch von einem ESP32-C3 Super Mini plus separatem Display
+> aus — diese Aufteilung wurde später zugunsten eines einzigen Geräts
+> aufgegeben. Verbindlich für den Aufbau sind
+> [docs/SCHALTPLAN.md](docs/SCHALTPLAN.md) und
+> [docs/LOETANLEITUNG.md](docs/LOETANLEITUNG.md).
+> Dosierprinzip, Sicherheitsgrundsätze und Roadmap der Beschreibung gelten
+> unverändert.
+
 **Ein Gerät für alles:** Das T-Display S3 AMOLED misst den pH-Wert, regelt,
 treibt die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
 Webserver.
