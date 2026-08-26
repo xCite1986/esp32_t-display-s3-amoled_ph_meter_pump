@@ -41,8 +41,18 @@ if ($Password) { $args += @("-a",$Password) }
 
 Write-Host "Uebertrage per OTA an $Target" -ForegroundColor Cyan
 Write-Host "Falls Windows nach einer Firewall-Freigabe fragt: zulassen." -ForegroundColor Yellow
-& $espota @args
-if ($LASTEXITCODE -ne 0) {
+
+# espota schreibt seinen Fortschritt auf stderr. Mit ErrorActionPreference
+# "Stop" aus acli.ps1 wuerde PowerShell das als Abbruch werten, obwohl die
+# Uebertragung laeuft - also hier gezielt aussetzen und nur den Exitcode
+# auswerten.
+$prev = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+& $espota @args 2>&1 | ForEach-Object { Write-Host $_ }
+$rc = $LASTEXITCODE
+$ErrorActionPreference = $prev
+
+if ($rc -ne 0) {
     Write-Host "" -ForegroundColor Yellow
     Write-Host "Bleibt es bei 'No response from device', blockt die Firewall den" -ForegroundColor Yellow
     Write-Host "Rueckkanal. Freigabe fuer diese Datei setzen:" -ForegroundColor Yellow

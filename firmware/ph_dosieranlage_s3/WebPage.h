@@ -86,6 +86,9 @@ code{color:var(--yel)}
     <div class="kv"><span>ADC roh</span><b id="raw">-</b></div>
     <div class="kv"><span>Steilheit</span><b id="slope">-</b></div>
     <div class="kv"><span>Sperren</span><b id="locks">-</b></div>
+    <div class="row" style="margin-top:14px">
+      <button onclick="post('/api/i2c/scan')">I&sup2;C scannen</button>
+    </div>
   </section>
 
   <section class="card">

@@ -8,6 +8,7 @@
 #include "Circulation.h"
 #include "Config.h"
 
+#include <Wire.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
@@ -270,6 +271,30 @@ void WebInterface::setupRoutes() {
       reply(true, String(n, 1) + " Umdr. = " + String(ml, 2) + " ml");
     else
       reply(false, err + " (" + String(ml, 2) + " ml)");
+  });
+
+  // I2C-Bus des ADS1115 scannen. Bei der Inbetriebnahme haengt das Geraet oft
+  // schon im Netz, aber kein USB-Kabel mehr dran - dann ist das hier der
+  // einzige Weg, zwischen "nichts da" und "falsche Adresse" zu unterscheiden.
+  server.on("/api/i2c/scan", HTTP_POST, [this]() {
+    if (!guard()) return;
+    String found;
+    uint8_t n = 0;
+    for (uint8_t a = 1; a < 127; a++) {
+      Wire1.beginTransmission(a);
+      if (Wire1.endTransmission() == 0) {
+        char buf[8];
+        snprintf(buf, sizeof(buf), "0x%02X", a);
+        if (n) found += ", ";
+        found += buf;
+        n++;
+      }
+    }
+    if (!n) reply(false, String("nichts gefunden auf SDA=GPIO") + PIN_I2C_SDA +
+                        " SCL=GPIO" + PIN_I2C_SCL +
+                        " - Verdrahtung, Versorgung oder Chip defekt");
+    else    reply(true, String(n) + " Geraet(e): " + found +
+                        "  (erwartet 0x48)");
   });
 
   // Einmalige Abfrage der Entitaet - fuer die Einrichtung
