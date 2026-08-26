@@ -5,7 +5,7 @@
 #   .\scripts\flash.ps1 -Port COM5      -> anderer Port
 param(
     [string]$Sketch = "main",
-    [string]$Port   = "COM3"
+    [string]$Port   = "COM6"
 )
 
 $TargetPort = $Port          # vor dem Dot-Sourcing sichern, sonst
@@ -13,7 +13,7 @@ $TargetPort = $Port          # vor dem Dot-Sourcing sichern, sonst
 . "$PSScriptRoot\acli.ps1"
 
 $path = switch ($Sketch) {
-    "main"  { Join-Path $Root "firmware\ph_dosieranlage" }
+    "main"  { Join-Path $Root "firmware\ph_dosieranlage_s3" }
     "i2c"   { Join-Path $Root "tools\i2c_adc_test" }
     "motor" { Join-Path $Root "tools\motor_test" }
     default { throw "Unbekannter Sketch '$Sketch' (main | i2c | motor)" }
@@ -23,7 +23,9 @@ $cli  = Get-ArduinoCli
 $dest = Get-EspPort -Preferred $TargetPort
 
 Write-Host "Compiliere $path" -ForegroundColor Cyan
-& $cli compile --fqbn $Fqbn $path
+# --jobs 1 ist Absicht: die parallele Bibliothekserkennung von arduino-cli
+# bleibt bei diesem Bibliothekssatz haengen (siehe docs/BEDIENPANEL.md).
+& $cli compile --jobs 1 --fqbn $Fqbn $path
 if ($LASTEXITCODE -ne 0) { throw "Compile fehlgeschlagen" }
 
 Write-Host "Uebertrage auf $dest" -ForegroundColor Cyan

@@ -9,17 +9,20 @@ Motorumdrehungen per Touch — mit Rückfrage.
 ## 1. Architektur
 
 ```text
-┌─────────────────────────┐         WLAN          ┌──────────────────────────┐
-│  T-Display S3 AMOLED    │  HTTP/JSON            │  ESP32-C3 Super Mini     │
-│  Anzeige + Touch        │ ────────────────────> │  Messung, Regelung,      │
-│  KEINE Dosierlogik      │  GET  /api/status     │  Sicherheitsgrenzen,     │
-│                         │  POST /api/dose/revs  │  Pumpenansteuerung       │
-└─────────────────────────┘                       └──────────────────────────┘
+┌──────────────────────────── T-Display S3 AMOLED ────────────────────────────┐
+│  PanelUi (LVGL)  ──liest──>  PHMeasurement · PHController · StepperPump     │
+│  Touch  ──manualDose()──>    dieselbe Pruefkette wie das Webinterface       │
+│  WebInterface    ──dieselben Objekte, dieselbe Mengenbilanz                 │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Das Panel ist bewusst **dumm**. Es fragt nur ab und stellt Anträge. Jede
-Dosieranforderung läuft auf der Anlage durch dieselbe Prüfkette wie eine
-manuelle Dosierung über das Webinterface:
+Display, Touch, Messung und Regelung laufen auf **einem** Chip. Die Oberfläche
+liest die Werte direkt aus den Modulen der Firmware — es gibt keinen
+Netzwerkweg zwischen Anzeige und Regelung.
+
+Ein Tipp auf das Display löst nicht selbst eine Dosierung aus, sondern ruft
+dieselbe Funktion auf wie das Webinterface. Damit gilt fuer jede Freigabe die
+volle Pruefkette:
 
 * maximale Einzeldosis (Benutzer **und** harte Grenze)
 * verbleibende Tagesmenge
@@ -27,28 +30,29 @@ manuelle Dosierung über das Webinterface:
 * Umwälzung, falls aktiviert
 * Not-Halt, Pumpenstörung, laufende Pumpe
 
-**Konsequenz:** Ein Absturz, ein Fehlbedienung oder ein kompromittiertes Panel
-kann keine Überdosierung auslösen. Fällt das Panel aus, dosiert die Anlage
-unverändert weiter. Fällt die Anlage aus, zeigt das Panel „offline" und der
-Knopf ist gesperrt.
+Die Freigabe geht bewusst über `manualDose()` und **nicht** über den
+Servicelauf `/api/pump/run`. Letzterer ist für die Pumpenkalibrierung gedacht,
+verbucht keine Menge und prüft keine pH-Sperre — als Bedientaste wäre das ein
+Loch in der Mengenbilanz.
 
-Deshalb läuft die Freigabe auch über `/api/dose/revs` und **nicht** über
-`/api/pump/run`. Letzteres ist der Servicelauf für die Pumpenkalibrierung —
-der verbucht keine Menge und prüft keine pH-Sperre. Für eine Bedientaste wäre
-das ein Loch in der Mengenbilanz.
+> **Was das kostet:** Weil beides auf demselben Chip läuft, kann eine hängende
+> Oberfläche die Regelung mitreißen. Dagegen stehen die nicht blockierende
+> Schrittausgabe (die Dosiermenge bleibt exakt) und der EN-Pullup, der den
+> Treiber bei jedem Reset stromlos hält.
 
 ---
 
 ## 2. Hardware
 
-Nichts zu löten. Das Panel hängt nur an USB-C (oder einem 5-V-Netzteil) und
-kommuniziert über WLAN.
+Display und Touch sind auf dem Board integriert — dafür ist nichts zu löten.
+Verdrahtet werden nur Versorgung, ADS1115 und TMC2209, siehe
+[SCHALTPLAN.md](SCHALTPLAN.md).
 
 | | |
 |---|---|
-| Board | LilyGo T-Display S3 AMOLED, 536 × 240, Touch |
-| Versorgung | USB-C, ca. 150 mA |
-| Verbindung | WLAN 2,4 GHz, gleiches Netz wie die Dosieranlage |
+| Board | LilyGo T-Display S3 AMOLED, 536 × 240, Touch (`BOARD_AMOLED_191`) |
+| Versorgung | 5 V aus dem Buck-Converter (min. 1 A gesamt) oder USB-C |
+| Netz | WLAN 2,4 GHz; ohne Verbindung öffnet sich ein Einrichtungs-AP |
 
 ---
 
@@ -172,31 +176,41 @@ greift der Cache.
 ## 5. Flashen
 
 ```bash
-powershell -File scripts/flash-panel.ps1
+powershell -File scripts/flash.ps1
 ```
 
 ```bash
-powershell -File scripts/monitor.ps1 -Port COM6
+powershell -File scripts/monitor.ps1
 ```
 
-Der C3 der Dosieranlage hängt an COM3, das Panel an COM6.
+Board und Port stehen in `scripts/acli.ps1`: ESP32-S3 Dev Module an COM6.
 
 ---
 
 ## 6. Einrichten
 
-In der seriellen Konsole des Panels (115200 Baud):
+Ohne gespeicherte Zugangsdaten — oder wenn die Verbindung scheitert — öffnet
+die Anlage einen **Access Point mit vollem Webinterface**:
 
 ```text
-wifi <SSID> <Passwort>      WLAN speichern, Panel startet neu
-host ph-dosierung.local     Adresse der Anlage (Standard)
-auth <user> <pass>          nur nötig, wenn die Anlage ein Web-Login hat
-revs 5                      Umdrehungen pro Freigabe
-status                      Verbindung und aktuelle Werte prüfen
+WLAN     pH-Dosieranlage
+Passwort dosier1234
+Browser  http://192.168.4.1
 ```
 
-Falls mDNS im Netz nicht zuverlässig ist, statt des Namens die feste IP der
-Anlage eintragen — und im Router eine DHCP-Reservierung setzen.
+Dort unter *Netzwerk* das Heim-WLAN eintragen. Danach ist die Anlage unter
+`http://ph-dosierung.local/` erreichbar.
+
+Alternativ über die serielle Konsole (115200 Baud):
+
+```text
+wifi <SSID> <Passwort>   WLAN speichern und neu starten
+ap                       WLAN verwerfen, zurueck in den Einrichtungs-AP
+status                   Uebersicht inkl. Anzeigezustand
+```
+
+Der ESP32-S3 kann wie jeder ESP32 **nur 2,4 GHz** — ein reines 5-GHz-Netz
+sieht er nicht.
 
 ---
 
@@ -214,14 +228,28 @@ Anlage eintragen — und im Router eine DHCP-Reservierung setzen.
 
 **Dosieren**
 
-1. Irgendwo auf das Display tippen (oder auf den Knopf) → Rückfrage erscheint
-   mit der Umrechnung „5 Umdrehungen ≈ X ml".
-2. **FREIGEBEN** antippen → die Anfrage geht an die Anlage.
+1. Irgendwo auf das Display tippen → Rückfrage erscheint mit der Umrechnung
+   „5 Umdrehungen ≈ X ml".
+2. **FREIGEBEN** antippen → die Dosierung wird angefordert.
 3. Die Antwort erscheint als Einblendung — entweder die dosierte Menge oder
-   der Ablehnungsgrund im Klartext, z. B. „ueber max. Einzeldosis (10.00 ml)".
+   der Ablehnungsgrund im Klartext, z. B. „ueber max. Einzeldosis".
 
-Der Dialog schließt sich nach 12 Sekunden ohne Eingabe von selbst. Während die
-Pumpe läuft oder das Panel offline ist, ist der Knopf gesperrt.
+Der Dialog schließt sich nach 12 Sekunden ohne Eingabe von selbst.
+
+### Anzeigezustände
+
+| Zustand | Wann | Was zu sehen ist |
+|---|---|---|
+| **aktiv** | nach einer Berührung | volle Helligkeit, pH ~136 px, 24-h-Menge, Zustand, Sperrgründe |
+| **Standby** | nach der eingestellten Zeit ohne Berührung | nur der pH-Wert, gedimmt, ~102 px, wandert |
+| **Nacht** | im eingestellten Zeitfenster | Display komplett dunkel |
+
+Eine Berührung weckt immer auf — **dieser erste Tipp löst bewusst nichts aus**,
+er weckt nur. Während einer laufenden Dosierung bleibt die Anzeige wach.
+
+Zeiten im Webinterface unter *Anzeige*: Standby-Zeit, Wanderintervall,
+Nachtfenster von/bis, Umdrehungen pro Freigabe. Der Nachtmodus greift nur bei
+gültiger Uhrzeit — ohne NTP bleibt es beim Standby.
 
 ---
 
@@ -260,17 +288,19 @@ Die harte Obergrenze von 20 ml pro Einzeldosis bleibt in jedem Fall bestehen.
 
 Ein statisches Bild über Monate brennt sich in ein AMOLED ein. Deshalb:
 
-* Nach 60 s ohne Berührung dimmt das Display auf ca. 10 % Helligkeit.
-  Eine Berührung weckt es wieder — **dieser erste Tipp löst bewusst nichts
-  aus**, er weckt nur.
-* Der gesamte Inhalt wandert alle 90 s um wenige Pixel.
-* Hintergrund ist echtes Schwarz (am AMOLED sind das ausgeschaltete Pixel:
-  kein Einbrennen, weniger Strom).
+* Im Standby läuft die Helligkeit auf ca. 18 %, und es bleibt nur der pH-Wert
+  stehen — alles andere wird ausgeblendet.
+* Dieser Wert **wandert** im eingestellten Intervall über sechs verteilte
+  Positionen der Anzeigefläche, nicht nur um ein paar Pixel. Dafür ist er im
+  Standby etwas kleiner (3× statt 4×), damit überhaupt Platz zum Wandern ist.
+* Nachts geht das Display ganz aus.
+* Der Hintergrund ist echtes Schwarz — am AMOLED sind das ausgeschaltete
+  Pixel: kein Einbrennen, weniger Strom.
 
 ---
 
 ## 10. Zusammenspiel mit dem Webinterface
 
-Panel und Webinterface schließen sich nicht aus — beide sprechen dieselbe API.
-Die Mengenbilanz ist gemeinsam: eine Dosierung über das Panel taucht sofort im
-Webinterface, in der 24-h-Summe und im Tageszähler auf, und umgekehrt.
+Touch und Webinterface schließen sich nicht aus. Die Mengenbilanz ist
+gemeinsam: eine Dosierung per Touch taucht sofort im Webinterface, in der
+24-h-Summe und im Tageszähler auf — und umgekehrt.

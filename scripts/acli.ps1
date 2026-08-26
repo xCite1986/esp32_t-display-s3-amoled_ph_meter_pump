@@ -5,8 +5,8 @@
 
 $ErrorActionPreference = "Stop"
 
-$script:Fqbn = "esp32:esp32:nologo_esp32c3_super_mini"
-$script:DefaultPort = "COM3"   # NICHT $Port nennen: kollidiert mit param($Port)
+$script:Fqbn = "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,PartitionScheme=app3M_fat9M_16MB"
+$script:DefaultPort = "COM6"   # NICHT $Port nennen: kollidiert mit param($Port)
 $script:Root = Split-Path -Parent $PSScriptRoot
 
 function Get-ArduinoCli {

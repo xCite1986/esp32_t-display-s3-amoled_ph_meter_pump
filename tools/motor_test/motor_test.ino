@@ -1,11 +1,11 @@
 /*
   Phase 2 - Motortest TMC2209 / NEMA17
   ------------------------------------
-  Board : esp32:esp32:nologo_esp32c3_super_mini
+  Board : ESP32S3 Dev Module (T-Display S3 AMOLED)
   Zweck : Drehrichtung, Motorstrom und Microstepping pruefen, BEVOR der
           Pumpenkopf montiert wird.
 
-  Verdrahtung: STEP=GPIO3, DIR=GPIO4, EN=GPIO7 (active LOW)
+  Verdrahtung: STEP=GPIO11, DIR=GPIO12, EN=GPIO10 (active LOW)
 
   WICHTIG
     - Motorstecker NIEMALS bei eingeschaltetem VMOT ziehen/stecken.
@@ -23,9 +23,9 @@
 
 #include <Arduino.h>
 
-static const uint8_t PIN_STEP = 3;
-static const uint8_t PIN_DIR  = 4;
-static const uint8_t PIN_EN   = 7;
+static const uint8_t PIN_STEP = 11;
+static const uint8_t PIN_DIR  = 12;
+static const uint8_t PIN_EN   = 10;
 
 static uint32_t rateHz      = 800;
 static uint32_t stepsPerRev = 3200;

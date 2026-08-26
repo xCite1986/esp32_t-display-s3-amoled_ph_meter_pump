@@ -1,38 +1,39 @@
 /*
   Phase 1 - Hardwaretest: I2C-Scan + ADS1115-Rohwerte
   ---------------------------------------------------
-  Board : esp32:esp32:nologo_esp32c3_super_mini
+  Board : ESP32S3 Dev Module (T-Display S3 AMOLED)
   Zweck : Vor dem Anschluss des pH-Boards pruefen, ob der ADS1115 sauber
           antwortet, und danach die tatsaechliche PO-Spannung messen.
 
-  Verdrahtung: SDA=GPIO5, SCL=GPIO6, ADS1115 VDD=3.3V, ADDR=GND (0x48)
+  Verdrahtung: SDA=GPIO13, SCL=GPIO14 (zweiter I2C-Bus Wire1),
+               ADS1115 VDD=3.3V, ADDR=GND (0x48)
 
   Der TMC2209 muss fuer diesen Test NICHT angeschlossen sein.
 */
 
 #include <Wire.h>
 
-static const uint8_t PIN_SDA = 5;
-static const uint8_t PIN_SCL = 6;
+static const uint8_t PIN_SDA = 13;
+static const uint8_t PIN_SCL = 14;
 static const uint8_t ADS_ADDR = 0x48;
 
 // PGA: 1 = +/-4.096 V  (Vollausschlag; LSB = 125 uV)
 static const uint16_t PGA_SEL = 1;
 
 static bool writeReg(uint8_t reg, uint16_t v) {
-  Wire.beginTransmission(ADS_ADDR);
-  Wire.write(reg);
-  Wire.write((uint8_t)(v >> 8));
-  Wire.write((uint8_t)(v & 0xFF));
-  return Wire.endTransmission() == 0;
+  Wire1.beginTransmission(ADS_ADDR);
+  Wire1.write(reg);
+  Wire1.write((uint8_t)(v >> 8));
+  Wire1.write((uint8_t)(v & 0xFF));
+  return Wire1.endTransmission() == 0;
 }
 
 static bool readReg(uint8_t reg, uint16_t &v) {
-  Wire.beginTransmission(ADS_ADDR);
-  Wire.write(reg);
-  if (Wire.endTransmission() != 0) return false;
-  if (Wire.requestFrom((int)ADS_ADDR, 2) != 2) return false;
-  v = ((uint16_t)Wire.read() << 8) | Wire.read();
+  Wire1.beginTransmission(ADS_ADDR);
+  Wire1.write(reg);
+  if (Wire1.endTransmission() != 0) return false;
+  if (Wire1.requestFrom((int)ADS_ADDR, 2) != 2) return false;
+  v = ((uint16_t)Wire1.read() << 8) | Wire1.read();
   return true;
 }
 
@@ -66,8 +67,8 @@ static void scan() {
   Serial.println("I2C-Scan...");
   uint8_t n = 0;
   for (uint8_t a = 1; a < 127; a++) {
-    Wire.beginTransmission(a);
-    if (Wire.endTransmission() == 0) {
+    Wire1.beginTransmission(a);
+    if (Wire1.endTransmission() == 0) {
       Serial.printf("  gefunden: 0x%02X%s\n", a,
                     (a >= 0x48 && a <= 0x4B) ? "   <- sieht nach ADS1115 aus" : "");
       n++;
@@ -82,8 +83,8 @@ void setup() {
   Serial.println("\n=== Phase 1: I2C / ADS1115 Test ===");
   Serial.printf("SDA=GPIO%u  SCL=GPIO%u  Adresse 0x%02X  Bereich +/-%.3f V\n",
                 PIN_SDA, PIN_SCL, ADS_ADDR, fullScale());
-  Wire.begin(PIN_SDA, PIN_SCL);
-  Wire.setClock(100000);
+  Wire1.begin(PIN_SDA, PIN_SCL);
+  Wire1.setClock(100000);
   scan();
   Serial.println("\nA0 = pH-Board PO, A1..A3 frei");
   Serial.println("Messwerte (im Sekundentakt):\n");

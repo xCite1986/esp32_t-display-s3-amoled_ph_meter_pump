@@ -10,24 +10,17 @@ Webserver.
 
 ---
 
-> **Stand der Umstellung.** Schaltplan und Dokumentation beschreiben bereits
-> die Ein-Geräte-Architektur (nur T-Display S3 AMOLED). Die Firmware liegt
-> derzeit noch als zwei getrennte Sketches vor — `ph_dosieranlage` (C3) und
-> `ph_panel_s3amoled`. Das Zusammenführen zu einer Firmware für den S3 ist der
-> nächste Schritt.
-
 ## Inhalt
 
 ```text
-firmware/ph_dosieranlage/    Anlagen-Firmware (ESP32-C3, keine Fremdbibliotheken)
-firmware/ph_panel_s3amoled/  Bedienpanel (T-Display S3 AMOLED, LVGL 8.4)
+firmware/ph_dosieranlage_s3/ die komplette Firmware (Messung, Regelung, UI, Web)
 tools/i2c_adc_test/          Phase 1: I²C-Scan und ADS1115-Rohwerte
 tools/motor_test/            Phase 2: Motor-, Richtungs- und VREF-Test
 docs/LOETANLEITUNG.md        Schritt für Schritt löten, mit Prüfpunkten
 docs/SCHALTPLAN.md           Netzliste, Pinbelegung, offene Messpunkte
 docs/schaltplan.svg          Verdrahtungsplan als Grafik
 docs/INBETRIEBNAHME.md       Phasen 1–7, Kalibrierung, Konsolenbefehle
-docs/BEDIENPANEL.md          Touch-Panel: Aufbau, Einrichtung, Bedienung
+docs/BEDIENPANEL.md          Display und Touch-Bedienung
 docs/HOMEASSISTANT.md        REST-Anbindung an Home Assistant
 scripts/                     build / flash / monitor (PowerShell)
 ```
@@ -50,16 +43,11 @@ powershell -File scripts/monitor.ps1
 
 In der Konsole (115200 Baud) `help` eingeben.
 
-Bedienpanel:
+Board: `esp32:esp32:esp32s3` mit 16 MB Flash, OPI PSRAM und USB-CDC · Port `COM6`
 
-```bash
-powershell -File scripts/flash-panel.ps1
-```
-
-| Gerät | Board | Port |
-|---|---|---|
-| Dosieranlage | `esp32:esp32:nologo_esp32c3_super_mini` | COM3 |
-| Bedienpanel | `esp32:esp32:esp32s3` (16M, OPI PSRAM, CDC) | COM6 |
+> Der erste Build dauert rund 20 Minuten — LVGL sind ~450 Übersetzungseinheiten,
+> und die Skripte bauen mit `--jobs 1`. Grund dafür in
+> [docs/BEDIENPANEL.md](docs/BEDIENPANEL.md), Abschnitt 4.
 
 Die Skripte finden die in der Arduino IDE 2 gebündelte `arduino-cli`
 automatisch; eine separate Installation ist nicht nötig.
@@ -92,19 +80,17 @@ Details in [docs/INBETRIEBNAHME.md](docs/INBETRIEBNAHME.md).
 | `PHController.*` | Zustandsautomat, Verriegelungen, Tages-/Gesamtzähler |
 | `Settings.*` | Persistenz im NVS, Begrenzung aller Werte |
 | `WebInterface.*` | WLAN/AP, Webserver, JSON-API, OTA |
-| `WebPage.h` | Oberfläche als ein HTML-Dokument im Flash |
+| `WebPage.h` | Weboberfläche als ein HTML-Dokument im Flash |
+| `PanelUi.*` | LVGL-Oberfläche, Rückfrage, Standby und Nachtmodus |
 
-### Bedienpanel
+Anzeige: pH-Wert in ~136 px Höhe, dosierte Menge der letzten 24 Stunden,
+Zustand und Sperrgründe. Tippen aufs Display öffnet die Rückfrage, erst
+*FREIGEBEN* löst eine Dosierung über eine feste Anzahl Motorumdrehungen aus.
 
-| Modul | Aufgabe |
-|---|---|
-| `PanelNet.*` | WLAN, HTTP/JSON gegen die Anlage, eigene Task auf Core 0 |
-| `PanelUi.*` | LVGL-Oberfläche, Bestätigungsdialog, AMOLED-Einbrennschutz |
-
-Anzeige: pH-Wert, dosierte Menge der letzten 24 Stunden, Zustand und
-Sperrgründe. Tippen aufs Display öffnet die Rückfrage, erst *FREIGEBEN* löst
-eine Dosierung über eine feste Anzahl Motorumdrehungen aus. Details und die
-Umrechnung Umdrehungen → ml in [docs/BEDIENPANEL.md](docs/BEDIENPANEL.md).
+Nach der Standby-Zeit zeigt das Display nur noch den pH-Wert, gedimmt und
+regelmäßig versetzt; im Nachtfenster bleibt es ganz dunkel und wacht auf
+Berührung auf. Zeiten sind im Webinterface einstellbar. Details in
+[docs/BEDIENPANEL.md](docs/BEDIENPANEL.md).
 
 ### Dosierprinzip
 

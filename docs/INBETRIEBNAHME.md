@@ -45,6 +45,9 @@ powershell -File scripts/flash.ps1 -Sketch i2c
 powershell -File scripts/monitor.ps1
 ```
 
+> Der Touchcontroller des Displays hängt auf dem **anderen** I²C-Bus
+> (GPIO2/3) und taucht in diesem Scan nicht auf. Das ist richtig so.
+
 Erwartete Ausgabe:
 
 ```text
@@ -218,6 +221,22 @@ Der ESP32 startet neu und verbindet sich. Danach:
   SSID `pH-Panel`, Passwort `panel1234`, IP `192.168.4.1`.
   Das Display zeigt diese Angaben dann groß an.
 
+### Anzeige einstellen
+
+Im Webinterface unter *Anzeige*:
+
+| Feld | Bedeutung | Standard |
+|---|---|---|
+| Standby nach [s] | ohne Berührung in die sparsame Ansicht | 300 |
+| Position versetzen alle [s] | Einbrennschutz im Standby | 300 |
+| Nachtabschaltung | Display nachts ganz aus | ein |
+| Nacht von / bis [Stunde] | Fenster der Abschaltung | 20 / 5 |
+| Umdrehungen pro Touch-Freigabe | was ein Tipp + Bestätigung auslöst | 5 |
+
+Der Nachtmodus greift nur bei gültiger Uhrzeit — ohne NTP bleibt es beim
+Standby. Eine Berührung weckt immer auf; dieser erste Tipp löst bewusst
+nichts aus.
+
 **Zugriffsschutz setzen**, bevor die Anlage dauerhaft im Netz hängt:
 im Webinterface unter *Netzwerk* einen Web-Benutzer und ein Passwort
 eintragen. Ohne Login kann jeder im Netz dosieren lassen.
@@ -226,7 +245,7 @@ Das Web-Passwort dient gleichzeitig als OTA-Passwort. Danach sind Updates
 auch ohne USB möglich:
 
 ```bash
-powershell -File scripts/flash-panel.ps1 -BuildOnly
+powershell -File scripts/build.ps1
 ```
 
 ---
@@ -278,7 +297,7 @@ einer unabhängigen Messung.
 
 ## Sicherheitsgrenzen, die sich nicht abschalten lassen
 
-Diese Werte sind in `firmware/ph_dosieranlage/Config.h` fest verdrahtet und
+Diese Werte sind in `firmware/ph_dosieranlage_s3/Config.h` fest verdrahtet und
 begrenzen jede Benutzereingabe:
 
 | Grenze | Wert |
