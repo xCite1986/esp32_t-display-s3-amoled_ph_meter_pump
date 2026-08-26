@@ -2,9 +2,12 @@
 
 Begleitend: [SCHALTPLAN.md](SCHALTPLAN.md) und [schaltplan.svg](schaltplan.svg).
 
-Diese Anleitung betrifft **nur die Dosieranlage** (ESP32-C3). Das Bedienpanel
-(T-Display S3 AMOLED) wird nicht verdrahtet — es braucht ausschließlich 5 V und
-WLAN. Details dazu in Abschnitt 12 und in [BEDIENPANEL.md](BEDIENPANEL.md).
+Steuerung ist der **LilyGo T-Display S3 AMOLED** — er misst, regelt, treibt die
+Pumpe und ist gleichzeitig Anzeige und Bedienteil. Ein separater ESP32-C3
+kommt nicht mehr vor.
+
+Display und Touch sind auf dem Board integriert: dafür ist **nichts zu löten**.
+Verdrahtet werden nur Stromversorgung, ADS1115, TMC2209 und Motor.
 
 Die Reihenfolge ist bewusst so gewählt, dass nach jedem Abschnitt geprüft
 werden kann, bevor mehr Spannung ins Spiel kommt. **Bitte nicht vorgreifen** —
@@ -51,7 +54,7 @@ insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
 | Pos | Teil | Menge |
 |---|---|---|
 | 1 | Lochrasterplatine 100 × 80 mm, RM 2,54 | 1 |
-| 2 | Buchsenleiste 1×8 (für ESP32-C3 Super Mini) | 2 |
+| 2 | Stift-/Buchsenleiste passend zum Header des S3 AMOLED | 1 Satz |
 | 3 | Buchsenleiste 1×8 (für TMC2209) | 2 |
 | 4 | Buchsenleiste 1×10 (für ADS1115) | 1 |
 | 5 | Schraubklemme 2-polig, RM 5,0 (12 V, Motor) | 3 |
@@ -66,21 +69,22 @@ insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
 | 14 | Schrumpfschlauch-Sortiment | 1 |
 | 15 | Abstandsbolzen M3 + Gehäuse (IP54 empfohlen) | 1 Satz |
 
-Nur für das Bedienpanel (siehe Abschnitt 12):
+Zusätzlich (siehe Abschnitt 12):
 
 | Pos | Teil | Menge |
 |---|---|---|
-| 16 | USB-C-Steckernetzteil, min. 500 mA | 1 |
-| 17 | USB-C-Kabel passender Länge | 1 |
+| 16 | Gehäuse mit Sichtfenster für das Display | 1 |
 
-> Wer Panel und Anlage in **ein** Gehäuse baut, kann Pos. 16/17 weglassen —
-> braucht dann aber einen Buck-Converter mit **mindestens 1 A**. Die Rechnung
-> dazu steht in [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 4.1.
+> **Der Buck-Converter muss mindestens 1 A liefern.** Das Displayboard zieht
+> je nach Helligkeit 150–300 mA, dazu kommen pH-Board und Reserve. Ein kleiner
+> 0,5-A-Buck bricht ein, sobald das Display hell wird und gleichzeitig der
+> Motor anläuft.
 
-> **Buchsenleisten statt Direktlöten.** ESP32, TMC2209 und ADS1115 werden
-> gesteckt, nicht eingelötet. Der TMC2209 ist ein Verschleißteil, der ESP32
-> wird für Tests häufiger getauscht — und Auslöten von 16 Pins auf
-> Lochraster endet meistens mit einer zerstörten Platine.
+> **Buchsenleisten statt Direktlöten.** TMC2209 und ADS1115 werden gesteckt,
+> nicht eingelötet. Der TMC2209 ist ein Verschleißteil — und Auslöten von
+> 16 Pins auf Lochraster endet meistens mit einer zerstörten Platine.
+> Zum Displayboard führen ohnehin nur wenige Adern; die kommen an eine
+> steckbare Verbindung, damit das Board für Reparaturen frei wird.
 
 ---
 
@@ -88,9 +92,11 @@ Nur für das Bedienpanel (siehe Abschnitt 12):
 
 1. Platine so ausrichten, dass später gilt: **12 V/Motor links, Signale rechts.**
    Das hält die Leistungsströme von der Messkette fern.
-2. Die drei Buchsenleistenpaare probeweise mit den Modulen bestücken und die
+2. Die Buchsenleisten für TMC2209 und ADS1115 probeweise bestücken und die
    Position anzeichnen. Zwischen TMC2209 und ADS1115 mindestens 20 mm Abstand
-   lassen — der Treiber wird warm.
+   lassen — der Treiber wird warm. Das Displayboard sitzt nicht auf der
+   Lochrasterplatine, sondern hinter dem Gehäusefenster und wird über eine
+   steckbare Leitung angebunden.
 3. Buchsenleisten löten: erst **je einen Eckpin** anlöten, Ausrichtung
    prüfen (Leiste muss plan aufliegen), dann die restlichen Pins.
 4. Schraubklemmen einlöten:
@@ -99,6 +105,8 @@ Nur für das Bedienpanel (siehe Abschnitt 12):
    * KL3 (2-polig, RM 5,0): Motor Spule 2
    * KL4 (3-polig, RM 3,5): pH-Board (V+, G, PO)
    * KL5 (3-polig, RM 3,5): Umwälz-Rückmeldung + Reserve
+   * KL6 (6-polig oder Stiftleiste): Leitung zum Displayboard
+     (5 V, GND, 3V3, STEP, DIR, EN, SDA, SCL — Aufteilung nach Platzangebot)
 5. **GND-Sternpunkt** anlegen: ein kräftiger Lötpunkt (oder ein 2-poliger
    Lötstützpunkt) etwa mittig auf der Platine. Alle Massen laufen dorthin,
    nicht kreuz und quer von Modul zu Modul.
@@ -113,7 +121,7 @@ darf **nirgends** piepen. Lötbrücken jetzt finden, nicht später.
 1. Alle GND-Pins mit 0,5 mm² schwarz sternförmig an den GND-Sternpunkt:
    * KL1 Minus
    * TMC2209-Sockel `GND` (beide, Leistungs- und Logikseite)
-   * ESP32-Sockel `GND`
+   * KL6 `GND` (zum Displayboard)
    * ADS1115-Sockel `GND`
    * KL4 `G`
    * Buck `IN−` und `OUT−`
@@ -135,33 +143,41 @@ darf **nirgends** piepen. Lötbrücken jetzt finden, nicht später.
 
 **Dieser Schritt passiert isoliert, bevor der Buck an die Platine kommt.**
 
-1. Buck-Modul **ohne** angeschlossene Last mit 12 V versorgen.
+1. Buck-Modul (**min. 1 A**) **ohne** angeschlossene Last mit 12 V versorgen.
 2. Ausgangsspannung messen und mit dem Trimmpoti auf **5,00 V** einstellen.
    Bei MP1584-Modulen sind das oft mehrere Umdrehungen — geduldig drehen und
    dabei messen.
 3. 12 V abschalten, Poti mit einem Tropfen Nagellack sichern.
-4. Erst jetzt: `OUT+` über **D1** (Schottky, Ring/Kathode Richtung ESP32) auf
-   den ESP32-Sockel `5V`, `OUT−` an den Sternpunkt.
+4. Erst jetzt: `OUT+` über **D1** (Schottky, Ring/Kathode Richtung Display)
+   auf KL6 `5V`, `OUT−` an den Sternpunkt.
 5. Vom Punkt hinter D1 zusätzlich eine Leitung zu KL4 `V+`
    — **aber noch nicht anschließen**, bis Abschnitt 8 (Messung am pH-Board)
    erledigt ist. Bis dahin die Ader isoliert beiseitelegen.
 
-**Prüfen:** Nach dem Einschalten (nur Buck, ESP noch nicht gesteckt) muss an
-D1-Kathode gegen GND ca. **4,6–4,8 V** liegen (5,0 V minus Diodenspannung).
-Das reicht dem ESP32-C3 Super Mini problemlos.
+**Prüfen:** Nach dem Einschalten (nur Buck, Displayboard noch nicht
+angeschlossen) muss an D1-Kathode gegen GND ca. **4,6–4,8 V** liegen
+(5,0 V minus Diodenspannung).
+
+> **Bevor diese Leitung an das Displayboard geht:** im Pinout nachsehen, an
+> welchem Pad 5 V eingespeist werden dürfen. Das Board hat einen
+> Akkuanschluss mit Ladeelektronik — hier nicht raten.
 
 ---
 
-## 5. Baugruppe D — Signalleitungen ESP32 ↔ TMC2209
+## 5. Baugruppe D — Signalleitungen Displayboard ↔ TMC2209
 
 Mit 0,25 mm² Litze, möglichst kurz und nicht parallel zu den Motorleitungen:
 
 | Von | Nach | Farbvorschlag |
 |---|---|---|
-| ESP32 `GPIO3` | TMC2209 `STEP` | gelb |
-| ESP32 `GPIO4` | TMC2209 `DIR` | grün |
-| ESP32 `GPIO7` | TMC2209 `EN` | weiß |
-| ESP32 `3V3` | TMC2209 `VIO` | rot dünn |
+| S3 `GPIO11` | TMC2209 `STEP` | gelb |
+| S3 `GPIO12` | TMC2209 `DIR` | grün |
+| S3 `GPIO10` | TMC2209 `EN` | weiß |
+| S3 `3V3` | TMC2209 `VIO` | rot dünn |
+
+> **Vorher klären:** Ob GPIO 10–16 auf deinem Board herausgeführt sind, steht
+> nur im Pinout. Elektrisch frei sind sie bei dieser Boardvariante —
+> siehe [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 3.
 
 Dann die drei Ergänzungen am TMC2209-Sockel:
 
@@ -171,7 +187,7 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 6. `MS1` **und** `MS2` mit einer Drahtbrücke auf `VIO` (3,3 V) legen.
    Ergibt 1/16 Microstepping = 3200 Schritte pro Umdrehung.
 7. `SPREAD`, `DIAG`, `INDEX`, `PDN/UART` bleiben **offen** — nichts anlöten.
-   `GPIO10` bleibt am ESP32 unbeschaltet, aber als Reserve zugänglich.
+   `GPIO15` bleibt am S3 unbeschaltet, aber als UART-Reserve zugänglich.
 
 **Prüfen:**
 * `EN` ↔ `VIO`: ca. 10 kΩ.
@@ -182,11 +198,13 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 
 ## 6. Baugruppe E — Messkette ADS1115
 
-1. `VDD` des ADS1115-Sockels an ESP32 `3V3`.
-   **Nicht an 5 V** — der ESP32-C3 ist an SDA/SCL nicht 5-V-tolerant, und
+1. `VDD` des ADS1115-Sockels an S3 `3V3`.
+   **Nicht an 5 V** — der ESP32-S3 ist an SDA/SCL nicht 5-V-tolerant, und
    die I²C-Pegel richten sich nach VDD des ADS1115.
 2. `GND` an den Sternpunkt.
-3. `SDA` an ESP32 `GPIO5`, `SCL` an ESP32 `GPIO6`.
+3. `SDA` an S3 `GPIO13`, `SCL` an S3 `GPIO14` — das ist der **zweite**
+   I²C-Bus (`Wire1`). Der Touchcontroller des Displays hat seinen eigenen
+   Bus auf GPIO2/3; der bleibt unangetastet.
 4. `ADDR` an `GND` (I²C-Adresse 0x48).
 5. **R2 (10 kΩ)** von KL4 `PO` zum ADS1115-Sockel `A0`.
    Den Widerstand direkt an der Klemme anlöten und die Verbindung zu `A0`
@@ -204,14 +222,18 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 ## 7. Erster Funktionstest — nur Logik, kein Motor, keine 12 V
 
 1. **TMC2209-Modul noch NICHT stecken.** 12-V-Netzteil bleibt aus.
-2. ESP32-C3 und ADS1115 in ihre Sockel stecken.
-3. ESP32 nur per **USB** mit dem PC verbinden.
+2. ADS1115 in den Sockel stecken, Displayboard über KL6 anschließen —
+   aber **nur** GND, 3V3, SDA und SCL. Die 5-V-Ader bleibt vorerst ab.
+3. Displayboard nur per **USB-C** mit dem PC verbinden.
 4. Testsketch `tools/i2c_adc_test` flashen (siehe
    [INBETRIEBNAHME.md](INBETRIEBNAHME.md), Phase 1).
 5. Im seriellen Monitor muss stehen: `gefunden: 0x48 <- sieht nach ADS1115 aus`.
 
 Kommt hier nichts, liegt es fast immer an: SDA/SCL vertauscht, GND fehlt,
 VDD fehlt, oder Pull-ups fehlen. Erst weitermachen, wenn 0x48 erscheint.
+
+> Der Touchcontroller `0x15` liegt auf dem **anderen** I²C-Bus (GPIO2/3) und
+> taucht in diesem Scan nicht auf. Das ist richtig so.
 
 ---
 
@@ -319,57 +341,39 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 - [ ] Motorstecker fest, Spulen korrekt zugeordnet
 - [ ] Kühlkörper auf dem TMC2209
 - [ ] Sondenkabel getrennt von den Motorleitungen verlegt
-- [ ] Firmware `firmware/ph_dosieranlage` geflasht
-
-Zusätzlich, falls das Panel mitversorgt wird (Variante B):
-
+- [ ] Firmware geflasht
+- [ ] GPIO 10–16 am Board als herausgeführt bestätigt
+- [ ] 5-V-Einspeisepunkt am Displayboard anhand des Pinouts bestätigt
 - [ ] Buck-Converter für mindestens 1 A ausgelegt
-- [ ] Einspeisepunkt am Panel anhand des Pinouts bestätigt
-- [ ] Panelspannung unter Last gemessen (> 4,7 V bei laufendem Motor)
+- [ ] Spannung am Displayboard unter Last gemessen (> 4,7 V bei laufendem Motor)
 
 **Einschaltreihenfolge:** immer erst USB/5 V (Logik), dann 12 V.
 **Ausschaltreihenfolge:** erst 12 V, dann Logik.
 
 ---
 
-## 12. Bedienpanel anschließen
+## 12. Displayboard einbauen
 
-Hier wird nichts gelötet. Das T-Display S3 AMOLED spricht über WLAN mit der
-Anlage — es gibt keine Signalleitung zwischen den beiden Geräten.
+Am Board selbst wird nichts gelötet — Display und Touch sind integriert. Es
+geht nur um Befestigung und die Anbindung über KL6.
 
-### Variante A — eigenes USB-C-Netzteil (empfohlen)
+1. **Ausschnitt im Gehäusedeckel** anfertigen: sichtbare Fläche 536 × 240 px
+   auf 1,91 Zoll, also rund 43 × 19 mm. Etwas Rand einplanen, das Glas endet
+   nicht bündig mit der Anzeige.
+2. Board mit Abstandsbolzen M3 hinter dem Fenster befestigen. **Nicht** auf
+   die Rückseite drücken, dort liegen Bauteile.
+3. Verbindung zur Lochrasterplatine über KL6 stecken:
+   `5 V` (hinter D1), `GND`, `3V3`, `STEP`, `DIR`, `EN`, `SDA`, `SCL`.
+4. Die Leitung so verlegen, dass sie **nicht parallel zu den Motorleitungen**
+   läuft — sie führt sowohl den I²C-Bus als auch die Schrittimpulse.
+5. Den USB-C-Anschluss zugänglich lassen: er ist der Weg für Firmware und
+   serielle Konsole, wenn WLAN oder Display einmal nicht mitspielen.
 
-1. Panel per USB-C an ein Steckernetzteil (min. 500 mA).
-2. Fertig. Kein Eingriff an der Anlagenplatine.
+**Prüfen:** Mit eingeschaltetem Display und laufendem Motor die 5-V-Spannung
+am Displayboard messen. Fällt sie unter 4,7 V, ist der Buck zu klein.
 
-Das ist die richtige Wahl, sobald das Panel woanders hängt als die Technik.
-Ein Defekt am Netzteil des einen Geräts legt das andere nicht mit lahm.
-
-### Variante B — gemeinsames 5-V-Netz
-
-Nur sinnvoll, wenn Panel und Anlage im selben Gehäuse sitzen.
-
-1. **Buck-Converter prüfen:** ESP32-C3 (~120 mA) + pH-Board (~20 mA) +
-   AMOLED (~150–300 mA) → **mindestens 1 A** vorsehen. Der kleine Buck aus
-   der Grundausstattung reicht nicht; sonst bricht die Spannung ein, sobald
-   das Display hell wird und gleichzeitig der Motor anläuft.
-2. **Einspeisepunkt am Panel klären.** Im Pinout des konkreten Boards
-   nachsehen, welches Pad 5 V annimmt. Nicht raten — die Varianten des
-   T-Display S3 AMOLED unterscheiden sich, und das Board hat zusätzlich einen
-   Akkuanschluss mit Ladeelektronik. Solange das nicht geklärt ist: Variante A.
-3. 5 V hinter D1 abgreifen, GND auf den Sternpunkt.
-4. Die 5-V-Leitung zum Panel **getrennt von den Motorleitungen** verlegen.
-
-**Prüfen:** Mit eingeschaltetem Display und laufendem Motor die Spannung am
-Panel messen. Fällt sie unter 4,7 V, ist der Buck zu klein — dann zurück zu
-Variante A.
-
-### Danach
-
-* Panel flashen und einrichten: [BEDIENPANEL.md](BEDIENPANEL.md), Abschnitte 5–6.
-* Beide Geräte müssen im **selben 2,4-GHz-WLAN** sein.
-* Montageort: Das AMOLED ist nicht für Dauerfeuchte gebaut. Im Technikraum
-  gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
+**Montageort:** Das AMOLED ist nicht für Dauerfeuchte gebaut. Im Technikraum
+gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
 
 ---
 
@@ -403,6 +407,7 @@ Variante A.
 | ESP startet neu, wenn der Motor anläuft | C1 fehlt/zu klein, Buck zu schwach, GND-Schleife |
 | 3200 Schritte ≠ 1 Umdrehung | MS1/MS2 nicht korrekt auf VIO |
 | Firmware meldet dauerhaft „Sensorfehler" | pH-Board unversorgt, PO nicht angeschlossen, Spannung außerhalb 0,03–3,25 V |
-| Panel zeigt „offline" | falsches WLAN-Band (nur 2,4 GHz), falscher `host`, Anlage nicht erreichbar |
-| Panel startet neu, wenn der Motor anläuft | Buck zu klein — Variante A verwenden |
-| Panel-Knopf dauerhaft gesperrt | Anlage meldet laufende Pumpe oder das Panel ist offline |
+| Display startet neu, wenn der Motor anläuft | Buck zu klein oder 5-V-Leitung zu dünn |
+| Touch reagiert schlecht, seit der ADS1115 dran ist | ADS versehentlich auf dem Touchbus (GPIO2/3) statt auf GPIO13/14 |
+| Motor läuft ruckelig, Menge stimmt aber | normal: die Bildausgabe unterbricht die Schrittausgabe kurz |
+| Kein Bild, Konsole meldet „Display init failed" | Boardvariante oder Board-Einstellungen falsch |

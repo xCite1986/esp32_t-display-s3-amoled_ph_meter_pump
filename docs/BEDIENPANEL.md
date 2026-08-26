@@ -1,12 +1,12 @@
-# Bedienpanel — LilyGo T-Display S3 AMOLED
+# Anzeige und Bedienung — T-Display S3 AMOLED
 
-Ein zweites Gerät als Anzeige und Fernbedienung: pH-Wert, dosierte Menge der
-letzten 24 Stunden, und eine Freigabe für eine feste Anzahl Motorumdrehungen
-per Touch — mit Rückfrage.
+Das Displayboard **ist** die Steuerung: pH-Wert, dosierte Menge der letzten
+24 Stunden, Zustand und Sperrgründe, dazu eine Freigabe für eine feste Anzahl
+Motorumdrehungen per Touch — mit Rückfrage.
 
 ---
 
-## 1. Architektur — und warum das Panel nichts entscheidet
+## 1. Architektur
 
 ```text
 ┌─────────────────────────┐         WLAN          ┌──────────────────────────┐
@@ -81,12 +81,41 @@ Bereits installiert und unverändert übernommen:
 * `XPowersLib`, `SensorLib` (Abhängigkeiten der AMOLED-Bibliothek)
 
 > **Eine Änderung außerhalb dieses Projekts:** In der gemeinsam genutzten
-> `Documents/Arduino/libraries/lv_conf.h` wurden `LV_FONT_MONTSERRAT_32` und
-> `LV_FONT_MONTSERRAT_48` von `0` auf `1` gesetzt — vorher waren nur Fonts bis
-> 24 px aktiv, womit die pH-Anzeige auf 536 × 240 unlesbar klein geblieben
-> wäre. Die Änderung ist rein additiv (etwas mehr Flash) und betrifft alle
-> LVGL-Sketches auf diesem Rechner. Sicherung liegt unter
+> `Documents/Arduino/libraries/lv_conf.h` wurden die Montserrat-Größen
+> **28, 32, 36 und 48** von `0` auf `1` gesetzt — ab Werk sind nur Fonts bis
+> 24 px aktiv. Die Änderung ist rein additiv (etwas mehr Flash) und betrifft
+> alle LVGL-Sketches auf diesem Rechner. Sicherung liegt unter
 > `lv_conf.h.bak_phpanel`.
+>
+> Wird `lv_conf.h` angefasst, übersetzt arduino-cli LVGL komplett neu — der
+> nächste Build dauert dann wieder rund 20 Minuten.
+
+### Schriftgrößen — und warum der pH-Wert eine Canvas ist
+
+Das Panel misst 1,91" in der Diagonale. 536 × 240 Pixel klingen nach viel, sind
+physikalisch aber nur etwa 43 × 19 mm: **Montserrat 48 ergibt gerade einmal
+~4 mm Zifferhöhe** — auf Leseabstand am Becken zu wenig.
+
+Die größte eingebaute LVGL-Schrift *ist* Montserrat 48. Der pH-Wert wird daher
+nicht als Label gesetzt, sondern in eine `lv_canvas` gezeichnet und diese als
+Bild mit `lv_img_set_zoom(…, 512)` doppelt vergrößert dargestellt:
+
+```text
+Montserrat 48  →  Canvas 152 × 58 px  →  2× Zoom  →  ~96 px ≈ 8 mm
+```
+
+Die Canvas wird nur neu gezeichnet, wenn sich Wert oder Farbe geändert haben.
+Kosten: 17 kB statischer Puffer, sonst nichts.
+
+Alle übrigen Texte liegen zwei Stufen über der ursprünglichen Auslegung:
+
+| Element | Schrift |
+|---|---|
+| pH-Wert | Montserrat 48, 2× gezoomt (~96 px) |
+| 24-h-Menge | 36 |
+| Sollwert, Zustand, Knopf | 20–24 |
+| Sperrgründe, Kartentexte, Netz | 16 |
+| Dialogtitel / Dialogknöpfe | 28 / 22 |
 
 ---
 
@@ -175,12 +204,13 @@ Anlage eintragen — und im Router eine DHCP-Reservierung setzen.
 
 **Anzeige**
 
-* Großer pH-Wert, farbcodiert gegen den Sollwert
+* pH-Wert in ~96 px Höhe, farbcodiert gegen den Sollwert
   (grün im Zielbereich, gelb darüber, rot bei starker Abweichung oder Fehler)
 * Karte rechts: **dosierte Menge der letzten 24 Stunden**, darunter der
   Kalendertagswert gegen das Tageslimit
-* Zustandszeile mit den aktiven Sperrgründen der Anlage
-* Kopfzeile: IP und Signalstärke
+* Zustandszeile, darunter die aktiven Sperrgründe — liegt kein gültiger
+  Messwert vor, steht dort stattdessen der Sensorgrund im Klartext
+* Kopfzeile: Sollwert links, IP und Signalstärke rechts
 
 **Dosieren**
 

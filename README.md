@@ -1,15 +1,20 @@
 # Automatische pH-Minus-Dosieranlage
 
-**Anlage:** ESP32-C3 Super Mini · ADS1115 · pH-Signalboard · TMC2209 · NEMA17 · Peristaltikpumpe
-**Bedienpanel:** LilyGo T-Display S3 AMOLED (536 × 240, Touch)
+LilyGo T-Display S3 AMOLED · ADS1115 · pH-Signalboard · TMC2209 · NEMA17 · Peristaltikpumpe
 
 Umsetzung des Vorhabens aus [ph_minus_dosieranlage_entwicklung.md](ph_minus_dosieranlage_entwicklung.md).
 
-Zwei Geräte mit klarer Rollenverteilung: Der C3 misst, regelt und schaltet die
-Pumpe — er allein trifft Entscheidungen. Das Panel zeigt an und stellt Anträge
-über die JSON-API. Ein Ausfall des Panels kann keine Dosierung auslösen.
+**Ein Gerät für alles:** Das T-Display S3 AMOLED misst den pH-Wert, regelt,
+treibt die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
+Webserver.
 
 ---
+
+> **Stand der Umstellung.** Schaltplan und Dokumentation beschreiben bereits
+> die Ein-Geräte-Architektur (nur T-Display S3 AMOLED). Die Firmware liegt
+> derzeit noch als zwei getrennte Sketches vor — `ph_dosieranlage` (C3) und
+> `ph_panel_s3amoled`. Das Zusammenführen zu einer Firmware für den S3 ist der
+> nächste Schritt.
 
 ## Inhalt
 

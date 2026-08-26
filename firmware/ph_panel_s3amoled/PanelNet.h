@@ -35,6 +35,12 @@ struct PanelState {
   float    stepsPerRev = 3200.0f;
 };
 
+enum NetMode : uint8_t {
+  NM_CONNECTING = 0,   // STA-Verbindungsversuch laeuft
+  NM_STA,              // im Heimnetz
+  NM_AP                // Fallback: eigener Access Point mit Konfigseite
+};
+
 struct PanelConfig {
   char ssid[33]  = "";
   char pass[65]  = "";
@@ -45,6 +51,9 @@ struct PanelConfig {
 };
 
 extern PanelConfig panelCfg;
+
+#define PANEL_AP_SSID "pH-Panel"
+#define PANEL_AP_PASS "panel1234"
 
 void  netBegin();                       // Config laden, WLAN starten, Task starten
 void  netSaveConfig();
@@ -60,4 +69,6 @@ bool  netDosePending();
 bool  netTakeResult(String &msg, bool &ok);   // true, wenn ein neues Ergebnis vorliegt
 
 String netWifiInfo();
+NetMode netMode();
+String  netApIp();                      // IP im AP-Modus (typisch 192.168.4.1)
 float  netDoseMl();                     // Umdrehungen -> ml mit aktuellen Faktoren

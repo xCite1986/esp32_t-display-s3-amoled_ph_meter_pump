@@ -6,38 +6,53 @@
 
 extern LilyGo_Class amoled;
 
-// --- Farben ---------------------------------------------------------------
-static const uint32_t C_BG     = 0x000000;   // echtes Schwarz spart am AMOLED Strom
-static const uint32_t C_CARD   = 0x141A22;
-static const uint32_t C_LINE   = 0x2A3341;
-static const uint32_t C_TEXT   = 0xE8EDF4;
-static const uint32_t C_MUTED  = 0x8896AA;
-static const uint32_t C_OK     = 0x3FBF7F;
-static const uint32_t C_WARN   = 0xE2B93B;
-static const uint32_t C_ERR    = 0xE05C5C;
-static const uint32_t C_ACC    = 0x4EA1FF;
+// --- Farben ----------------------------------------------------------------
+// Bewusst ohne Blau und ohne Rot: auf schwarzem AMOLED trennen Weiss, Gelb und
+// Gruen deutlich besser, gerade wenn das Panel gedimmt oder unbeleuchtet wirkt.
+static const uint32_t C_BG     = 0x000000;   // echtes Schwarz: Pixel aus, kein Einbrennen
+static const uint32_t C_CARD   = 0x161A20;
+static const uint32_t C_TEXT   = 0xFFFFFF;
+static const uint32_t C_MUTED  = 0x9AA6B8;
+static const uint32_t C_OK     = 0x4FD98A;   // im Zielbereich
+static const uint32_t C_WARN   = 0xFFE47A;   // leicht daneben
+static const uint32_t C_ERR    = 0xFFC61A;   // Stoerung / gesperrt
+static const uint32_t C_ACC    = 0xFFFFFF;   // Hervorhebung
 
-// --- Helligkeit / Einbrennschutz ------------------------------------------
+// --- Helligkeit / Einbrennschutz -------------------------------------------
 static const uint8_t  BRIGHT_ON      = 240;
 static const uint8_t  BRIGHT_DIM     = 25;
 static const uint32_t DIM_AFTER_MS   = 60000;
 static const uint32_t SHIFT_EVERY_MS = 90000;
 static const uint32_t DIALOG_TIMEOUT = 12000;
 
+// --- pH-Anzeige ------------------------------------------------------------
+// Die groesste eingebaute LVGL-Schrift ist Montserrat 48 - auf 1,91 Zoll sind
+// das nur rund 4 mm Zifferhoehe. Der Wert wird deshalb in eine knapp auf das
+// Ziffernband zugeschnittene Canvas gezeichnet und diese als Bild vierfach
+// vergroessert dargestellt: rund 136 px bzw. 11 mm.
+#define PH_CV_W   126
+#define PH_CV_H   44
+#define PH_TXT_Y  (-11)      // schneidet die Leerzeile ueber den Ziffern weg
+#define PH_ZOOM   1024       // 256 = 1x, 1024 = 4x
+static lv_color_t phBuf[PH_CV_W * PH_CV_H];
+
 static int16_t scrW = 536, scrH = 240;
 
-static lv_obj_t *root, *lblNet, *lblPh, *lblPhSub, *lblSp;
-static lv_obj_t *lbl24, *lbl24Cap, *lblToday, *lblState, *lblLocks;
-static lv_obj_t *btnDose, *lblBtn;
+static lv_obj_t *root, *phCanvas;
+static lv_obj_t *lbl24Cap, *lbl24, *lblState, *lblLocks;
 static lv_obj_t *overlay, *lblAsk, *lblAskSub, *btnYes, *btnNo;
+static lv_obj_t *setup_, *lblSetupSsid, *lblSetupPass, *lblSetupUrl;
 static lv_obj_t *toast, *lblToast;
 
-static bool     dimmed      = false;
-static uint32_t wokeAtMs    = 0;
+static bool     dimmed       = false;
+static uint32_t wokeAtMs     = 0;
 static uint32_t dialogOpenMs = 0;
-static uint32_t lastShiftMs = 0;
-static uint32_t toastUntil  = 0;
-static int8_t   shiftPhase  = 0;
+static uint32_t lastShiftMs  = 0;
+static uint32_t toastUntil   = 0;
+static int8_t   shiftPhase   = 0;
+
+static char     lastPhTxt[16] = "";
+static uint32_t lastPhCol     = 0xFFFFFFFF;
 
 // ---------------------------------------------------------------------------
 static void styleFlat(lv_obj_t *o) {
@@ -58,6 +73,23 @@ static lv_obj_t *mkLabel(lv_obj_t *par, const lv_font_t *font, uint32_t color,
   return l;
 }
 
+// pH-Wert in die Canvas zeichnen - nur bei Aenderung, das Skalieren kostet Zeit
+static void drawPh(const char *txt, uint32_t col) {
+  if (strcmp(txt, lastPhTxt) == 0 && col == lastPhCol) return;
+  strncpy(lastPhTxt, txt, sizeof(lastPhTxt) - 1);
+  lastPhTxt[sizeof(lastPhTxt) - 1] = 0;
+  lastPhCol = col;
+
+  lv_canvas_fill_bg(phCanvas, lv_color_hex(C_BG), LV_OPA_COVER);
+
+  lv_draw_label_dsc_t d;
+  lv_draw_label_dsc_init(&d);
+  d.font  = &lv_font_montserrat_48;
+  d.color = lv_color_hex(col);
+  d.align = LV_TEXT_ALIGN_CENTER;
+  lv_canvas_draw_text(phCanvas, 0, PH_TXT_Y, PH_CV_W, &d, txt);
+}
+
 static void openDialog();
 static void closeDialog();
 
@@ -70,6 +102,8 @@ static bool swallowWakeTap() {
 static void onScreenClick(lv_event_t *) {
   if (swallowWakeTap()) return;
   if (!lv_obj_has_flag(overlay, LV_OBJ_FLAG_HIDDEN)) return;
+  if (!lv_obj_has_flag(setup_, LV_OBJ_FLAG_HIDDEN)) return;   // im AP-Modus nichts
+  if (netMode() != NM_STA) return;
   openDialog();
 }
 
@@ -117,105 +151,99 @@ void uiBegin(int16_t w, int16_t h) {
   lv_obj_set_pos(root, 0, 0);
   lv_obj_add_flag(root, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-  // --- Kopfzeile ---
-  mkLabel(root, &lv_font_montserrat_14, C_MUTED, LV_ALIGN_TOP_LEFT, 12, 8, "pH-DOSIERUNG");
-  lblNet = mkLabel(root, &lv_font_montserrat_14, C_MUTED, LV_ALIGN_TOP_RIGHT, -12, 8, "...");
+  // --- pH: nimmt fast die ganze Flaeche ein ---
+  phCanvas = lv_canvas_create(root);
+  lv_canvas_set_buffer(phCanvas, phBuf, PH_CV_W, PH_CV_H, LV_IMG_CF_TRUE_COLOR);
+  lv_obj_set_pos(phCanvas, scrW / 2 - PH_CV_W / 2, 96 - PH_CV_H / 2);
+  lv_img_set_zoom(phCanvas, PH_ZOOM);
+  lv_img_set_antialias(phCanvas, true);
+  lv_obj_add_flag(phCanvas, LV_OBJ_FLAG_EVENT_BUBBLE);
+  lv_canvas_fill_bg(phCanvas, lv_color_hex(C_BG), LV_OPA_COVER);
+  drawPh("--.--", C_MUTED);
 
-  // --- pH gross, links ---
-  lblPh    = mkLabel(root, &lv_font_montserrat_48, C_TEXT,  LV_ALIGN_TOP_LEFT, 14, 42, "--.--");
-  lblSp    = mkLabel(root, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_LEFT, 16, 100, "Soll --");
-  lblPhSub = mkLabel(root, &lv_font_montserrat_14, C_MUTED, LV_ALIGN_TOP_LEFT, 16, 124, "-");
+  // --- Fusszeile links: Menge der letzten 24 Stunden ---
+  lbl24Cap = mkLabel(root, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_LEFT, 14, 188, "LETZTE 24 H");
+  lbl24    = mkLabel(root, &lv_font_montserrat_32, C_ACC,   LV_ALIGN_TOP_LEFT, 14, 204, "-- ml");
 
-  // --- 24-h-Menge, rechts ---
-  lv_obj_t *card = lv_obj_create(root);
-  styleFlat(card);
-  lv_obj_set_style_bg_color(card, lv_color_hex(C_CARD), 0);
-  lv_obj_set_style_bg_opa(card, LV_OPA_COVER, 0);
-  lv_obj_set_style_radius(card, 10, 0);
-  lv_obj_set_size(card, 208, 106);
-  lv_obj_align(card, LV_ALIGN_TOP_RIGHT, -12, 36);
-  lv_obj_add_flag(card, LV_OBJ_FLAG_EVENT_BUBBLE);
-
-  lbl24Cap = mkLabel(card, &lv_font_montserrat_12, C_MUTED, LV_ALIGN_TOP_MID, 0, 10, "LETZTE 24 STUNDEN");
-  lbl24    = mkLabel(card, &lv_font_montserrat_32, C_ACC,   LV_ALIGN_TOP_MID, 0, 30, "-- ml");
-  lblToday = mkLabel(card, &lv_font_montserrat_12, C_MUTED, LV_ALIGN_BOTTOM_MID, 0, -10, "heute -- / -- ml");
-
-  // --- Zustandszeile ---
-  lblState = mkLabel(root, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_LEFT, 14, 152, "-");
-  lblLocks = mkLabel(root, &lv_font_montserrat_12, C_MUTED, LV_ALIGN_TOP_LEFT, 14, 174, "");
-  lv_obj_set_width(lblLocks, scrW - 28);
+  // --- Fusszeile rechts: Zustand und Sperrgruende ---
+  lblState = mkLabel(root, &lv_font_montserrat_20, C_MUTED, LV_ALIGN_TOP_RIGHT, -14, 190, "-");
+  lblLocks = mkLabel(root, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_RIGHT, -14, 216, "");
+  lv_obj_set_width(lblLocks, 300);
+  lv_obj_set_style_text_align(lblLocks, LV_TEXT_ALIGN_RIGHT, 0);
   lv_label_set_long_mode(lblLocks, LV_LABEL_LONG_DOT);
-
-  // --- Dosierknopf ---
-  btnDose = lv_btn_create(root);
-  lv_obj_set_size(btnDose, scrW - 28, 44);
-  lv_obj_align(btnDose, LV_ALIGN_BOTTOM_MID, 0, -8);
-  lv_obj_set_style_bg_color(btnDose, lv_color_hex(C_ACC), 0);
-  lv_obj_set_style_radius(btnDose, 10, 0);
-  lv_obj_add_event_cb(btnDose, onScreenClick, LV_EVENT_CLICKED, nullptr);
-  lblBtn = lv_label_create(btnDose);
-  lv_obj_set_style_text_font(lblBtn, &lv_font_montserrat_20, 0);
-  lv_obj_set_style_text_color(lblBtn, lv_color_hex(0x061220), 0);
-  lv_label_set_text(lblBtn, "DOSIEREN");
-  lv_obj_center(lblBtn);
+  lv_obj_align(lblLocks, LV_ALIGN_TOP_RIGHT, -14, 216);
 
   // --- Toast ---
   toast = lv_obj_create(scr);
   styleFlat(toast);
-  lv_obj_set_style_bg_color(toast, lv_color_hex(C_LINE), 0);
+  lv_obj_set_style_bg_color(toast, lv_color_hex(C_CARD), 0);
   lv_obj_set_style_bg_opa(toast, LV_OPA_COVER, 0);
   lv_obj_set_style_radius(toast, 8, 0);
-  lv_obj_set_size(toast, scrW - 60, 34);
-  lv_obj_align(toast, LV_ALIGN_BOTTOM_MID, 0, -60);
+  lv_obj_set_style_border_width(toast, 2, 0);
+  lv_obj_set_style_border_color(toast, lv_color_hex(C_MUTED), 0);
+  lv_obj_set_size(toast, scrW - 40, 46);
+  lv_obj_align(toast, LV_ALIGN_CENTER, 0, 60);
   lv_obj_add_flag(toast, LV_OBJ_FLAG_HIDDEN);
-  lblToast = mkLabel(toast, &lv_font_montserrat_14, C_TEXT, LV_ALIGN_CENTER, 0, 0, "");
+  lblToast = mkLabel(toast, &lv_font_montserrat_18, C_TEXT, LV_ALIGN_CENTER, 0, 0, "");
 
   // --- Bestaetigungsdialog ---
   overlay = lv_obj_create(scr);
   styleFlat(overlay);
   lv_obj_set_size(overlay, scrW, scrH);
-  lv_obj_set_style_bg_color(overlay, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_bg_opa(overlay, LV_OPA_80, 0);
+  lv_obj_set_style_bg_color(overlay, lv_color_hex(C_BG), 0);
+  lv_obj_set_style_bg_opa(overlay, LV_OPA_COVER, 0);
   lv_obj_add_flag(overlay, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(overlay, LV_OBJ_FLAG_CLICKABLE);   // schluckt Klicks nach hinten
 
-  lv_obj_t *box = lv_obj_create(overlay);
-  styleFlat(box);
-  lv_obj_set_style_bg_color(box, lv_color_hex(C_CARD), 0);
-  lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
-  lv_obj_set_style_radius(box, 12, 0);
-  lv_obj_set_style_border_width(box, 2, 0);
-  lv_obj_set_style_border_color(box, lv_color_hex(C_WARN), 0);
-  lv_obj_set_size(box, scrW - 60, scrH - 50);
-  lv_obj_center(box);
+  lblAsk    = mkLabel(overlay, &lv_font_montserrat_28, C_TEXT, LV_ALIGN_TOP_MID, 0, 16, "?");
+  lblAskSub = mkLabel(overlay, &lv_font_montserrat_20, C_ERR,  LV_ALIGN_TOP_MID, 0, 54, "");
+  mkLabel(overlay, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_MID, 0, 82,
+          "Die Anlage prueft die Grenzen erneut.");
 
-  lblAsk    = mkLabel(box, &lv_font_montserrat_24, C_TEXT,  LV_ALIGN_TOP_MID, 0, 16, "?");
-  lblAskSub = mkLabel(box, &lv_font_montserrat_16, C_WARN,  LV_ALIGN_TOP_MID, 0, 50, "");
-  mkLabel(box, &lv_font_montserrat_12, C_MUTED, LV_ALIGN_TOP_MID, 0, 74,
-          "Die Anlage prueft die Sicherheitsgrenzen erneut.");
-
-  btnNo = lv_btn_create(box);
-  lv_obj_set_size(btnNo, 180, 46);
-  lv_obj_align(btnNo, LV_ALIGN_BOTTOM_LEFT, 10, -12);
-  lv_obj_set_style_bg_color(btnNo, lv_color_hex(C_LINE), 0);
+  btnNo = lv_btn_create(overlay);
+  lv_obj_set_size(btnNo, 230, 60);
+  lv_obj_align(btnNo, LV_ALIGN_BOTTOM_LEFT, 16, -14);
+  lv_obj_set_style_bg_color(btnNo, lv_color_hex(C_CARD), 0);
+  lv_obj_set_style_border_width(btnNo, 2, 0);
+  lv_obj_set_style_border_color(btnNo, lv_color_hex(C_MUTED), 0);
   lv_obj_set_style_radius(btnNo, 10, 0);
   lv_obj_add_event_cb(btnNo, onNo, LV_EVENT_CLICKED, nullptr);
   lv_obj_t *l1 = lv_label_create(btnNo);
-  lv_obj_set_style_text_font(l1, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(l1, &lv_font_montserrat_22, 0);
+  lv_obj_set_style_text_color(l1, lv_color_hex(C_TEXT), 0);
   lv_label_set_text(l1, "ABBRECHEN");
   lv_obj_center(l1);
 
-  btnYes = lv_btn_create(box);
-  lv_obj_set_size(btnYes, 180, 46);
-  lv_obj_align(btnYes, LV_ALIGN_BOTTOM_RIGHT, -10, -12);
+  btnYes = lv_btn_create(overlay);
+  lv_obj_set_size(btnYes, 230, 60);
+  lv_obj_align(btnYes, LV_ALIGN_BOTTOM_RIGHT, -16, -14);
   lv_obj_set_style_bg_color(btnYes, lv_color_hex(C_ERR), 0);
   lv_obj_set_style_radius(btnYes, 10, 0);
   lv_obj_add_event_cb(btnYes, onYes, LV_EVENT_CLICKED, nullptr);
   lv_obj_t *l2 = lv_label_create(btnYes);
-  lv_obj_set_style_text_font(l2, &lv_font_montserrat_18, 0);
-  lv_obj_set_style_text_color(l2, lv_color_hex(0xFFFFFF), 0);
+  lv_obj_set_style_text_font(l2, &lv_font_montserrat_22, 0);
+  lv_obj_set_style_text_color(l2, lv_color_hex(0x000000), 0);
   lv_label_set_text(l2, "FREIGEBEN");
   lv_obj_center(l2);
+
+  // --- Einrichtungsbildschirm (Access-Point-Modus) ---
+  setup_ = lv_obj_create(scr);
+  styleFlat(setup_);
+  lv_obj_set_size(setup_, scrW, scrH);
+  lv_obj_set_style_bg_color(setup_, lv_color_hex(C_BG), 0);
+  lv_obj_set_style_bg_opa(setup_, LV_OPA_COVER, 0);
+  lv_obj_add_flag(setup_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(setup_, LV_OBJ_FLAG_CLICKABLE);
+
+  mkLabel(setup_, &lv_font_montserrat_24, C_ERR, LV_ALIGN_TOP_MID, 0, 10, "WLAN-EINRICHTUNG");
+  mkLabel(setup_, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_LEFT, 18, 52, "1.  Am Handy verbinden mit");
+  lblSetupSsid = mkLabel(setup_, &lv_font_montserrat_28, C_TEXT, LV_ALIGN_TOP_LEFT, 44, 70, PANEL_AP_SSID);
+  lblSetupPass = mkLabel(setup_, &lv_font_montserrat_20, C_MUTED, LV_ALIGN_TOP_LEFT, 44, 104,
+                         "Passwort:  " PANEL_AP_PASS);
+  mkLabel(setup_, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_TOP_LEFT, 18, 140, "2.  Im Browser oeffnen");
+  lblSetupUrl  = mkLabel(setup_, &lv_font_montserrat_28, C_TEXT, LV_ALIGN_TOP_LEFT, 44, 158, "http://192.168.4.1");
+  mkLabel(setup_, &lv_font_montserrat_16, C_MUTED, LV_ALIGN_BOTTOM_MID, 0, -8,
+          "Netz waehlen, Passwort eingeben - das Panel startet dann neu.");
 
   amoled.setBrightness(BRIGHT_ON);
   lastShiftMs = millis();
@@ -231,62 +259,58 @@ void uiToast(const String &msg, bool ok) {
 }
 
 void uiRefresh() {
+  // --- Einrichtungsmodus deckt alles ab ---
+  if (netMode() == NM_AP) {
+    if (lv_obj_has_flag(setup_, LV_OBJ_FLAG_HIDDEN)) {
+      lv_label_set_text(lblSetupUrl, ("http://" + netApIp()).c_str());
+      lv_obj_clear_flag(setup_, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_move_foreground(setup_);
+    }
+    return;
+  }
+  if (!lv_obj_has_flag(setup_, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(setup_, LV_OBJ_FLAG_HIDDEN);
+
   netLock();
   PanelState s = netState();     // Kopie ziehen, dann sofort freigeben
   netUnlock();
 
   // --- pH ---
+  char phTxt[16];
+  uint32_t phCol = C_MUTED;
   if (s.online && s.phValid) {
-    lv_label_set_text_fmt(lblPh, "%.2f", s.ph);
-    uint32_t col = C_OK;
-    if (s.ph > s.setpoint + 0.30f)      col = C_WARN;
-    if (s.ph > s.setpoint + 0.60f)      col = C_ERR;
-    if (s.ph < s.setpoint - 0.20f)      col = C_ERR;
-    lv_obj_set_style_text_color(lblPh, lv_color_hex(col), 0);
+    snprintf(phTxt, sizeof(phTxt), "%.2f", s.ph);
+    phCol = C_OK;
+    if (s.ph > s.setpoint + 0.30f) phCol = C_WARN;
+    if (s.ph > s.setpoint + 0.60f) phCol = C_ERR;
+    if (s.ph < s.setpoint - 0.20f) phCol = C_ERR;
   } else {
-    lv_label_set_text(lblPh, "--.--");
-    lv_obj_set_style_text_color(lblPh, lv_color_hex(C_MUTED), 0);
+    strcpy(phTxt, "--.--");
   }
+  drawPh(phTxt, phCol);
 
-  lv_label_set_text_fmt(lblSp, "Soll %.2f", s.setpoint);
-  if (!s.online) {
-    lv_label_set_text(lblPhSub, "keine Verbindung zur Anlage");
-    lv_obj_set_style_text_color(lblPhSub, lv_color_hex(C_ERR), 0);
-  } else {
-    lv_label_set_text_fmt(lblPhSub, "%s%s", s.phStatus,
-                          s.phValid ? (s.stable ? " - stabil" : " - schwankt") : "");
-    lv_obj_set_style_text_color(lblPhSub,
-                                lv_color_hex(s.phValid ? C_MUTED : C_WARN), 0);
-  }
-
-  // --- Mengen ---
+  // --- Menge ---
   lv_label_set_text_fmt(lbl24, "%.1f ml", s.last24h);
-  lv_label_set_text_fmt(lblToday, "heute %.1f / %.0f ml", s.today, s.maxDaily);
+  lv_label_set_text_fmt(lbl24Cap, "LETZTE 24 H   (heute %.1f / %.0f)", s.today, s.maxDaily);
 
   // --- Zustand ---
-  if (s.pumpRun) {
+  if (!s.online) {
+    lv_label_set_text(lblState, "offline");
+    lv_obj_set_style_text_color(lblState, lv_color_hex(C_ERR), 0);
+    lv_label_set_text(lblLocks, "keine Verbindung zur Anlage");
+  } else if (netDosePending() || s.pumpRun) {
     lv_label_set_text_fmt(lblState, "Dosiert  %.2f / %.2f ml", s.pumpMl, s.pumpTarget);
     lv_obj_set_style_text_color(lblState, lv_color_hex(C_ACC), 0);
+    lv_label_set_text(lblLocks, "");
   } else {
-    lv_label_set_text(lblState, s.online ? s.state : "offline");
+    lv_label_set_text(lblState, s.state);
     uint32_t col = C_MUTED;
-    if (s.fault || s.estop) col = C_ERR;
+    if (s.fault || s.estop)                 col = C_ERR;
     else if (strcmp(s.state, "Bereit") == 0) col = C_OK;
     lv_obj_set_style_text_color(lblState, lv_color_hex(col), 0);
+    // Ohne gueltigen Messwert ist der Sensorgrund wichtiger als die Sperrliste.
+    lv_label_set_text(lblLocks, s.phValid ? s.locks : s.phStatus);
   }
-  lv_label_set_text(lblLocks, s.online ? s.locks : "");
-
-  // --- Knopf ---
-  bool busy = netDosePending() || s.pumpRun || !s.online;
-  if (busy) {
-    lv_obj_add_state(btnDose, LV_STATE_DISABLED);
-    lv_label_set_text(lblBtn, s.online ? "PUMPE LAEUFT" : "OFFLINE");
-  } else {
-    lv_obj_clear_state(btnDose, LV_STATE_DISABLED);
-    lv_label_set_text_fmt(lblBtn, "%.0f UMDREHUNGEN DOSIEREN", panelCfg.revs);
-  }
-
-  lv_label_set_text(lblNet, netWifiInfo().c_str());
+  lv_obj_align(lblLocks, LV_ALIGN_TOP_RIGHT, -14, 216);
 }
 
 // ---------------------------------------------------------------------------

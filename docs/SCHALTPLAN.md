@@ -2,26 +2,44 @@
 
 Grafik: [schaltplan.svg](schaltplan.svg) (im Browser oder in Inkscape öffnen, druckbar auf A3)
 
+**Ein Gerät:** Der LilyGo T-Display S3 AMOLED übernimmt alles — Messung,
+Regelung, Pumpenansteuerung, Anzeige, Bedienung und Webinterface. Ein
+separater ESP32-C3 wird nicht mehr verwendet.
+
 ---
 
 ## 1. Übersicht
 
 ```text
 pH-Sonde ──BNC──> pH-Signalboard ──PO──> R2 10k ──> ADS1115 A0
-                                                        │ I²C (GPIO5/6)
+                                                        │ I²C (Wire1, GPIO13/14)
                                                         v
 12 V ──┬──> TMC2209 VMOT ──> NEMA17 ──> Peristaltikpumpe
        │         ^
-       │         │ STEP/DIR/EN (GPIO3/4/7)
+       │         │ STEP/DIR/EN (GPIO11/12/10)
        │         │
-       └──> Buck 5 V ──D1──> ESP32-C3 5V ──3V3──> ADS1115, TMC2209 VIO
+       └──> Buck 5 V ──D1──> T-Display S3 AMOLED ──3V3──> ADS1115, TMC2209 VIO
                      └──> pH-Board V+
-
-                    ESP32-C3  ·····WLAN·····  T-Display S3 AMOLED (Bedienpanel)
 ```
 
-Das Bedienpanel hat **keine Kabelverbindung** zur Anlage. Es braucht nur 5 V
-und WLAN — siehe Abschnitt 4.
+### Was das für die Sicherheit bedeutet
+
+In der Zwei-Geräte-Variante liefen Dosierlogik und Bedienoberfläche auf
+getrennten Mikrocontrollern — ein Absturz der Oberfläche konnte die Dosierung
+nicht beeinflussen. Das ist jetzt nicht mehr so: **derselbe Chip zeichnet das
+Display und steuert die Pumpe.**
+
+Zwei Dinge fangen das in der Firmware ab:
+
+* Die Schrittimpulse werden nicht blockierend erzeugt. Wenn LVGL für einen
+  Bildaufbau ein paar Millisekunden braucht, läuft der Motor kurz
+  unregelmäßiger — die **Schrittzahl und damit die Dosiermenge bleibt exakt**.
+* `EN` des TMC2209 hängt über R1 auf 3,3 V. Startet der S3 neu oder hängt er
+  im Reset, ist der Treiber stromlos und die Pumpe steht — unabhängig davon,
+  was die Software gerade tut.
+
+Die harten Dosiergrenzen liegen weiterhin im nichtflüchtigen Speicher und
+werden bei jedem Dosierauftrag geprüft.
 
 ---
 
@@ -37,13 +55,20 @@ und WLAN — siehe Abschnitt 4.
 | GND-12V | Netzteil − | Buck `IN−` | 0,5 mm² | schwarz |
 | C1 | TMC2209 `VMOT` | TMC2209 `GND` | 100 µF / 25 V, **direkt am Modul** | – |
 | +5 V | Buck `OUT+` | D1 Anode | 0,25 mm² | orange |
-| +5 V | D1 Kathode | ESP32-C3 `5V` | 0,25 mm² | orange |
-| +5 V | D1 Kathode | pH-Board `V+` *(nach Messung, s. u.)* | 0,25 mm² | orange |
+| +5 V | D1 Kathode | S3 AMOLED `5V` | 0,25 mm² | orange |
+| +5 V | D1 Kathode | pH-Board `V+` *(nach Messung, s. Abschnitt 5)* | 0,25 mm² | orange |
 | GND | Buck `OUT−` | GND-Sternpunkt | 0,5 mm² | schwarz |
 
-**D1** = Schottky SS34 / 1N5819, Durchlassrichtung Buck → ESP32.
+**D1** = Schottky SS34 / 1N5819, Durchlassrichtung Buck → Displayboard.
 Sie verhindert, dass beim gleichzeitigen Anstecken von USB und Netzteil
 5 V aus dem USB in den Buck-Ausgang zurückgespeist werden.
+
+**Strombedarf:** Der S3 mit AMOLED zieht je nach Helligkeit 150–300 mA, dazu
+das pH-Board (~20 mA) und Reserve. **Buck mit mindestens 1 A auslegen.**
+
+> **Vor dem Anlöten prüfen:** An welchem Pad des T-Display S3 AMOLED 5 V
+> eingespeist werden dürfen, steht im Pinout deines Boards. Es hat zusätzlich
+> einen Akkuanschluss mit Ladeelektronik — hier nicht raten.
 
 ### 2.2 Masse (Sternpunkt)
 
@@ -51,23 +76,23 @@ Alle folgenden GND müssen **auf einen gemeinsamen Punkt** (Klemmleiste oder
 ein Lötstützpunkt auf der Platine):
 
 ```text
-Netzteil GND · TMC2209 GND · Buck IN− und OUT− · ESP32-C3 GND
+Netzteil GND · TMC2209 GND · Buck IN− und OUT− · S3 AMOLED GND
 ADS1115 GND · pH-Board G
 ```
 
 Leistungs-GND (Motor) und Signal-GND laufen erst am Sternpunkt zusammen —
 nicht den Motorstrom über die Signalmasse führen.
 
-### 2.3 Steuersignale ESP32-C3 → TMC2209
+### 2.3 Steuersignale S3 AMOLED → TMC2209
 
-| ESP32-C3 | TMC2209 | Funktion |
+| S3 AMOLED | TMC2209 | Funktion |
 |---|---|---|
-| GPIO3 | `STEP` | Schrittimpuls |
-| GPIO4 | `DIR` | Drehrichtung |
-| GPIO7 | `EN` | Freigabe, **aktiv LOW** |
+| GPIO11 | `STEP` | Schrittimpuls |
+| GPIO12 | `DIR` | Drehrichtung |
+| GPIO10 | `EN` | Freigabe, **aktiv LOW** |
 | 3V3 | `VIO` | Logikversorgung des Treibers |
 | GND | `GND` (Logikseite) | |
-| GPIO10 | `PDN/UART` | **derzeit nicht verdrahtet**, für spätere UART-Erweiterung freihalten |
+| GPIO15 | `PDN/UART` | **derzeit nicht verdrahtet**, für spätere UART-Erweiterung freihalten |
 
 Zusätzlich am TMC2209-Modul:
 
@@ -88,9 +113,7 @@ TMC2209-Microstep-Tabelle (MS2, MS1):
 | H | L | 1/64 | 12800 |
 | **H** | **H** | **1/16** | **3200** ← so verdrahten |
 
-> Die Tabelle unbedingt praktisch gegenprüfen: mit `tools/motor_test`
-> `m 3200` setzen und `t` ausführen — der Motor muss **genau** eine
-> Umdrehung machen.
+> Praktisch gegenprüfen: 3200 Schritte müssen **genau** eine Umdrehung ergeben.
 
 ### 2.4 Motor
 
@@ -110,8 +133,8 @@ Der 6-polige Motorstecker ist belegt: `rot | frei | grün | blau | frei | schwar
 * rot ↔ blau, rot ↔ schwarz usw.: **kein Durchgang**
 
 Falls die gemessenen Paare anders liegen als vermutet, gilt die Messung.
-Eine vertauschte Spule (z. B. 1A/1B getauscht) ändert nur die Drehrichtung —
-das lässt sich später per `set invdir 1` in der Firmware korrigieren.
+Eine vertauschte Spule ändert nur die Drehrichtung — korrigierbar per
+`set invdir 1` in der Firmware.
 
 ### 2.5 Messkette
 
@@ -121,131 +144,115 @@ das lässt sich später per `set invdir 1` in der Firmware korrigieren.
 | pH-Board `V+` | +5 V *(erst nach Messung, s. Abschnitt 5)* | |
 | pH-Board `G` | GND-Sternpunkt | |
 | pH-Board `PO` | R2 (10 kΩ) → ADS1115 `A0` | Analogsignal |
-| pH-Board `TO` | – | nicht benötigt |
-| pH-Board `DO` | – | nicht benötigt (digitaler Schwellwertausgang) |
-| ADS1115 `VDD` | ESP32-C3 `3V3` | **nicht 5 V!** |
-| ADS1115 `GND` | ESP32-C3 `GND` | |
-| ADS1115 `SDA` | ESP32-C3 `GPIO5` | |
-| ADS1115 `SCL` | ESP32-C3 `GPIO6` | |
+| pH-Board `TO`, `DO` | – | nicht benötigt |
+| ADS1115 `VDD` | S3 AMOLED `3V3` | **nicht 5 V!** |
+| ADS1115 `GND` | GND-Sternpunkt | |
+| ADS1115 `SDA` | S3 AMOLED `GPIO13` | zweiter I²C-Bus (`Wire1`) |
+| ADS1115 `SCL` | S3 AMOLED `GPIO14` | zweiter I²C-Bus (`Wire1`) |
 | ADS1115 `ADDR` | `GND` | ergibt I²C-Adresse 0x48 |
 | ADS1115 `A1`–`A3` | frei | Reserve |
 
 **R2 (10 kΩ in Serie zu A0)** begrenzt den Strom in die Schutzdioden des
-ADS1115, falls `PO` kurzzeitig über 3,3 V steigt. Der Widerstand
-verfälscht die Messung nicht nennenswert (Eingangsstrom des ADS1115 im
-nA-Bereich) und wird durch die 2-Punkt-Kalibrierung ohnehin mit erfasst.
+ADS1115, falls `PO` kurzzeitig über 3,3 V steigt. Der Widerstand verfälscht
+die Messung nicht nennenswert und wird durch die 2-Punkt-Kalibrierung ohnehin
+mit erfasst.
+
+#### Warum ein eigener I²C-Bus
+
+Der Touchcontroller CST816T hängt bereits auf einem I²C-Bus (`GPIO3` = SDA,
+`GPIO2` = SCL) und wird von LVGL laufend abgefragt. Adressseitig gäbe es mit
+dem ADS1115 (0x48) keinen Konflikt — trotzdem bekommt der ADS1115 den
+**zweiten Hardware-I²C-Bus** auf GPIO13/14.
+
+Grund: Der ADS1115 sitzt am Ende von Kabeln, oft 10–30 cm, in der Nähe der
+Motorleitungen. Diese Leitungskapazität und die eingekoppelten Störungen dem
+Touchbus aufzubürden hieße, die Bedienbarkeit des Displays von der Qualität der
+Sensorverkabelung abhängig zu machen. Getrennte Busse kosten zwei GPIOs und
+lösen das Problem vollständig.
 
 ### 2.6 Optional: Umwälz-Rückmeldung
 
-| ESP32-C3 | Nach | Bemerkung |
+| S3 AMOLED | Nach | Bemerkung |
 |---|---|---|
-| GPIO1 | potenzialfreier Kontakt | zweite Seite des Kontakts an GND |
+| GPIO16 | potenzialfreier Kontakt | zweite Seite des Kontakts an GND |
 
 Der Pin ist in der Firmware mit internem Pull-up konfiguriert.
-Standard: **Kontakt geschlossen = Umwälzung läuft**. Über
-`set flowinv 1` lässt sich die Logik umdrehen. Aktiviert wird die
-Auswertung mit `set flowreq 1` bzw. im Webinterface.
+Standard: **Kontakt geschlossen = Umwälzung läuft**. Über `set flowinv 1`
+lässt sich die Logik umdrehen, aktiviert wird sie mit `set flowreq 1`.
 
-Es darf **keine Netzspannung** an GPIO1 gelangt — nur ein potenzialfreier
+Es darf **keine Netzspannung** an GPIO16 gelangen — nur ein potenzialfreier
 Relais- oder Strömungswächterkontakt.
 
 ---
 
-## 3. Genutzte GPIOs — und warum
+## 3. GPIO-Belegung des T-Display S3 AMOLED
 
-| GPIO | Funktion | Hinweis |
-|---|---|---|
-| 1 | Umwälz-Eingang | ADC-fähig, frei nutzbar |
-| 3 | STEP | |
-| 4 | DIR | |
-| 5 | SDA | |
-| 6 | SCL | |
-| 7 | EN | mit Pull-up nach 3,3 V |
-| 8 | Onboard-LED | invertiert (LOW = an), Strapping-Pin |
-| 9 | **frei lassen** | BOOT-Strapping-Pin |
-| 10 | reserviert für TMC-UART | derzeit unbeschaltet |
-| 20/21 | UART0 | bleibt frei |
+Variante **`BOARD_AMOLED_191`** (1,91", QSPI, Touch CST816T, ohne PMU, ohne
+SD-Karte). Erkennbar daran, dass der I²C-Scan beim Booten nur `0x15` findet —
+die SPI/SD-Variante hätte zusätzlich den Ladechip BQ25896 auf `0x6B`.
+
+### Vom Board belegt — nicht anfassen
+
+| GPIO | Funktion |
+|---|---|
+| 5, 6, 7, 9, 17, 18, 47, 48 | AMOLED QSPI (Daten, SCK, CS, RST, TE) |
+| 2, 3, 21 | Touch CST816T (SCL, SDA, IRQ) |
+| 0 | BOOT-Taster, Strapping-Pin |
+| 4 | Akkuspannungsmessung |
+| 38 | PMIC Enable |
+| 19, 20 | USB D− / D+ |
+| 26–37 | Flash und OPI-PSRAM |
+| 43, 44 | UART0 (TX/RX) — freihalten |
+| 45, 46 | Strapping-Pins — freihalten |
+
+### Für dieses Projekt vorgesehen
+
+| GPIO | Funktion |
+|---|---|
+| 10 | TMC2209 `EN` (aktiv LOW, Pull-up nach 3,3 V) |
+| 11 | TMC2209 `STEP` |
+| 12 | TMC2209 `DIR` |
+| 13 | ADS1115 `SDA` (Wire1) |
+| 14 | ADS1115 `SCL` (Wire1) |
+| 15 | Reserve für TMC-UART |
+| 16 | Umwälz-Rückmeldung |
+
+Frei bleiben zusätzlich: **1, 8, 39, 40, 41, 42**.
+
+> **Das ist die offene Stelle im Plan.** GPIO 10–16 sind auf dieser
+> Boardvariante elektrisch frei — bei der SPI/SD-Variante wären 11–14 von der
+> SD-Karte belegt. Ob sie auf deinem Board tatsächlich als Lötpad oder
+> Stiftleiste **herausgeführt** sind, steht nur im Pinout des Boards.
+> Vor dem Löten nachsehen und die tatsächlich verfügbaren Pads durchgeben —
+> dann werden Plan und Firmware darauf angepasst. Bis dahin ist die obige
+> Zuordnung ein begründeter Vorschlag, keine bestätigte Belegung.
 
 ---
 
-## 4. Bedienpanel (drahtlos)
+## 4. Anzeige und Bedienung
 
-Das LilyGo T-Display S3 AMOLED wird **nicht** mit der Anlage verdrahtet. Es
-spricht über WLAN mit der JSON-API des ESP32-C3. Es gibt also keine Netzliste —
-nur eine Stromversorgung.
-
-### 4.1 Versorgung: zwei Möglichkeiten
-
-**A — eigenes USB-C-Netzteil (Standard, empfohlen)**
-
-| | |
-|---|---|
-| Versorgung | USB-C-Steckernetzteil, min. 500 mA |
-| Aufwand | keiner, nur einstecken |
-| Vorteil | Anlage und Panel sind räumlich und elektrisch entkoppelt |
-
-Das ist die richtige Wahl, wenn das Panel woanders hängt als die Technik —
-etwa im Wohnraum statt im Technikschacht.
-
-**B — gemeinsames 5-V-Netz aus dem Buck-Converter**
-
-Sinnvoll nur, wenn Panel und Anlage im selben Gehäuse sitzen. Dann muss der
-Buck-Converter größer ausgelegt werden:
-
-| Verbraucher | Strom (grob) |
-|---|---|
-| ESP32-C3 mit WLAN | ca. 120 mA, Spitzen höher |
-| pH-Signalboard | ca. 20 mA |
-| T-Display S3 AMOLED | ca. 150–300 mA, abhängig von der Helligkeit |
-| **Summe** | **min. 1 A vorsehen** |
-
-Der 0,5-A-Buck aus der Grundausstattung reicht dafür **nicht**. Außerdem:
-
-* GND von Panel und Anlage müssen auf denselben Sternpunkt.
-* Das Panel hängt dann am selben Netz wie die Motorelektronik — 5-V-Leitung
-  zum Panel getrennt von den Motorleitungen führen.
-
-> **Vor dem Anlöten prüfen:** An welchem Pad die 5 V beim T-Display S3 AMOLED
-> eingespeist werden dürfen, steht im Pinout des konkreten Boards. Nicht raten —
-> die Boardvarianten unterscheiden sich, und das Display hat zusätzlich einen
-> Akkuanschluss mit Ladeelektronik. Solange das nicht geklärt ist, gilt
-> Variante A.
-
-### 4.2 Netzwerk
-
-| | |
-|---|---|
-| Band | 2,4 GHz (der S3 kann wie der C3 kein 5 GHz) |
-| Ziel | `ph-dosierung.local` bzw. die feste IP der Anlage |
-| Protokoll | HTTP, `GET /api/status` alle 2 s, `POST /api/dose/revs` bei Freigabe |
-
-Beide Geräte müssen im selben Netz sein. Details in
+Display und Touch sitzen auf demselben Board — dafür ist nichts zu verdrahten.
+Was die Oberfläche zeigt und wie die Dosierfreigabe per Touch abläuft, steht in
 [BEDIENPANEL.md](BEDIENPANEL.md).
 
 ---
 
-## 5. Noch zu verifizierende Punkte (aus der Projektbeschreibung)
+## 5. Noch zu verifizierende Punkte
 
-Diese Messungen **vor** der endgültigen Verdrahtung durchführen:
+Diese Punkte **vor** der endgültigen Verdrahtung klären:
 
-1. **Versorgungsspannung des pH-Boards.** Die meisten dieser Boards laufen
-   mit 5 V. Steht auf der Platine „3.3–5 V", ist auch 3,3 V möglich —
-   dann liegt `PO` sicher im ADS-Bereich, das Signal wird aber kleiner.
-   Betriebsspannung erst anlegen, wenn die Beschriftung eindeutig ist.
-2. **Spannungsbereich von `PO`.** Board mit Sonde in pH-7-Puffer betreiben
-   und `PO` gegen `G` messen. Typisch liegen ~2,5 V (bei 5 V Versorgung)
-   für pH 7 an; pH 4 gibt eine höhere, pH 10 eine niedrigere Spannung.
-   Dann die Sonde in pH-4-Puffer stellen und den zweiten Wert notieren.
-3. **Ergebnis auswerten:**
-   * Maximalwert ≤ 3,2 V → direkt über R2 an `A0`, nichts weiter nötig.
-   * Maximalwert > 3,2 V → zusätzlich Spannungsteiler
-     (z. B. 10 kΩ / 20 kΩ, Teiler 1:1,5) zwischen `PO` und `A0` einbauen.
-     Die Kalibrierung rechnet den Teiler automatisch mit heraus.
-4. **Potentiometer auf dem pH-Board** nicht verstellen, solange die
-   Funktion nicht geklärt ist. Üblich sind: ein Poti für den Offset des
-   Analogausgangs, eines für die Schaltschwelle von `DO`. Position vor
-   dem ersten Verdrehen fotografieren.
-5. **I²C-Pull-ups.** Fast alle ADS1115-Breakouts haben 10 kΩ nach VDD
-   bereits an Bord. Mit dem Multimeter zwischen `SDA` und `VDD` messen
-   (Modul stromlos): ca. 10 kΩ → alles gut. Ist kein Pull-up vorhanden,
+1. **Herausgeführte GPIOs des Displayboards** (siehe Abschnitt 3).
+2. **5-V-Einspeisepunkt am Displayboard** (siehe Abschnitt 2.1).
+3. **Versorgungsspannung des pH-Boards.** Die meisten laufen mit 5 V. Steht
+   auf der Platine „3.3–5 V", ist auch 3,3 V möglich — dann liegt `PO` sicher
+   im ADS-Bereich, das Signal wird aber kleiner.
+4. **Spannungsbereich von `PO`.** Board mit Sonde in pH-7-Puffer betreiben und
+   `PO` gegen `G` messen, danach in pH-4-Puffer. Beide Werte notieren.
+   * Maximalwert ≤ 3,2 V → direkt über R2 an `A0`.
+   * Maximalwert > 3,2 V → zusätzlich Spannungsteiler (z. B. 10 kΩ / 20 kΩ).
+     Die Kalibrierung rechnet den Teiler automatisch heraus.
+5. **Potentiometer auf dem pH-Board** nicht verstellen, solange die Funktion
+   nicht geklärt ist. Position vorher fotografieren.
+6. **I²C-Pull-ups am ADS1115.** Fast alle Breakouts haben 10 kΩ nach VDD an
+   Bord. Stromlos zwischen `SDA` und `VDD` messen: ca. 10 kΩ → gut. Fehlen sie,
    je 4,7 kΩ von SDA und SCL nach 3,3 V ergänzen.

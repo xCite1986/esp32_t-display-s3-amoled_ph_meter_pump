@@ -15,12 +15,14 @@ Vorhanden auf diesem Rechner:
 
 * `arduino-cli 1.5.1` (gebündelt in `C:\Program Files\Arduino IDE\...`)
 * ESP32-Core `esp32:esp32 3.3.8`
-* Board-FQBN: `esp32:esp32:nologo_esp32c3_super_mini`
-* Port: `COM3`
+* Board-FQBN:
+  `esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,PartitionScheme=app3M_fat9M_16MB`
+* Port: `COM6`
 
-Externe Bibliotheken werden **nicht** benötigt — die Firmware nutzt
-ausschließlich den ESP32-Core (`Wire`, `WiFi`, `WebServer`, `Preferences`,
-`ESPmDNS`, `ArduinoOTA`). Der ADS1115-Treiber liegt als eigenes Modul bei.
+Benötigte Bibliotheken: `LilyGo-AMOLED-Series`, `lvgl 8.4`, `ArduinoJson`,
+`XPowersLib`, `SensorLib` (**Version 0.3.3** — 0.4.1 ist defekt, siehe
+[BEDIENPANEL.md](BEDIENPANEL.md), Abschnitt 4). Der ADS1115-Treiber liegt als
+eigenes Modul bei und braucht keine Fremdbibliothek.
 
 Kurztest:
 
@@ -47,7 +49,7 @@ Erwartete Ausgabe:
 
 ```text
 === Phase 1: I2C / ADS1115 Test ===
-SDA=GPIO5  SCL=GPIO6  Adresse 0x48  Bereich +/-4.096 V
+SDA=GPIO13  SCL=GPIO14  Adresse 0x48  Bereich +/-4.096 V
 I2C-Scan...
   gefunden: 0x48   <- sieht nach ADS1115 aus
 A0:   XXXXX   X.XXXX V   A1: ...
@@ -212,8 +214,9 @@ Der ESP32 startet neu und verbindet sich. Danach:
 
 * `http://ph-dosierung.local/` oder die IP aus `status`
 * Ohne WLAN-Daten (oder bei fehlgeschlagener Verbindung) öffnet die
-  Anlage einen Access Point:
-  SSID `pH-Dosieranlage`, Passwort `dosier1234`, IP `192.168.4.1`
+  Anlage einen Einrichtungs-Access-Point mit Konfigurationsseite:
+  SSID `pH-Panel`, Passwort `panel1234`, IP `192.168.4.1`.
+  Das Display zeigt diese Angaben dann groß an.
 
 **Zugriffsschutz setzen**, bevor die Anlage dauerhaft im Netz hängt:
 im Webinterface unter *Netzwerk* einen Web-Benutzer und ein Passwort
@@ -223,7 +226,7 @@ Das Web-Passwort dient gleichzeitig als OTA-Passwort. Danach sind Updates
 auch ohne USB möglich:
 
 ```bash
-powershell -Command "& (Get-Command arduino-cli).Source compile --fqbn esp32:esp32:nologo_esp32c3_super_mini firmware/ph_dosieranlage"
+powershell -File scripts/flash-panel.ps1 -BuildOnly
 ```
 
 ---

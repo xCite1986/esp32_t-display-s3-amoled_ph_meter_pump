@@ -38,6 +38,7 @@ static void printHelp() {
     "  help                  diese Liste\n"
     "  status                Verbindung und letzte Werte\n"
     "  wifi <ssid> <pass>    WLAN speichern und neu starten\n"
+    "  ap                    Einrichtungs-AP erzwingen (Konfig per Handy)\n"
     "  host <name|ip>        Adresse der Dosieranlage (Standard ph-dosierung.local)\n"
     "  auth <user> <pass>    Zugangsdaten, falls die Anlage ein Login hat\n"
     "  noauth                Login-Daten loeschen\n"
@@ -112,6 +113,14 @@ static void handleCommand(String line) {
     netSaveConfig();
     Serial.printf("%.0f Umdrehungen = ca. %.2f ml\n", n, netDoseMl());
   }
+  else if (cmd == "ap") {
+    // WLAN-Daten verwerfen; netBegin() oeffnet danach den Einrichtungs-AP
+    panelCfg.ssid[0] = 0;
+    panelCfg.pass[0] = 0;
+    netSaveConfig();
+    Serial.println("WLAN-Daten geloescht - Neustart in den Einrichtungs-AP");
+    delay(200); ESP.restart();
+  }
   else if (cmd == "reboot") { Serial.println("Neustart..."); delay(200); ESP.restart(); }
   else if (cmd == "factory") {
     netFactoryReset();
@@ -123,11 +132,29 @@ static void handleCommand(String line) {
 
 static void serialTask() {
   static String buf;
+  static bool lastWasCr = false;
   while (Serial.available()) {
     char c = Serial.read();
-    if (c == '\r') continue;
-    if (c == '\n') { handleCommand(buf); buf = ""; Serial.print("> "); }
-    else if (buf.length() < 120) buf += c;
+
+    // CR, LF und CRLF gelten alle als Zeilenende. Terminals sind sich da nicht
+    // einig - und eine Konsole, die auf Enter nicht reagiert, wirkt kaputt.
+    if (c == '\r' || c == '\n') {
+      if (c == '\n' && lastWasCr) { lastWasCr = false; continue; }
+      lastWasCr = (c == '\r');
+      Serial.println();
+      handleCommand(buf);
+      buf = "";
+      Serial.print("> ");
+      continue;
+    }
+    lastWasCr = false;
+
+    if (c == 8 || c == 127) {                     // Backspace
+      if (buf.length()) { buf.remove(buf.length() - 1); Serial.print("\b \b"); }
+      continue;
+    }
+    // Echo, damit sichtbar ist was ankommt
+    if (buf.length() < 120) { buf += c; Serial.print(c); }
   }
 }
 
