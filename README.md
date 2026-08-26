@@ -129,7 +129,7 @@ Diese Werte lassen sich nicht am Schreibtisch festlegen und sind in den
 Dokumenten als Messpunkte markiert:
 
 * Versorgungsspannung und tatsächlicher `PO`-Bereich des pH-Boards
-  → [docs/SCHALTPLAN.md](docs/SCHALTPLAN.md), Abschnitt 4
+  → [docs/SCHALTPLAN.md](docs/SCHALTPLAN.md), Abschnitt 5
 * Spulenpaare des NEMA17 → Lötanleitung, Abschnitt 10
 * Motorstrom / VREF → Lötanleitung, Abschnitt 9
 * Fördermenge pro Umdrehung, Schritte/ml → Inbetriebnahme, Phase 3

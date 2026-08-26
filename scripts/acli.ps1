@@ -6,7 +6,7 @@
 $ErrorActionPreference = "Stop"
 
 $script:Fqbn = "esp32:esp32:nologo_esp32c3_super_mini"
-$script:Port = "COM3"
+$script:DefaultPort = "COM3"   # NICHT $Port nennen: kollidiert mit param($Port)
 $script:Root = Split-Path -Parent $PSScriptRoot
 
 function Get-ArduinoCli {
@@ -20,7 +20,7 @@ function Get-ArduinoCli {
 }
 
 function Get-EspPort {
-    param([string]$Preferred = $script:Port)
+    param([string]$Preferred = $script:DefaultPort)
 
     $cli = Get-ArduinoCli
     $list = & $cli board list --format json 2>$null | ConvertFrom-Json

@@ -2,6 +2,10 @@
 
 Begleitend: [SCHALTPLAN.md](SCHALTPLAN.md) und [schaltplan.svg](schaltplan.svg).
 
+Diese Anleitung betrifft **nur die Dosieranlage** (ESP32-C3). Das Bedienpanel
+(T-Display S3 AMOLED) wird nicht verdrahtet — es braucht ausschließlich 5 V und
+WLAN. Details dazu in Abschnitt 12 und in [BEDIENPANEL.md](BEDIENPANEL.md).
+
 Die Reihenfolge ist bewusst so gewählt, dass nach jedem Abschnitt geprüft
 werden kann, bevor mehr Spannung ins Spiel kommt. **Bitte nicht vorgreifen** —
 insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
@@ -61,6 +65,17 @@ insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
 | 13 | Litze 0,25 mm² diverse Farben (Signal) | je 1 m |
 | 14 | Schrumpfschlauch-Sortiment | 1 |
 | 15 | Abstandsbolzen M3 + Gehäuse (IP54 empfohlen) | 1 Satz |
+
+Nur für das Bedienpanel (siehe Abschnitt 12):
+
+| Pos | Teil | Menge |
+|---|---|---|
+| 16 | USB-C-Steckernetzteil, min. 500 mA | 1 |
+| 17 | USB-C-Kabel passender Länge | 1 |
+
+> Wer Panel und Anlage in **ein** Gehäuse baut, kann Pos. 16/17 weglassen —
+> braucht dann aber einen Buck-Converter mit **mindestens 1 A**. Die Rechnung
+> dazu steht in [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 4.1.
 
 > **Buchsenleisten statt Direktlöten.** ESP32, TMC2209 und ADS1115 werden
 > gesteckt, nicht eingelötet. Der TMC2209 ist ein Verschleißteil, der ESP32
@@ -306,12 +321,59 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 - [ ] Sondenkabel getrennt von den Motorleitungen verlegt
 - [ ] Firmware `firmware/ph_dosieranlage` geflasht
 
+Zusätzlich, falls das Panel mitversorgt wird (Variante B):
+
+- [ ] Buck-Converter für mindestens 1 A ausgelegt
+- [ ] Einspeisepunkt am Panel anhand des Pinouts bestätigt
+- [ ] Panelspannung unter Last gemessen (> 4,7 V bei laufendem Motor)
+
 **Einschaltreihenfolge:** immer erst USB/5 V (Logik), dann 12 V.
 **Ausschaltreihenfolge:** erst 12 V, dann Logik.
 
 ---
 
-## 12. Mechanik und Hydraulik
+## 12. Bedienpanel anschließen
+
+Hier wird nichts gelötet. Das T-Display S3 AMOLED spricht über WLAN mit der
+Anlage — es gibt keine Signalleitung zwischen den beiden Geräten.
+
+### Variante A — eigenes USB-C-Netzteil (empfohlen)
+
+1. Panel per USB-C an ein Steckernetzteil (min. 500 mA).
+2. Fertig. Kein Eingriff an der Anlagenplatine.
+
+Das ist die richtige Wahl, sobald das Panel woanders hängt als die Technik.
+Ein Defekt am Netzteil des einen Geräts legt das andere nicht mit lahm.
+
+### Variante B — gemeinsames 5-V-Netz
+
+Nur sinnvoll, wenn Panel und Anlage im selben Gehäuse sitzen.
+
+1. **Buck-Converter prüfen:** ESP32-C3 (~120 mA) + pH-Board (~20 mA) +
+   AMOLED (~150–300 mA) → **mindestens 1 A** vorsehen. Der kleine Buck aus
+   der Grundausstattung reicht nicht; sonst bricht die Spannung ein, sobald
+   das Display hell wird und gleichzeitig der Motor anläuft.
+2. **Einspeisepunkt am Panel klären.** Im Pinout des konkreten Boards
+   nachsehen, welches Pad 5 V annimmt. Nicht raten — die Varianten des
+   T-Display S3 AMOLED unterscheiden sich, und das Board hat zusätzlich einen
+   Akkuanschluss mit Ladeelektronik. Solange das nicht geklärt ist: Variante A.
+3. 5 V hinter D1 abgreifen, GND auf den Sternpunkt.
+4. Die 5-V-Leitung zum Panel **getrennt von den Motorleitungen** verlegen.
+
+**Prüfen:** Mit eingeschaltetem Display und laufendem Motor die Spannung am
+Panel messen. Fällt sie unter 4,7 V, ist der Buck zu klein — dann zurück zu
+Variante A.
+
+### Danach
+
+* Panel flashen und einrichten: [BEDIENPANEL.md](BEDIENPANEL.md), Abschnitte 5–6.
+* Beide Geräte müssen im **selben 2,4-GHz-WLAN** sein.
+* Montageort: Das AMOLED ist nicht für Dauerfeuchte gebaut. Im Technikraum
+  gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
+
+---
+
+## 13. Mechanik und Hydraulik
 
 * Peristaltikkopf auf die NEMA17-Welle: Wellendurchmesser 5 mm prüfen,
   Madenschraube auf die Abflachung setzen.
@@ -328,7 +390,7 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 
 ---
 
-## 13. Wenn etwas nicht funktioniert
+## 14. Wenn etwas nicht funktioniert
 
 | Symptom | Wahrscheinliche Ursache |
 |---|---|
@@ -341,3 +403,6 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 | ESP startet neu, wenn der Motor anläuft | C1 fehlt/zu klein, Buck zu schwach, GND-Schleife |
 | 3200 Schritte ≠ 1 Umdrehung | MS1/MS2 nicht korrekt auf VIO |
 | Firmware meldet dauerhaft „Sensorfehler" | pH-Board unversorgt, PO nicht angeschlossen, Spannung außerhalb 0,03–3,25 V |
+| Panel zeigt „offline" | falsches WLAN-Band (nur 2,4 GHz), falscher `host`, Anlage nicht erreichbar |
+| Panel startet neu, wenn der Motor anläuft | Buck zu klein — Variante A verwenden |
+| Panel-Knopf dauerhaft gesperrt | Anlage meldet laufende Pumpe oder das Panel ist offline |

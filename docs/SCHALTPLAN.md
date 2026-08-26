@@ -16,7 +16,12 @@ pH-Sonde ──BNC──> pH-Signalboard ──PO──> R2 10k ──> ADS1115 
        │         │
        └──> Buck 5 V ──D1──> ESP32-C3 5V ──3V3──> ADS1115, TMC2209 VIO
                      └──> pH-Board V+
+
+                    ESP32-C3  ·····WLAN·····  T-Display S3 AMOLED (Bedienpanel)
 ```
+
+Das Bedienpanel hat **keine Kabelverbindung** zur Anlage. Es braucht nur 5 V
+und WLAN — siehe Abschnitt 4.
 
 ---
 
@@ -113,7 +118,7 @@ das lässt sich später per `set invdir 1` in der Firmware korrigieren.
 | Von | Nach | Bemerkung |
 |---|---|---|
 | pH-Sonde BNC | pH-Board BNC-Buchse | Kabel kurz, nicht parallel zu Motorleitungen |
-| pH-Board `V+` | +5 V *(erst nach Messung, s. Abschnitt 4)* | |
+| pH-Board `V+` | +5 V *(erst nach Messung, s. Abschnitt 5)* | |
 | pH-Board `G` | GND-Sternpunkt | |
 | pH-Board `PO` | R2 (10 kΩ) → ADS1115 `A0` | Analogsignal |
 | pH-Board `TO` | – | nicht benötigt |
@@ -163,7 +168,63 @@ Relais- oder Strömungswächterkontakt.
 
 ---
 
-## 4. Noch zu verifizierende Punkte (aus der Projektbeschreibung)
+## 4. Bedienpanel (drahtlos)
+
+Das LilyGo T-Display S3 AMOLED wird **nicht** mit der Anlage verdrahtet. Es
+spricht über WLAN mit der JSON-API des ESP32-C3. Es gibt also keine Netzliste —
+nur eine Stromversorgung.
+
+### 4.1 Versorgung: zwei Möglichkeiten
+
+**A — eigenes USB-C-Netzteil (Standard, empfohlen)**
+
+| | |
+|---|---|
+| Versorgung | USB-C-Steckernetzteil, min. 500 mA |
+| Aufwand | keiner, nur einstecken |
+| Vorteil | Anlage und Panel sind räumlich und elektrisch entkoppelt |
+
+Das ist die richtige Wahl, wenn das Panel woanders hängt als die Technik —
+etwa im Wohnraum statt im Technikschacht.
+
+**B — gemeinsames 5-V-Netz aus dem Buck-Converter**
+
+Sinnvoll nur, wenn Panel und Anlage im selben Gehäuse sitzen. Dann muss der
+Buck-Converter größer ausgelegt werden:
+
+| Verbraucher | Strom (grob) |
+|---|---|
+| ESP32-C3 mit WLAN | ca. 120 mA, Spitzen höher |
+| pH-Signalboard | ca. 20 mA |
+| T-Display S3 AMOLED | ca. 150–300 mA, abhängig von der Helligkeit |
+| **Summe** | **min. 1 A vorsehen** |
+
+Der 0,5-A-Buck aus der Grundausstattung reicht dafür **nicht**. Außerdem:
+
+* GND von Panel und Anlage müssen auf denselben Sternpunkt.
+* Das Panel hängt dann am selben Netz wie die Motorelektronik — 5-V-Leitung
+  zum Panel getrennt von den Motorleitungen führen.
+
+> **Vor dem Anlöten prüfen:** An welchem Pad die 5 V beim T-Display S3 AMOLED
+> eingespeist werden dürfen, steht im Pinout des konkreten Boards. Nicht raten —
+> die Boardvarianten unterscheiden sich, und das Display hat zusätzlich einen
+> Akkuanschluss mit Ladeelektronik. Solange das nicht geklärt ist, gilt
+> Variante A.
+
+### 4.2 Netzwerk
+
+| | |
+|---|---|
+| Band | 2,4 GHz (der S3 kann wie der C3 kein 5 GHz) |
+| Ziel | `ph-dosierung.local` bzw. die feste IP der Anlage |
+| Protokoll | HTTP, `GET /api/status` alle 2 s, `POST /api/dose/revs` bei Freigabe |
+
+Beide Geräte müssen im selben Netz sein. Details in
+[BEDIENPANEL.md](BEDIENPANEL.md).
+
+---
+
+## 5. Noch zu verifizierende Punkte (aus der Projektbeschreibung)
 
 Diese Messungen **vor** der endgültigen Verdrahtung durchführen:
 

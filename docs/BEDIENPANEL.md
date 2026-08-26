@@ -90,7 +90,57 @@ Bereits installiert und unverändert übernommen:
 
 ---
 
-## 4. Flashen
+## 4. Zwei Stolpersteine in der Toolchain
+
+Beide traten beim ersten Build auf und sind in den Skripten bzw. der
+Bibliotheksinstallation bereits erledigt — hier dokumentiert, damit sie auf
+einem anderen Rechner nicht erneut Zeit kosten.
+
+### SensorLib 0.4.1 ist defekt
+
+`SensorLib 0.4.1` wird im offiziellen Bibliotheksindex ohne das Verzeichnis
+`src/REG/` ausgeliefert — dort fehlen **alle** Registerheader. Der Build bricht
+ab mit:
+
+```text
+SensorBMA423.cpp:32:10: fatal error: REG/BMA423Config.h: No such file or directory
+```
+
+Das ist kein lokaler Installationsschaden: auch nach Deinstallation und
+Neuinstallation bleibt das Verzeichnis leer, und im heruntergeladenen Archiv
+`SensorLib-0.4.1.zip` sind 0 `REG/`-Dateien enthalten. Version 0.3.3 hat sie
+vollständig (18 Dateien).
+
+Da `SensorLib` über `LilyGo-AMOLED-Series` hereinkommt und arduino-cli
+grundsätzlich **alle** `.cpp` einer eingebundenen Bibliothek übersetzt, betrifft
+das jeden Sketch mit AMOLED-Display — auch solche, die weder Beschleunigungs-
+sensor noch IMU nutzen.
+
+**Behoben durch:**
+
+```bash
+arduino-cli lib install SensorLib@0.3.3
+```
+
+Die LilyGo-Bibliothek verlangt laut eigener Angabe „0.3.2+", die Version passt
+also. Eine Sicherung der defekten 0.4.1 liegt unter
+`Documents/Arduino/SensorLib_backup_*`.
+
+### Parallele Bibliothekserkennung hängt
+
+Mit den Standardeinstellungen bleibt `arduino-cli compile` in der
+Erkennungsphase stehen: ein `xtensa-esp-elf-g++` lebt mit 0 % CPU, es entsteht
+keine einzige Objektdatei, und der Vorgang läuft unbegrenzt weiter — ohne
+Fehlermeldung. Genau dadurch blieb der SensorLib-Fehler oben zunächst
+unsichtbar.
+
+**Behoben durch** `--jobs 1` im Build-Skript. Der Build dauert dadurch beim
+ersten Mal rund 20 Minuten (LVGL sind ~450 Übersetzungseinheiten); danach
+greift der Cache.
+
+---
+
+## 5. Flashen
 
 ```bash
 powershell -File scripts/flash-panel.ps1
@@ -104,7 +154,7 @@ Der C3 der Dosieranlage hängt an COM3, das Panel an COM6.
 
 ---
 
-## 5. Einrichten
+## 6. Einrichten
 
 In der seriellen Konsole des Panels (115200 Baud):
 
@@ -121,7 +171,7 @@ Anlage eintragen — und im Router eine DHCP-Reservierung setzen.
 
 ---
 
-## 6. Bedienung
+## 7. Bedienung
 
 **Anzeige**
 
@@ -145,7 +195,7 @@ Pumpe läuft oder das Panel offline ist, ist der Knopf gesperrt.
 
 ---
 
-## 7. Wichtig: 5 Umdrehungen sind nicht automatisch erlaubt
+## 8. Wichtig: 5 Umdrehungen sind nicht automatisch erlaubt
 
 Die Anlage rechnet Umdrehungen in Milliliter um und prüft **die ml**, nicht die
 Umdrehungen:
@@ -176,7 +226,7 @@ Die harte Obergrenze von 20 ml pro Einzeldosis bleibt in jedem Fall bestehen.
 
 ---
 
-## 8. AMOLED: Einbrennschutz
+## 9. AMOLED: Einbrennschutz
 
 Ein statisches Bild über Monate brennt sich in ein AMOLED ein. Deshalb:
 
@@ -189,7 +239,7 @@ Ein statisches Bild über Monate brennt sich in ein AMOLED ein. Deshalb:
 
 ---
 
-## 9. Zusammenspiel mit dem Webinterface
+## 10. Zusammenspiel mit dem Webinterface
 
 Panel und Webinterface schließen sich nicht aus — beide sprechen dieselbe API.
 Die Mengenbilanz ist gemeinsam: eine Dosierung über das Panel taucht sofort im

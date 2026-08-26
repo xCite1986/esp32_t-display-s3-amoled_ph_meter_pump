@@ -8,6 +8,8 @@ param(
     [string]$Port   = "COM3"
 )
 
+$TargetPort = $Port          # vor dem Dot-Sourcing sichern, sonst
+                             # ueberschreibt acli.ps1 den Parameter
 . "$PSScriptRoot\acli.ps1"
 
 $path = switch ($Sketch) {
@@ -18,7 +20,7 @@ $path = switch ($Sketch) {
 }
 
 $cli  = Get-ArduinoCli
-$dest = Get-EspPort -Preferred $Port
+$dest = Get-EspPort -Preferred $TargetPort
 
 Write-Host "Compiliere $path" -ForegroundColor Cyan
 & $cli compile --fqbn $Fqbn $path

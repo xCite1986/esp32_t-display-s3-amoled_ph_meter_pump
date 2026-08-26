@@ -2,10 +2,12 @@
 #   Beenden mit Strg+C
 param([string]$Port = "COM3")
 
+$TargetPort = $Port          # vor dem Dot-Sourcing sichern, sonst
+                             # ueberschreibt acli.ps1 den Parameter
 . "$PSScriptRoot\acli.ps1"
 
 $cli  = Get-ArduinoCli
-$dest = Get-EspPort -Preferred $Port
+$dest = Get-EspPort -Preferred $TargetPort
 
 Write-Host "Monitor auf $dest, 115200 Baud. 'help' eingeben. Beenden mit Strg+C." -ForegroundColor Cyan
 # ohne --fqbn, damit derselbe Monitor fuer C3 (COM3) und Panel (COM6) passt
