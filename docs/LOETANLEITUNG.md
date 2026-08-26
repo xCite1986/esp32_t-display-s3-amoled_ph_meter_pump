@@ -220,7 +220,24 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
    möglichst kurz halten.
 6. `A1`, `A2`, `A3` bleiben frei.
 
-**Prüfen:**
+**Prüfen — und zwar am LEEREN Sockel, bevor der Chip hineinkommt:**
+
+> **Diese Messung entscheidet über das Bauteil.** Der ADS1115 verträgt laut
+> Datenblatt maximal 5,5 V an `VDD`. Liegen dort versehentlich die 12 V der
+> Motorschiene, raucht er in dem Moment ab, in dem du ihn einsteckst — und ein
+> IC, das geraucht hat, ist Schrott, auch wenn es danach noch antwortet.
+>
+> Also: Modul **draußen lassen**, Anlage einschalten, und am leeren Sockel
+> messen:
+>
+> * `VDD` gegen `GND`: **3,3 V ± 0,1**. Nicht 5 V, nicht 12 V.
+> * Messspitzen tauschen: der Wert muss negativ werden. Bestätigt, dass
+>   Versorgung und Masse nicht verpolt sind.
+> * Anlage wieder ausschalten, dann erst das Modul stecken.
+>
+> Dieselbe Messung lohnt an jedem Sockel, in dem ein Halbleiter sitzt.
+
+Danach, stromlos:
 * `VDD` ↔ `GND` am ADS-Sockel: **kein** Durchgang.
 * KL4 `PO` ↔ ADS `A0`: ca. 10 kΩ.
 * `SDA` ↔ `VDD`: ca. 10 kΩ, wenn das Modul eigene Pull-ups hat.
@@ -420,3 +437,5 @@ gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
 | Touch reagiert schlecht, seit der ADS1115 dran ist | ADS versehentlich auf dem Touchbus (GPIO2/3) statt auf GPIO13/14 |
 | Motor läuft ruckelig, Menge stimmt aber | normal: die Bildausgabe unterbricht die Schrittausgabe kurz |
 | Kein Bild, Konsole meldet „Display init failed" | Boardvariante oder Board-Einstellungen falsch |
+| ADS1115 wird heiß oder raucht | Falsche Spannung an `VDD` (12 V statt 3,3 V) oder Versorgung verpolt — Chip ersetzen, Ursache vorher finden |
+| `Spannung unplausibel`, ADC roh = 0 | `A0` liegt auf GND statt auf `PO`, oder das pH-Board hat keine Versorgung |

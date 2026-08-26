@@ -291,8 +291,13 @@ function refresh(){
   fetch('/api/status').then(function(r){return r.json();}).then(function(s){
     window._auto = s.auto;
     el('ph').textContent = s.phValid ? s.ph.toFixed(2) : '--.--';
-    el('phst').textContent = s.phStatus + (s.stable?' – stabil':' – schwankt') +
-                             ' (Spanne ' + s.spread.toFixed(2) + ')';
+    // Stabilitaet und Spanne nur zeigen, wenn ueberhaupt gemessen wird -
+    // sonst steht neben "nicht erreichbar" ein Initialwert, der wie ein
+    // zweites Problem aussieht.
+    el('phst').textContent = s.phValid
+      ? (s.phStatus + (s.stable?' – stabil':' – schwankt')
+         + ' (Spanne ' + s.spread.toFixed(2) + ')')
+      : s.phStatus;
     el('sp').textContent = s.cfg.sp.toFixed(2);
     el('volt').textContent = s.volt.toFixed(4)+' V';
     el('raw').textContent = s.raw;
