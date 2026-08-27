@@ -98,6 +98,43 @@ nicht den Motorstrom über die Signalmasse führen.
 | GND | `GND` (Logikseite) | |
 | GPIO15 | `PDN/UART` | **derzeit nicht verdrahtet**, für spätere UART-Erweiterung freihalten |
 
+### Wo die Pins am Modul liegen
+
+Der TMC2209 nutzt den Stepstick-Footprint des A4988. Die **rechte Spalte
+(Leistungsseite) ist bei allen Herstellern gleich**, die linke variiert —
+dort sitzen SPREAD, DIAG, INDEX und PDN/UART in unterschiedlicher Reihenfolge.
+
+```text
+        ┌─────────────────────┐
+   EN ──┤ 1                16 ├── VMOT   12 V
+  MS1 ──┤ 2                15 ├── GND    Leistungsmasse
+  MS2 ──┤ 3                14 ├── 2B
+  ...  ─┤ 4                13 ├── 2A
+  ...  ─┤ 5                12 ├── 1A
+  ...  ─┤ 6                11 ├── 1B
+ STEP ──┤ 7                10 ├── VIO    3,3 V
+  DIR ──┤ 8                 9 ├── GND    Logikmasse
+        └─────────────────────┘
+```
+
+**VMOT und VIO sind zwei getrennte Versorgungen.** VIO speist nur die Logik;
+liegen dort 3,3 V, heißt das nichts über VMOT. Ohne ausreichendes VMOT nimmt
+der Treiber Schrittimpulse bereitwillig an und zählt sie mit — der Motor
+zittert dann höchstens, statt zu drehen.
+
+Sicher erkennen lässt sich VMOT an drei Dingen: am Aufdruck (`VM` oder
+`VMOT`), an **C1**, der genau zwischen VMOT und der Leistungsmasse sitzt, und
+an der Nachbarschaft zu den vier Motoradern. Elektrisch bestätigen, stromlos:
+
+| Messung | erwartet |
+|---|---|
+| Pin ↔ Plusseite von C1 | Durchgang |
+| Pin ↔ KL1-Plus (12 V) | Durchgang |
+| Pin ↔ `VIO` | **kein** Durchgang |
+
+Piept die letzte Zeile, sind Logik- und Motorversorgung verbunden — dann
+liegen 12 V auf dem 3,3-V-Netz. In dem Fall nichts einschalten.
+
 Zusätzlich am TMC2209-Modul:
 
 | Pin | Beschaltung | Wirkung |
