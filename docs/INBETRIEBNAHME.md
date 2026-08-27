@@ -106,6 +106,28 @@ Zu prüfen:
 **Abbruchkriterium:** reproduzierbare, saubere Umdrehungen bei der
 gewünschten Schrittrate.
 
+### Am Aufbau ermittelter Arbeitspunkt
+
+Diese Werte stammen aus der tatsächlichen Inbetriebnahme, nicht aus Formeln:
+
+| Größe | Wert | wie ermittelt |
+|---|---|---|
+| Mikroschritte | 1/16, **3200 Schritte/Umdr.** | 1600 Schritte = halbe Umdrehung, gezählt |
+| Chopper | **SpreadCycle** (`MS3` auf HIGH) | brachte das nutzbare Drehmoment |
+| VREF | **1,2 V** | über die Temperatur eingestellt |
+| daraus Strom | **≈ 0,6 A** | aus 45 °C bei Dauerhaltestrom zurückgerechnet |
+| Schrittrate | 800/s = 15 U/min | |
+| Beschleunigung | 2000/s² | |
+
+**Der Umrechnungsfaktor des Moduls liegt bei rund 0,5 A/V** statt der 1,77 A/V
+für 0,11 Ω Sense-Widerstand — ein Unterschied von Faktor 3,5. Nach Formel
+eingestellt (0,23 V) wäre die Pumpe nicht angelaufen.
+
+**Thermische Probe:** fünf Minuten Dauerhaltestrom ergaben rund 45 °C. Das ist
+der ungünstigste denkbare Fall — voller Strom bei Stillstand, ohne Gegen-EMK.
+Im Betrieb läuft der Motor Sekunden alle 30 Minuten und ist dazwischen dank
+`hold = 0` stromlos.
+
 ### Wenn der Motor nicht dreht
 
 Der Reihe nach messen — jede Zeile schließt eine Ursache aus. Die Schrittzahl
