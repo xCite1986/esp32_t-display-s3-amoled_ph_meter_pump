@@ -75,15 +75,15 @@
 <rect x="900" y="150" width="220" height="150" rx="6" class="bx"/>
 <text x="1010" y="176" text-anchor="middle" class="t">NEMA17</text>
 <text x="1010" y="193" text-anchor="middle" class="s">12 V &#183; 1,8&#176; &#183; ca. 28 Ncm</text>
-<text x="1010" y="288" text-anchor="middle" class="s">Spulen vorher durchmessen!</text>
-<text x="908" y="184" class="p">rot</text>
-<text x="908" y="214" class="p">gr&#252;n</text>
-<text x="908" y="244" class="p">blau</text>
+<text x="1010" y="288" text-anchor="middle" class="s">gemessen: 2x 3,6 Ohm</text>
+<text x="908" y="184" class="p">blau</text>
+<text x="908" y="214" class="p">rot</text>
+<text x="908" y="244" class="p">gr&#252;n</text>
 <text x="908" y="274" class="p">schwarz</text>
 
-<path class="mr" d="M 800 180 L 900 180"/>
-<path class="mg" d="M 800 210 L 900 210"/>
-<path class="mb" d="M 800 240 L 900 240"/>
+<path class="mb" d="M 800 180 L 900 180"/>
+<path class="mr" d="M 800 210 L 900 210"/>
+<path class="mg" d="M 800 240 L 900 240"/>
 <path class="mk" d="M 800 270 L 900 270"/>
 <text x="850" y="174" text-anchor="middle" class="lbl">Spule 1</text>
 <text x="850" y="234" text-anchor="middle" class="lbl">Spule 2</text>

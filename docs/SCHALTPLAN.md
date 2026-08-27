@@ -121,24 +121,40 @@ TMC2209-Microstep-Tabelle (MS2, MS1):
 
 ### 2.4 Motor
 
-| TMC2209 | Motorader | Bemerkung |
+**Am vorliegenden Motor gemessen** — nicht aus der Farbfolge abgeleitet:
+
+| Spule | Adern | Widerstand |
 |---|---|---|
-| `1A` | rot | Spule 1 |
-| `1B` | grün | Spule 1 |
-| `2A` | blau | Spule 2 |
-| `2B` | schwarz | Spule 2 |
+| 1 | **rot + blau** | 3,6 Ω |
+| 2 | **grün + schwarz** | 3,6 Ω |
 
-Der 6-polige Motorstecker ist belegt: `rot | frei | grün | blau | frei | schwarz`.
+Daraus folgt die Belegung:
 
-**Vor dem Anschließen mit dem Multimeter prüfen** (Widerstandsmessung):
+| TMC2209 | Motorader |
+|---|---|
+| `1A` | blau |
+| `1B` | rot |
+| `2A` | grün |
+| `2B` | schwarz |
 
-* rot ↔ grün: kleiner Widerstand (typ. 2–10 Ω) → gehören zusammen
-* blau ↔ schwarz: kleiner Widerstand → gehören zusammen
-* rot ↔ blau, rot ↔ schwarz usw.: **kein Durchgang**
+> Die ursprüngliche Projektbeschreibung vermutete rot+grün und blau+schwarz
+> anhand der Steckerbelegung `rot | frei | grün | blau | frei | schwarz`.
+> Die Messung hat das widerlegt. Bei einem anderen Motor also **immer neu
+> messen**, statt diese Tabelle zu übernehmen.
 
-Falls die gemessenen Paare anders liegen als vermutet, gilt die Messung.
-Eine vertauschte Spule ändert nur die Drehrichtung — korrigierbar per
-`set invdir 1` in der Firmware.
+**Die einzige Regel, die zählt:** `1A` und `1B` müssen die beiden Enden
+*derselben* Wicklung sein, ebenso `2A` und `2B`. Welches Paar auf `1x` liegt
+und wie herum innerhalb eines Paares, ändert nur die Drehrichtung — das
+korrigiert `set invdir 1` in der Firmware, ohne Lötkolben.
+
+Liegt je eine Hälfte zweier verschiedener Wicklungen auf einem Ausgang, sieht
+der Treiber eine offene Last: der Motor brummt und dreht nicht.
+
+**Prüfen ohne Messgerät:** zwei Adern kurzschließen und die Welle von Hand
+drehen. Wird sie spürbar schwergängig, sind die beiden ein Paar.
+
+Aus 3,6 Ω pro Wicklung folgt grob ein Nennstrom um 1,3 A — der Startwert
+VREF ≈ 0,40 V aus der Lötanleitung passt dazu (etwa halber Nennstrom).
 
 ### 2.5 Messkette
 

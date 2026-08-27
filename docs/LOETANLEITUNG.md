@@ -332,11 +332,15 @@ kurz anfassen kann.
 ## 10. Motor anschließen
 
 1. **12 V ausgeschaltet.** Prüfen, nicht annehmen.
-2. Spulenpaare messen (siehe [SCHALTPLAN.md](SCHALTPLAN.md), 2.4):
-   * rot ↔ grün: ____ Ω
-   * blau ↔ schwarz: ____ Ω
-   * rot ↔ blau: muss **∞** sein
-3. Spule 1 (rot/grün) an KL2, Spule 2 (blau/schwarz) an KL3.
+2. Spulenpaare messen — **nicht aus der Farbfolge raten**. Am vorliegenden
+   Motor ergab die Messung:
+   * rot ↔ blau: **3,6 Ω** → Spule 1
+   * grün ↔ schwarz: **3,6 Ω** → Spule 2
+   * Adern verschiedener Spulen: **∞**
+
+   Bei einem anderen Motor selbst messen. Ohne Messgerät: zwei Adern
+   kurzschließen und die Welle drehen — wird sie schwergängig, ist es ein Paar.
+3. Spule 1 (rot/blau) an KL2, Spule 2 (grün/schwarz) an KL3.
 4. Von KL2/KL3 zu den TMC2209-Sockelpins:
    `KL2-1 → 1A`, `KL2-2 → 1B`, `KL3-1 → 2A`, `KL3-2 → 2B`.
 5. Motorleitungen verdrillen (je Spulenpaar) — reduziert die Abstrahlung
