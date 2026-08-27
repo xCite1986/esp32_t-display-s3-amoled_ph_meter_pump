@@ -306,19 +306,25 @@ Störungen aus den Motorleitungen sonst zuverlässig ein.
    Trimmpotis** (bei vielen Modulen gibt es einen kleinen Testpunkt daneben).
    Kein metallischer Schraubendreher am Poti, während gemessen wird —
    ein Ausrutscher schließt VREF kurz.
-5. Startwert einstellen: **VREF ≈ 0,40 V**. Das ist bewusst niedrig.
-6. Formel zur Orientierung: Bei den verbreiteten Modulen mit 0,11 Ω
-   Sense-Widerständen (BigTreeTech, FYSETC) gilt näherungsweise
+5. **Nennstrom des Motors aus dem Datenblatt nehmen.** Nicht aus dem
+   Spulenwiderstand ableiten — das geht um Faktoren daneben. Der hier
+   verwendete NEMA17 ist mit **0,4 A pro Phase** angegeben, obwohl seine
+   3,6 Ω nach einem deutlich stärkeren Motor aussehen.
 
-   ```text
-   I_RMS [A] ≈ VREF [V] × 1,77
-   ```
+6. Zielstrom auf **70–80 % des Nennstroms** legen, also 0,28–0,32 A.
+   Die Formel hängt am Treiber:
 
-   0,40 V entsprechen also ~0,7 A pro Phase.
+   | Treiber | Formel | für 0,28–0,32 A |
+   |---|---|---|
+   | **A4988**, Rsense 0,1 Ω | `VREF = I × 8 × Rsense` | **0,224–0,256 V** |
+   | **TMC2209**, Rsense 0,11 Ω | `I_RMS ≈ VREF × 1,77` | **0,16–0,18 V** |
 
-   > Die Sense-Widerstände unterscheiden sich zwischen Herstellern, und damit
-   > auch die Formel. Verlass dich nicht blind darauf — der praktische Test
-   > in Phase 2 ist aussagekräftiger.
+   > Sense-Widerstände unterscheiden sich zwischen Herstellern. Steht auf
+   > deinem Modul ein anderer Wert, gilt der.
+
+   **Zu viel Strom ist kein Sicherheitspolster, sondern der direkte Weg zum
+   überhitzten Motor.** Bei einem 0,4-A-Motor bedeuten 0,5 V an einem A4988
+   bereits 0,65 A — mehr als das Anderthalbfache des Zulässigen.
 7. 12 V wieder ausschalten.
 
 **Vorgehen später:** In Phase 2 den Strom in 0,05-V-Schritten erhöhen, bis
@@ -367,7 +373,7 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 - [ ] Buck-Ausgang auf 5,0 V eingestellt und nachgemessen
 - [ ] D1 richtig gepolt (Ring zeigt zum ESP32)
 - [ ] TMC2209 richtig herum gesteckt
-- [ ] VREF eingestellt (Startwert ~0,40 V)
+- [ ] VREF passend zum **Datenblatt-Nennstrom** eingestellt (70–80 %)
 - [ ] Motorstecker fest, Spulen korrekt zugeordnet
 - [ ] Kühlkörper auf dem TMC2209
 - [ ] Sondenkabel getrennt von den Motorleitungen verlegt

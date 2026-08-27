@@ -190,8 +190,17 @@ der Treiber eine offene Last: der Motor brummt und dreht nicht.
 **Prüfen ohne Messgerät:** zwei Adern kurzschließen und die Welle von Hand
 drehen. Wird sie spürbar schwergängig, sind die beiden ein Paar.
 
-Aus 3,6 Ω pro Wicklung folgt grob ein Nennstrom um 1,3 A — der Startwert
-VREF ≈ 0,40 V aus der Lötanleitung passt dazu (etwa halber Nennstrom).
+### Nennstrom: aus dem Datenblatt, nicht aus dem Widerstand
+
+**Der verwendete Motor ist mit 0,4 A pro Phase angegeben** (Zweiphasen-Hybrid
+NEMA17, 42 × 34 mm, 28 Ncm, 1,8°).
+
+> Der Spulenwiderstand taugt **nicht** zum Schätzen des Nennstroms. Aus den
+> gemessenen 3,6 Ω ließe sich ein Motor der 1,3-A-Klasse ableiten — das wäre
+> hier um den Faktor drei daneben. Es gilt ausschließlich das Datenblatt.
+
+Das Datenblatt bestätigt auch die gemessene Spulenzuordnung:
+**Spule A = grün + schwarz, Spule B = rot + blau.**
 
 ### 2.5 Messkette
 
