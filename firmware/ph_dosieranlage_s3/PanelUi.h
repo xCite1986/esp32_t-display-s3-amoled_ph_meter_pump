@@ -21,3 +21,4 @@ void uiToast(const String &msg, bool ok);
 DispState uiState();
 const char *uiStateText();
 void uiWake();          // von aussen aufwecken (z.B. nach einer Dosierung)
+void uiApplyRotation(); // Einbaulage aus den Einstellungen uebernehmen

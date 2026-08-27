@@ -140,8 +140,20 @@ static void closeDialog() {
 }
 
 // ---------------------------------------------------------------------------
+// Die Drehung erledigt LVGL in Software. Den Touchpunkt dreht LVGL dabei
+// selbst mit (lv_indev.c wertet driver->rotated aus) - also NICHT zusaetzlich
+// spiegeln, das huebe sich gegenseitig auf.
+void uiApplyRotation() {
+  lv_disp_t *disp = lv_disp_get_default();
+  if (!disp || !disp->driver) return;
+  disp->driver->sw_rotate = 1;
+  lv_disp_set_rotation(disp, settings.rot180 ? LV_DISP_ROT_180 : LV_DISP_ROT_NONE);
+  lv_obj_invalidate(lv_scr_act());
+}
+
 void uiBegin(int16_t w, int16_t h) {
   scrW = w; scrH = h;
+  uiApplyRotation();
   activeX = scrW / 2 - PH_CV_W / 2;
   activeY = 96 - PH_CV_H / 2;
 

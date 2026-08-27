@@ -52,6 +52,7 @@ struct Settings {
   float phMaxPlaus     = 9.50f;    // darueber unplausibel -> Sperre
 
   // --- Anzeige ---
+  bool  rot180         = true;     // Anzeige um 180 Grad gedreht (Einbaulage)
   uint16_t standbyS    = 300;      // Standby nach x s ohne Beruehrung
   uint16_t shiftS      = 300;      // Position im Standby alle x s versetzen
   bool  nightEnabled   = true;     // nachts Display ganz aus

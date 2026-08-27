@@ -83,6 +83,10 @@ void PHMeasurement::tick() {
     if (buf_[i] > vmax) vmax = buf_[i];
   }
 
+  // Spannungsspanne immer fuehren - sie sagt etwas ueber die Messkette aus,
+  // auch ohne Kalibrierung. Genau vor dem Kalibrieren wird sie gebraucht.
+  spreadV_ = vmax - vmin;
+
   // --- Statusbewertung ---
   if (bufCount_ < PH_SAMPLE_COUNT) { status_ = PH_WARMUP; return; }
 
@@ -90,6 +94,13 @@ void PHMeasurement::tick() {
     status_ = PH_VOLT_RANGE;
     return;
   }
+
+  // Ab hier liefert der Sensor brauchbare Werte. Das ist die richtige Stelle
+  // fuer den Frische-Zeitstempel: der Waechter in PHController ueberwacht den
+  // SENSOR. Ob kalibriert ist, sperrt ohnehin separat ueber LK_NO_CALIB -
+  // vorher stand hier faelschlich "Sensorfehler" bei intaktem Sensor.
+  lastGood_ = now;
+
   if (!settings.calValid) {
     ph_ = voltToPh(voltage_);          // Anzeige trotzdem berechnen
     status_ = PH_NO_CALIB;

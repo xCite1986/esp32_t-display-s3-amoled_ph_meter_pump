@@ -36,7 +36,7 @@ if (-not $core) { throw "ESP32-Core nicht gefunden" }
 $espota = Join-Path $core.FullName "tools\espota.exe"
 if (-not (Test-Path $espota)) { throw "espota.exe nicht gefunden: $espota" }
 
-$args = @("-d","-r","-i",$Target,"-p",$DevicePort,"-P",$LocalPort,"-f",$bin)
+$args = @("-r","-i",$Target,"-p",$DevicePort,"-P",$LocalPort,"-f",$bin)
 if ($Password) { $args += @("-a",$Password) }
 
 Write-Host "Uebertrage per OTA an $Target" -ForegroundColor Cyan

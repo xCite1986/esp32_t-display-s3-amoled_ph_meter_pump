@@ -102,6 +102,7 @@ String WebInterface::statusJson() const {
   j += ",\"phStatus\":" + jstr(phMeas.statusText());
   j += ",\"stable\":" + jbool(phMeas.stable());
   j += ",\"spread\":" + jnum(phMeas.spread(), 3);
+  j += ",\"spreadmV\":" + jnum(phMeas.spreadV() * 1000.0f, 1);
   j += ",\"volt\":" + jnum(phMeas.voltage(), 5);
   j += ",\"voltRaw\":" + jnum(phMeas.voltageRaw(), 5);
   j += ",\"raw\":" + String(phMeas.rawAdc());
@@ -167,6 +168,7 @@ String WebInterface::statusJson() const {
   j += ",\"stby\":" + String(s.standbyS);
   j += ",\"shft\":" + String(s.shiftS);
   j += ",\"nite\":" + jbool(s.nightEnabled);
+  j += ",\"rot180\":" + jbool(s.rot180);
   j += ",\"nfrom\":" + String(s.nightFrom);
   j += ",\"nto\":" + String(s.nightTo);
   j += ",\"circen\":" + jbool(s.circEnabled);
@@ -399,6 +401,9 @@ void WebInterface::setupRoutes() {
     s.standbyS    = (uint16_t)argI("stby", s.standbyS);
     s.shiftS      = (uint16_t)argI("shft", s.shiftS);
     s.nightEnabled= argB("nite", s.nightEnabled);
+    bool rotWas   = s.rot180;
+    s.rot180      = argB("rot180", s.rot180);
+    if (s.rot180 != rotWas) uiApplyRotation();
     s.nightFrom   = (uint8_t)argI("nfrom", s.nightFrom);
     s.nightTo     = (uint8_t)argI("nto", s.nightTo);
     s.circEnabled = argB("circen", s.circEnabled);

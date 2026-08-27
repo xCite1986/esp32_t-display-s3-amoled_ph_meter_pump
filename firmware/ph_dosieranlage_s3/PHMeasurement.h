@@ -29,6 +29,7 @@ class PHMeasurement {
   int16_t rawAdc() const { return rawAdc_; }
   bool  stable() const { return stable_; }       // Spanne < PH_STABLE_BAND
   float spread() const { return spread_; }       // Spanne im Fenster [pH]
+  float spreadV() const { return spreadV_; }     // Spanne im Fenster [V] - immer gueltig
   uint32_t lastGoodMs() const { return lastGood_; }
 
   // Kalibrierung: aktuelle (gefilterte) Spannung als Punkt A oder B ablegen.
@@ -48,6 +49,7 @@ class PHMeasurement {
   int16_t  rawAdc_   = 0;
   bool     stable_   = false;
   float    spread_   = 99.0f;
+  float    spreadV_  = 0;
   bool     emaInit_  = false;
   uint32_t lastSample_ = 0;
   uint32_t lastGood_   = 0;

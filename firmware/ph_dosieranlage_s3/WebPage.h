@@ -215,6 +215,7 @@ code{color:var(--yel)}
     <div class="grid">
       <div><label>Standby nach [s]</label><input data-k="stby" type="number" step="15" min="15" max="3600"></div>
       <div><label>Versetzen alle [s]</label><input data-k="shft" type="number" step="30" min="30" max="3600"></div>
+      <div><label>Anzeige 180&deg; gedreht</label><input data-k="rot180" type="checkbox"></div>
       <div><label>Nachtabschaltung</label><input data-k="nite" type="checkbox"></div>
       <div><label>Nacht von [Stunde]</label><input data-k="nfrom" type="number" step="1" min="0" max="23"></div>
       <div><label>Nacht bis [Stunde]</label><input data-k="nto" type="number" step="1" min="0" max="23"></div>
@@ -299,8 +300,12 @@ function refresh(){
     // zweites Problem aussieht.
     el('phst').textContent = s.phValid
       ? (s.phStatus + (s.stable?' – stabil':' – schwankt')
-         + ' (Spanne ' + s.spread.toFixed(2) + ')')
-      : s.phStatus;
+         + ' (Spanne ' + s.spread.toFixed(2) + ' pH)')
+      : (s.raw !== 0
+         ? (s.phStatus + ' – Spanne ' + s.spreadmV.toFixed(1) + ' mV'
+            + (s.spreadmV <= 20 ? ' (ruhig genug zum Kalibrieren)'
+                                : ' (noch zu unruhig, < 20 mV nötig)'))
+         : s.phStatus);
     el('sp').textContent = s.cfg.sp.toFixed(2);
     el('volt').textContent = s.volt.toFixed(4)+' V';
     el('raw').textContent = s.raw;

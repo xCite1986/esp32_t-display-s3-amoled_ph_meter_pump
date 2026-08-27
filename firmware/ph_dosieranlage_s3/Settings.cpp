@@ -107,6 +107,7 @@ void Settings::load() {
   standbyS   = (uint16_t)prefs.getULong("stby", 300);
   shiftS     = (uint16_t)prefs.getULong("shft", 300);
   nightEnabled = prefs.getBool("nite", true);
+  rot180     = prefs.getBool("rot180", true);
   nightFrom  = prefs.getUChar("nfrom", 20);
   nightTo    = prefs.getUChar("nto", 5);
 
@@ -165,6 +166,7 @@ void Settings::save() {
   prefs.putULong("stby", standbyS);
   prefs.putULong("shft", shiftS);
   prefs.putBool("nite", nightEnabled);
+  prefs.putBool("rot180", rot180);
   prefs.putUChar("nfrom", nightFrom);
   prefs.putUChar("nto", nightTo);
 

@@ -70,7 +70,7 @@ static void printHelp() {
     "  calreset              Kalibrierung verwerfen\n"
     "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax spml\n"
     "                        sprev prevs srate sacc gain invdir hold\n"
-    "                        stby shft nite nfrom nto\n"
+    "                        stby shft nite nfrom nto rot180\n"
     "                        circen circfr circrt circof\n"
     "  ha <host> <entity>    Home Assistant fuer die Umwaelzpruefung\n"
     "  hatoken <token>       Long-Lived Access Token hinterlegen\n"
@@ -148,6 +148,7 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "stby")    s.standbyS    = (uint16_t)i;
   else if (key == "shft")    s.shiftS      = (uint16_t)i;
   else if (key == "nite")    s.nightEnabled= b;
+  else if (key == "rot180")  { s.rot180 = b; s.save(); uiApplyRotation(); }
   else if (key == "nfrom")   s.nightFrom   = (uint8_t)i;
   else if (key == "nto")     s.nightTo     = (uint8_t)i;
   else if (key == "circen")  s.circEnabled = b;
