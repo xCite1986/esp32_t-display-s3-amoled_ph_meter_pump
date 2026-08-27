@@ -106,6 +106,38 @@ Zu prüfen:
 **Abbruchkriterium:** reproduzierbare, saubere Umdrehungen bei der
 gewünschten Schrittrate.
 
+### Wenn der Motor nicht dreht
+
+Der Reihe nach messen — jede Zeile schließt eine Ursache aus. Die Schrittzahl
+in der Weboberfläche zählt auch dann hoch, wenn am Motor nichts passiert: sie
+beweist nur, dass Impulse rausgehen, nicht dass sie Wirkung haben.
+
+| Messung | Sollwert | Bedeutung, wenn abweichend |
+|---|---|---|
+| `VMOT` gegen `GND` | **12 V** | unter 4,75 V arbeitet der Treiber außerhalb der Spezifikation |
+| `VIO` gegen `GND` | **3,3 V** | sagt **nichts** über VMOT aus — zwei getrennte Versorgungen |
+| `EN` gegen `GND` **während** eines Laufs | **0 V** | 3,3 V: Leitung zu GPIO10 unterbrochen, R1 hält den Pin hoch |
+| `1A` ↔ `1B` und `2A` ↔ `2B` am **leeren** Sockel | je **~3,6 Ω** | offen: Unterbrechung in Klemme, Litze oder Motorstecker |
+| `VREF` am Trimmerschleifer | **0,3–0,5 V** | 0 V: keine Stromvorgabe, der Motor zittert höchstens |
+
+**Symptome einordnen:**
+
+* *Nichts, völlig kraftlos* — kein Strom: VMOT, EN oder VREF prüfen.
+* *Zittern ohne Drehung* — Strom nur in einer Spule: eine Wicklung ist nicht
+  durchgängig, oder VREF ist zu niedrig.
+* *Brummen, dreht schwer* — zu wenig Drehmoment: VREF anheben oder Schrittrate
+  senken.
+* *Alle Werte stimmen, trotzdem nichts* — Treiber prüfen (siehe unten).
+
+> **Vor dem Aufgeben: Schutzabschaltung zurücksetzen.** Der TMC2209 rastet nach
+> Kurzschluss oder Übertemperatur ab und kommt von selbst nicht zurück. Dafür
+> muss **VMOT tatsächlich weg** — ein Reset des ESP32 genügt nicht. Also 12 V
+> und USB trennen, zehn Sekunden warten, neu einschalten.
+
+> **Nach jedem Ziehen des Moduls** die Ausrichtung mit dem Aufdruck vergleichen
+> und von der Seite prüfen, ob ein Pin untergeknickt ist. Verdreht eingesetzt
+> überlebt ein Stepstick das Einschalten meist nicht.
+
 ---
 
 ## Phase 3 — Pumpenkopf und Schritte/ml
