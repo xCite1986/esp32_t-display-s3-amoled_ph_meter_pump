@@ -123,11 +123,57 @@ beweist nur, dass Impulse rausgehen, nicht dass sie Wirkung haben.
 **Symptome einordnen:**
 
 * *Nichts, völlig kraftlos* — kein Strom: VMOT, EN oder VREF prüfen.
-* *Zittern ohne Drehung* — Strom nur in einer Spule: eine Wicklung ist nicht
-  durchgängig, oder VREF ist zu niedrig.
-* *Brummen, dreht schwer* — zu wenig Drehmoment: VREF anheben oder Schrittrate
-  senken.
+* *Hält die Position, rückt aber nie vor* — Strom ist da, Schrittimpulse
+  kommen nicht an. Siehe „DIR und STEP" unten.
+* *Zittern ohne Drehung* — entweder nur eine Spule bestromt (Wicklung nicht
+  durchgängig), oder **`DIR` hängt in der Luft**.
+* *Brummen, dreht schwer* — zu wenig Drehmoment: SpreadCycle einschalten,
+  Mikroschritte vergröbern, VREF anheben.
 * *Alle Werte stimmen, trotzdem nichts* — Treiber prüfen (siehe unten).
+
+**Der schnellste Test überhaupt:** `hold = 1` setzen und die Welle von Hand
+drehen. Rastet sie spürbar, sind Strom, Treiber, Motor und Verkabelung in
+Ordnung — dann liegt der Fehler ausschließlich bei `STEP` oder `DIR`.
+
+#### DIR und STEP
+
+Ein **floatender `DIR`-Eingang** erzeugt ein sehr irreführendes Bild: Der
+CMOS-Eingang nimmt jede Störung mit, die Richtung kippt ständig, und der Motor
+macht einen Schritt vor und einen zurück. Er zittert und brummt, dreht sich
+aber nicht — was leicht als Drehmomentproblem missverstanden wird.
+
+**Achtung, naheliegender Fehlgriff:** `GPIO15` liegt direkt neben `GPIO12` und
+ist in `Config.h` als UART-Reserve auf `INPUT` gesetzt, also hochohmig. Landet
+`DIR` dort statt auf `GPIO12`, entsteht genau dieses Bild.
+
+Ebenso wirkt ein **vertauschtes STEP/DIR**: Der statische Pegel auf `STEP`
+löst keine Schritte aus, der Impuls auf `DIR` ändert nur die Richtung. Der
+Motor hält, rückt aber nie vor.
+
+Am Pin messen hilft nicht — bei 4 µs Impulsdauer und 200 Schritten/s liegt das
+Tastverhältnis bei 0,08 %, ein Multimeter zeigt praktisch null. Also stromlos
+den **Durchgang** prüfen: `GPIO11` ↔ `STEP`, `GPIO12` ↔ `DIR`.
+
+#### TMC2209 auf einer A4988/DRV8825-Trägerkarte
+
+Diese Kombination ist verbreitet und verwirrend, weil die Karte die Pins nach
+dem **A4988** beschriftet:
+
+| Position | Aufdruck der Karte | TMC2209 hat dort |
+|---|---|---|
+| 2 | MS1 | MS1 |
+| 3 | MS2 | MS2 |
+| 4 | **MS3** | häufig **SPREAD** |
+
+`MS3` schaltet beim TMC2209 also nicht die Auflösung, sondern oft die
+Chopper-Betriebsart: **auf HIGH läuft er in SpreadCycle** statt StealthChop —
+deutlich mehr nutzbares Drehmoment unter Last, dafür hörbares Sirren statt
+nahezu lautlos. Für eine Dosierpumpe ist das der bessere Kompromiss.
+
+Verlass dich nicht auf die Beschriftung, sondern **zähle Umdrehungen**:
+1600 Schritte ergeben eine halbe Umdrehung bei 1/16 (3200/Umdr.) und eine
+ganze bei 1/8 (1600/Umdr.). Dieser Wert gehört in `sprev` — steht er falsch,
+dosiert die Anlage später um Faktor 2 daneben.
 
 > **Vor dem Aufgeben: Schutzabschaltung zurücksetzen.** Der TMC2209 rastet nach
 > Kurzschluss oder Übertemperatur ab und kommt von selbst nicht zurück. Dafür

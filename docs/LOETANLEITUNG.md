@@ -323,8 +323,22 @@ Störungen aus den Motorleitungen sonst zuverlässig ein.
    > deinem Modul ein anderer Wert, gilt der.
 
    **Zu viel Strom ist kein Sicherheitspolster, sondern der direkte Weg zum
-   überhitzten Motor.** Bei einem 0,4-A-Motor bedeuten 0,5 V an einem A4988
-   bereits 0,65 A — mehr als das Anderthalbfache des Zulässigen.
+   überhitzten Motor.**
+
+   > **Wenn die Formel nicht greift.** Sie setzt einen bekannten
+   > Sense-Widerstand voraus — bei Modulen mit abweichender Strombelastbarkeit
+   > (etwa „2,5 A"-Ausführungen) steht der oft nirgends. Und Datenblätter
+   > billiger Motoren widersprechen sich: Das hier verwendete nennt 0,4 A,
+   > während 3,6 Ω pro Wicklung eher auf die 1-A-Klasse deuten.
+   >
+   > Dann gilt die **Temperatur** als Maßstab. Verlustleistung beider
+   > Wicklungen ist `P = 2 × I² × R`; für einen 42 × 34 mm NEMA17 sind 3–5 W
+   > üblich. Praktisch: fünf Minuten laufen lassen und anfassen. Handwarm bis
+   > deutlich warm ist gut, ab etwa 80 °C nimmt der Rotormagnet dauerhaft
+   > Schaden.
+   >
+   > Vorgehen: VREF **von oben herunter** so weit senken, bis die Pumpe gerade
+   > noch zuverlässig anläuft, dann rund 20 % Reserve draufgeben.
 7. 12 V wieder ausschalten.
 
 **Vorgehen später:** In Phase 2 den Strom in 0,05-V-Schritten erhöhen, bis
