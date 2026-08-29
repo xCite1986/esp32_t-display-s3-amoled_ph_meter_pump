@@ -14,7 +14,9 @@ zusätzliche Software in Home Assistant einbinden — MQTT ist nicht nötig.
 | Methode | Pfad | Wirkung |
 |---|---|---|
 | GET | `/api/status` | vollständiger Status als JSON |
+| GET | `/api/history` | 7-Tage-Verlauf, Stundenauflösung |
 | POST | `/api/dose?ml=3.0` | manuelle Dosierung |
+| POST | `/api/dose/revs?n=5` | Dosierung in Motorumdrehungen |
 | POST | `/api/stop` | Pumpe anhalten |
 | POST | `/api/estop` | Not-Halt, Automatik aus |
 | POST | `/api/clearfault` | Störung quittieren |
@@ -23,11 +25,14 @@ zusätzliche Software in Home Assistant einbinden — MQTT ist nicht nötig.
 | POST | `/api/cal?point=a&ph=7.00` | Kalibrierpunkt speichern |
 | POST | `/api/pump/run?steps=16000&dir=1` | Servicelauf |
 | POST | `/api/pump/calc?steps=16000&ml=9.4` | Schritte/ml berechnen |
+| POST | `/api/circ/test` | Umwälzprüfung sofort ausführen |
 | POST | `/api/daily/reset` | Tageszähler zurücksetzen |
 | POST | `/api/reboot` | Neustart |
 
 Ist im Webinterface ein Web-Benutzer gesetzt, verlangen alle Endpunkte
-HTTP-Basic-Auth.
+HTTP-Basic-Auth. Parameter nimmt das Gerät sowohl im Query-String als auch
+als Formular-Body an — die Beispiele hier nutzen den Query-String, weil er
+in Home Assistant ohne `content_type` auskommt.
 
 Beispielantwort (gekürzt):
 
@@ -35,92 +40,89 @@ Beispielantwort (gekürzt):
 {
   "fw": "2.0.0", "up": 84213,
   "ph": 7.31, "phValid": true, "phStatus": "OK", "stable": true,
+  "phAvg": 7.29, "avgOk": true, "spreadmV": 4.6,
   "volt": 1.71234, "raw": 14021, "slope": -238.4,
   "state": "Bereit", "locks": "Sollwert erreicht", "lockBits": 2048,
   "auto": true, "estop": false, "fault": false, "circ": "Umwaelzung laeuft",
   "pump": { "run": false, "ml": 0.0, "target": 0.0 },
   "dose": { "today": 12.5, "remain": 47.5, "count": 4, "last": 3.0,
-            "pauseS": 280, "total": 312.4 },
-  "cfg": { "sp": 7.20, "maxd": 60.00, "spml": 1702.1 }
+            "pauseS": 280, "total": 312.4, "last24h": 15.5 },
+  "wifi": { "mode": "STA", "ip": "192.168.0.62", "rssi": -59 },
+  "cfg": { "sp": 7.20, "maxd": 60.00, "spml": 1702.1,
+           "filt": 30, "avgs": 600 }
 }
 ```
 
 ---
 
-## 2. configuration.yaml
+## 2. Einbinden
 
-Ein einziger REST-Aufruf versorgt alle Sensoren — der `scan_interval`
-gilt für die ganze Gruppe.
+Fertig vorbereitet liegt alles in
+[../homeassistant/ph_dosieranlage.yaml](../homeassistant/ph_dosieranlage.yaml):
+17 Sensoren, 6 Binärsensoren, 7 Befehle, ein Schalter für die Automatik und
+drei Skripte für die Dashboard-Schaltflächen.
+
+### Einbauen
+
+1. Datei nach `config/packages/ph_dosieranlage.yaml` kopieren
+   (Verzeichnis `packages` gegebenenfalls anlegen).
+2. In `configuration.yaml` einmalig freischalten — falls noch nicht vorhanden:
+
+   ```yaml
+   homeassistant:
+     packages: !include_dir_named packages
+   ```
+
+3. *Entwicklerwerkzeuge → YAML → Konfiguration prüfen*, dann
+   *Alle YAML-Konfigurationen neu laden*. Kommt nur das Package dazu, ist kein
+   Neustart nötig.
+
+Wer keine Packages nutzt, kann den Inhalt stattdessen direkt in
+`configuration.yaml` einhängen — die vier Blöcke `rest:`, `rest_command:`,
+`template:` und `script:` müssen dann zu den dort schon vorhandenen passen
+(YAML erlaubt jeden Schlüssel nur einmal).
+
+### Was entsteht
+
+| Entität | Inhalt |
+|---|---|
+| `sensor.ph_wert_pool` | aktueller, geglätteter Messwert |
+| `sensor.ph_wert_pool_mittel` | **die Größe, nach der dosiert wird** |
+| `sensor.ph_minus_heute` / `_letzte_24_h` / `_gesamt` | Dosiermengen |
+| `sensor.ph_dosieranlage_zustand` | Klartext, mit der Konfiguration als Attribute |
+| `sensor.ph_dosieranlage_sperren` | warum gerade nicht dosiert wird |
+| `sensor.ph_dosieranlage_restpause` | verbleibende Durchmischungszeit |
+| `binary_sensor.ph_dosieranlage_stoerung` / `_not_halt` / `_sensorfehler` | Problemmelder |
+| `binary_sensor.ph_dosieranlage_pumpe` | läuft die Dosierpumpe gerade |
+| `switch.ph_automatik` | Automatik ein/aus |
+| `script.ph_dosieranlage_testdosis` | manuelle Dosis mit Mengenauswahl |
+| `script.ph_dosieranlage_not_halt` / `_quittieren` | Not-Halt und Quittieren |
+
+Dazu Diagnosewerte — Sondenspannung, Messrauschen, Steilheit, Laufzeit,
+WLAN-Pegel —, die standardmäßig eingeklappt sind.
+
+Ein einziger REST-Aufruf alle 30 s versorgt alles. Der Verlauf muss nicht
+übertragen werden: sobald die Sensoren existieren, führt Home Assistant seine
+eigene Historie in voller Auflösung. Der 7-Tage-Chart im Webinterface bleibt
+davon unberührt und funktioniert auch dann, wenn HA gerade nicht läuft.
+
+### Wenn ein Web-Benutzer gesetzt ist
+
+Dann im Package unter `rest:` die beiden Zeilen `username:`/`password:`
+aktivieren und das Passwort in `secrets.yaml` ablegen:
 
 ```yaml
-rest:
-  - resource: http://ph-dosierung.local/api/status
-    scan_interval: 30
-    # username: dosier
-    # password: !secret ph_dosier_pw
-    sensor:
-      - name: "pH-Wert"
-        unique_id: ph_dosier_wert
-        value_template: "{{ value_json.ph | round(2) }}"
-        state_class: measurement
-        icon: mdi:ph
-      - name: "pH ADC-Spannung"
-        unique_id: ph_dosier_volt
-        value_template: "{{ value_json.volt | round(4) }}"
-        unit_of_measurement: "V"
-        device_class: voltage
-        state_class: measurement
-      - name: "pH-Minus Dosierung heute"
-        unique_id: ph_dosier_heute
-        value_template: "{{ value_json.dose.today | round(2) }}"
-        unit_of_measurement: "mL"
-        state_class: total_increasing
-      - name: "pH-Minus Gesamtmenge"
-        unique_id: ph_dosier_gesamt
-        value_template: "{{ value_json.dose.total | round(1) }}"
-        unit_of_measurement: "mL"
-        state_class: total_increasing
-      - name: "pH-Anlage Zustand"
-        unique_id: ph_dosier_zustand
-        value_template: "{{ value_json.state }}"
-      - name: "pH-Anlage Sperren"
-        unique_id: ph_dosier_sperren
-        value_template: "{{ value_json.locks }}"
-    binary_sensor:
-      - name: "pH-Sensor OK"
-        unique_id: ph_dosier_sensor_ok
-        value_template: "{{ value_json.phValid }}"
-        device_class: problem
-        payload_on: "False"
-        payload_off: "True"
-      - name: "pH-Anlage Störung"
-        unique_id: ph_dosier_stoerung
-        value_template: "{{ value_json.fault or value_json.estop }}"
-        device_class: problem
-        payload_on: "True"
-        payload_off: "False"
-      - name: "pH-Automatik aktiv"
-        unique_id: ph_dosier_auto
-        value_template: "{{ value_json.auto }}"
-        payload_on: "True"
-        payload_off: "False"
-
-rest_command:
-  ph_dosieren:
-    url: "http://ph-dosierung.local/api/dose?ml={{ ml }}"
-    method: POST
-  ph_not_halt:
-    url: "http://ph-dosierung.local/api/estop"
-    method: POST
-  ph_automatik:
-    url: "http://ph-dosierung.local/api/auto?on={{ on }}"
-    method: POST
-  ph_sollwert:
-    url: "http://ph-dosierung.local/api/settings?sp={{ sp }}"
-    method: POST
+ph_dosieranlage_pw: "dein-passwort"
 ```
 
-Nach dem Eintragen: *Entwicklerwerkzeuge → YAML → REST-Entitäten neu laden.*
+Die `rest_command:`-URLs brauchen die Zugangsdaten dann ebenfalls, als
+`http://benutzer:passwort@ph-dosierung.local/...`.
+
+### Dashboard
+
+[../homeassistant/dashboard_karte.yaml](../homeassistant/dashboard_karte.yaml)
+enthält eine fertige Karte. In der Oberfläche: Dashboard bearbeiten →
+Karte hinzufügen → *Manuell* → Inhalt einfügen.
 
 ---
 
@@ -129,17 +131,17 @@ Nach dem Eintragen: *Entwicklerwerkzeuge → YAML → REST-Entitäten neu laden.
 Diese in der HA-Oberfläche anlegen (Einstellungen → Automationen), nicht
 in YAML:
 
-* **Störung melden** — Auslöser: `binary_sensor.ph_anlage_stoerung` wechselt
-  auf *Problem*. Aktion: Benachrichtigung aufs Handy.
-* **Sensorausfall melden** — Auslöser: `binary_sensor.ph_sensor_ok` ist
-  länger als 15 Minuten *Problem*.
-* **Tagesmenge ungewöhnlich hoch** — Auslöser: `sensor.ph_minus_dosierung_heute`
-  über 80 % der eingestellten Tagesmenge. Das ist ein Hinweis auf eine
-  driftende Sonde oder ein hydraulisches Problem, nicht auf normalen Betrieb.
-* **Automatik an Poolpumpe koppeln** — wenn die Umwälzpumpe aus ist,
-  `ph_automatik` mit `on: 0` aufrufen. Robuster ist allerdings, die Anlage
-  gleich an denselben geschalteten Stromkreis wie die Pumpe zu hängen: das
-  wirkt auch dann, wenn Home Assistant gerade nicht läuft.
+* **Störung melden** — Auslöser: `binary_sensor.ph_dosieranlage_stoerung`
+  oder `..._not_halt` wechselt auf *Problem*. Aktion: Benachrichtigung.
+  Als Text taugt `sensor.ph_dosieranlage_sperren` — der nennt den Grund.
+* **Sensorausfall melden** — Auslöser: `binary_sensor.ph_dosieranlage_sensorfehler`
+  ist länger als 15 Minuten *Problem*.
+* **Tagesmenge ungewöhnlich hoch** — Auslöser: `sensor.ph_minus_heute`
+  über 80 % der eingestellten Tagesmenge (steht als Attribut `maxd` an
+  `sensor.ph_dosieranlage_zustand`). Das ist ein Hinweis auf eine driftende
+  Sonde oder ein hydraulisches Problem, nicht auf normalen Betrieb.
+* **Anlage stumm** — `sensor.ph_wert_pool` länger als 10 Minuten
+  *nicht verfügbar*. Dann antwortet das Gerät nicht mehr.
 
 **Bewusst nicht empfohlen:** eine Automation, die zyklisch `ph_dosieren`
 aufruft. Die Dosierlogik samt Wartezeiten und Tageslimit gehört in die

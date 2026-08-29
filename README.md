@@ -31,6 +31,7 @@ docs/schaltplan.svg          Verdrahtungsplan als Grafik
 docs/INBETRIEBNAHME.md       Phasen 1–7, Kalibrierung, Konsolenbefehle
 docs/BEDIENPANEL.md          Display und Touch-Bedienung
 docs/HOMEASSISTANT.md        REST-Anbindung an Home Assistant
+homeassistant/                fertiges HA-Package und Dashboard-Karte
 scripts/                     build / flash / ota / monitor (PowerShell)
 ```
 

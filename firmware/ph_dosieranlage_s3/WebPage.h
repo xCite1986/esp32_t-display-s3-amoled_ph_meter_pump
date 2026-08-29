@@ -62,6 +62,14 @@ button.d{background:var(--org);border-color:var(--org);color:#000;font-weight:70
 .bar i{display:block;height:100%;background:var(--yel)}
 .hint{font-size:12px;color:var(--mut);margin:0 0 10px}
 code{color:var(--yel)}
+#chartwrap{position:relative}
+#chartwrap svg{cursor:crosshair;touch-action:none}
+#tip{position:absolute;display:none;pointer-events:none;z-index:5;
+     background:#000;border:1px solid var(--yel);padding:7px 10px;
+     font-size:12px;line-height:1.5;white-space:nowrap}
+#tip .t{color:var(--yel);font-weight:700;margin-bottom:3px}
+#tip .m{color:var(--mut)}
+#tip .o{color:var(--org)}
 #toast{position:fixed;left:0;right:0;bottom:0;background:#000;
        border-top:2px solid var(--yel);padding:12px 18px;display:none}
 @media(max-width:820px){main{grid-template-columns:1fr}
@@ -80,7 +88,7 @@ code{color:var(--yel)}
 <main>
   <section class="card wide">
     <h2>Verlauf 7 Tage</h2>
-    <div id="chart"></div>
+    <div id="chartwrap"><div id="chart"></div><div id="tip"></div></div>
     <div class="row" style="margin-top:10px;font-size:12px;color:var(--mut)">
       <span><b style="color:var(--yel)">&#9472;&#9472;</b> pH (Stundenmittel)</span>
       <span><b style="color:#5a4a12">&#9608;</b> Schwankungsbreite</span>
@@ -456,8 +464,17 @@ function drawChart(h){
   }
   o+=band;
   o+='<path d="'+line+'" fill="none" stroke="#ffc61a" stroke-width="2"/>';
+  // Fadenkreuz, wird beim Zeigen verschoben statt neu gezeichnet
+  o+='<line id="cur" x1="0" y1="'+T+'" x2="0" y2="'+(H-B)
+    +'" stroke="#fff" stroke-opacity="0.45" style="display:none"/>';
+  o+='<circle id="curdot" r="4" fill="#ffc61a" style="display:none"/>';
   o+='</svg>';
   el('chart').innerHTML=o;
+
+  // Geometrie für die Zeigerauswertung merken
+  _cg = {n:n, W:W, L:L, R:R, T:T, B:B, H:H, first:h.first, y:y, yb:yb, x:x};
+  _hist = h;
+  bindChartPointer();
 
   // Tagessummen
   var d0=0,d1=0,d7=0;
@@ -471,7 +488,93 @@ function drawChart(h){
   el('hd7').textContent=d7.toFixed(1)+' ml';
 }
 
+var _hist=null, _cg=null;
+
+// Stundenwert unter dem Zeiger bestimmen. Das SVG skaliert über width:100%,
+// deshalb wird die Pixelposition erst zurück in Diagrammkoordinaten gerechnet.
+function chartIndexAt(clientX, svg){
+  var r = svg.getBoundingClientRect();
+  var sx = (clientX - r.left) * (_cg.W / r.width);
+  var span = (_cg.W - _cg.L - _cg.R) / Math.max(1, _cg.n - 1);
+  var i = Math.round((sx - _cg.L) / span);
+  return Math.max(0, Math.min(_cg.n - 1, i));
+}
+
+var WD = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+function showTip(clientX){
+  if(!_cg || !_hist) return;
+  var wrap = el('chartwrap'), svg = wrap.querySelector('svg'), tip = el('tip');
+  if(!svg) return;
+  var i = chartIndexAt(clientX, svg);
+  var h = _hist, d = new Date((h.first + i) * 3600000);
+  var ph = h.ph[i], mn = h.min[i], mx = h.max[i], ml = h.ml[i];
+
+  var html = '<div class="t">' + WD[d.getDay()] + ' ' + d.getDate() + '.'
+           + (d.getMonth()+1) + '. &middot; '
+           + ('0'+d.getHours()).slice(-2) + ':00&ndash;'
+           + ('0'+d.getHours()).slice(-2) + ':59</div>';
+  if(ph === null){
+    html += '<div class="m">kein Messwert</div>';
+  } else {
+    html += 'pH <b>' + ph.toFixed(2) + '</b>';
+    if(mx - mn > 0.005)
+      html += ' <span class="m">(' + mn.toFixed(2) + ' &ndash; '
+            + mx.toFixed(2) + ')</span>';
+    html += '<br>';
+  }
+  html += '<span class="o">' + (ml > 0 ? ml.toFixed(1) + ' ml dosiert'
+                                       : 'nicht dosiert') + '</span>';
+  tip.innerHTML = html;
+
+  // Fadenkreuz mitführen
+  var r = svg.getBoundingClientRect(), sc = r.width / _cg.W;
+  var cx = _cg.x(i);
+  var cur = svg.querySelector('#cur'), dot = svg.querySelector('#curdot');
+  cur.setAttribute('x1', cx); cur.setAttribute('x2', cx);
+  cur.style.display = '';
+  if(ph === null){ dot.style.display = 'none'; }
+  else {
+    dot.setAttribute('cx', cx); dot.setAttribute('cy', _cg.y(ph));
+    dot.style.display = '';
+  }
+
+  // Kasten links vom Zeiger, wenn er sonst rechts hinausliefe
+  tip.style.display = 'block';
+  var px = cx * sc, w = tip.offsetWidth;
+  tip.style.left = (px + w + 14 > r.width ? px - w - 12 : px + 12) + 'px';
+  tip.style.top  = '8px';
+}
+
+function hideTip(){
+  var wrap = el('chartwrap'); if(!wrap) return;
+  var svg = wrap.querySelector('svg');
+  el('tip').style.display = 'none';
+  if(svg){
+    var c = svg.querySelector('#cur'), d = svg.querySelector('#curdot');
+    if(c) c.style.display = 'none';
+    if(d) d.style.display = 'none';
+  }
+}
+
+// Wird nach jedem Neuzeichnen aufgerufen - das SVG ist dann ein neues Element.
+function bindChartPointer(){
+  var wrap = el('chartwrap'), svg = wrap.querySelector('svg');
+  if(!svg) return;
+  svg.addEventListener('mousemove', function(e){ showTip(e.clientX); });
+  svg.addEventListener('mouseleave', hideTip);
+  // Auf dem Tablet: Finger ziehen zeigt genauso
+  svg.addEventListener('touchstart', function(e){
+    showTip(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+  svg.addEventListener('touchmove', function(e){
+    showTip(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
+  svg.addEventListener('touchend', hideTip);
+}
+
 function loadChart(){
+  // Nicht neu zeichnen, solange jemand im Chart liest - das SVG wird
+  // dabei ersetzt und der Zeiger verloere seinen Bezugspunkt.
+  if(el('tip') && el('tip').style.display === 'block') return;
   fetch('/api/history').then(function(r){return r.json();})
    .then(drawChart).catch(function(){});
 }

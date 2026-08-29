@@ -1,0 +1,117 @@
+# ---------------------------------------------------------------------------
+# Dashboard-Karte fuer die pH-Minus-Dosieranlage.
+#
+# Dashboard bearbeiten -> Karte hinzufuegen -> "Manuell" -> Inhalt einfuegen.
+# Setzt das Package homeassistant/ph_dosieranlage.yaml voraus.
+# ---------------------------------------------------------------------------
+
+type: vertical-stack
+cards:
+  - type: heading
+    heading: Pool - pH
+    heading_style: title
+
+  # Der Momentanwert oben, darunter die Groesse, nach der geregelt wird.
+  - type: glance
+    show_name: true
+    show_state: true
+    columns: 3
+    entities:
+      - entity: sensor.ph_wert_pool
+        name: aktuell
+      - entity: sensor.ph_wert_pool_mittel
+        name: Mittel
+      - entity: sensor.ph_dosieranlage_sollwert
+        name: Soll
+
+  - type: entities
+    show_header_toggle: false
+    entities:
+      - entity: switch.ph_automatik
+        name: Automatik
+      - entity: sensor.ph_dosieranlage_zustand
+        name: Zustand
+      - entity: sensor.ph_dosieranlage_sperren
+        name: Sperren
+      - entity: sensor.ph_dosieranlage_umwaelzpruefung
+        name: Umwaelzung
+      - type: divider
+      - entity: sensor.ph_minus_heute
+        name: heute dosiert
+      - entity: sensor.ph_minus_letzte_24_h
+        name: letzte 24 h
+      - entity: sensor.ph_dosieranlage_restpause
+        name: Restpause
+      - entity: binary_sensor.ph_dosieranlage_pumpe
+        name: Pumpe
+
+  # Zwei Tage Verlauf. Home Assistant fuehrt die Historie selbst - der
+  # 7-Tage-Chart im Webinterface ist davon unabhaengig.
+  - type: history-graph
+    hours_to_show: 48
+    title: pH-Verlauf
+    entities:
+      - entity: sensor.ph_wert_pool
+        name: pH
+      - entity: sensor.ph_wert_pool_mittel
+        name: Mittel
+
+  - type: statistics-graph
+    title: Dosiermenge je Tag
+    chart_type: bar
+    period: day
+    days_to_show: 14
+    stat_types:
+      - state
+    entities:
+      - sensor.ph_minus_heute
+
+  # Handbetrieb. Die Mengengrenzen setzt die Anlage selbst durch.
+  - type: entities
+    title: Handbetrieb
+    show_header_toggle: false
+    entities:
+      - entity: script.ph_dosieranlage_testdosis
+        name: Testdosis
+        icon: mdi:beaker-plus
+      - entity: script.ph_dosieranlage_quittieren
+        name: Stoerung quittieren
+      - entity: script.ph_dosieranlage_not_halt
+        name: NOT-HALT
+      - type: weblink
+        url: http://ph-dosierung.local/
+        name: Webinterface der Anlage
+        icon: mdi:open-in-new
+
+  - type: conditional
+    conditions:
+      - condition: or
+        conditions:
+          - condition: state
+            entity: binary_sensor.ph_dosieranlage_stoerung
+            state: "on"
+          - condition: state
+            entity: binary_sensor.ph_dosieranlage_not_halt
+            state: "on"
+          - condition: state
+            entity: binary_sensor.ph_dosieranlage_sensorfehler
+            state: "on"
+    card:
+      type: entities
+      title: Achtung
+      entities:
+        - binary_sensor.ph_dosieranlage_stoerung
+        - binary_sensor.ph_dosieranlage_not_halt
+        - binary_sensor.ph_dosieranlage_sensorfehler
+        - binary_sensor.ph_dosieranlage_kalibrierung_fehlt
+
+  - type: entities
+    title: Diagnose
+    show_header_toggle: false
+    entities:
+      - sensor.ph_dosieranlage_sondenspannung
+      - sensor.ph_dosieranlage_messrauschen
+      - sensor.ph_dosieranlage_steilheit
+      - sensor.ph_dosieranlage_signalstaerke
+      - sensor.ph_dosieranlage_laufzeit
+      - sensor.ph_minus_gesamt

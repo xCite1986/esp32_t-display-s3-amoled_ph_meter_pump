@@ -1,0 +1,322 @@
+# ---------------------------------------------------------------------------
+# pH-Minus-Dosieranlage in Home Assistant
+#
+# Fertiges Package. Ablegen unter  config/packages/ph_dosieranlage.yaml
+# und in configuration.yaml einmalig freischalten:
+#
+#   homeassistant:
+#     packages: !include_dir_named packages
+#
+# Danach: Entwicklerwerkzeuge -> YAML -> "Alle YAML-Konfigurationen neu laden".
+# Ein Neustart ist nicht noetig, solange nur dieses Package dazukommt.
+#
+# Ist im Webinterface ein Web-Benutzer gesetzt, die beiden auskommentierten
+# Zeilen unter "rest:" aktivieren und das Passwort in secrets.yaml ablegen.
+# Dann muessen auch die rest_command-URLs Zugangsdaten tragen.
+#
+# Gegenprobe der Werte: http://ph-dosierung.local/api/status
+#
+# Bewusst ohne entity_category: die REST-Plattform ist bei unbekannten
+# Schluesseln streng, und ein Tippfehler laesst nicht eine Entitaet,
+# sondern den ganzen rest:-Block durchfallen. Wer die Diagnosewerte
+# einklappen will, setzt die Kategorie nachtraeglich je Entitaet.
+# ---------------------------------------------------------------------------
+
+rest:
+  # Ein Aufruf versorgt alle Entitaeten. Die Anlage misst ohnehin nur alle
+  # 200 ms und regelt ueber Minuten - 30 s Abstand reichen voellig und halten
+  # den ESP32 frei fuer seine eigentliche Aufgabe.
+  - resource: http://ph-dosierung.local/api/status
+    scan_interval: 30
+    timeout: 10
+    # username: dosier
+    # password: !secret ph_dosieranlage_pw
+
+    sensor:
+      - name: "pH-Wert Pool"
+        unique_id: ph_dosieranlage_ph
+        device_class: ph
+        state_class: measurement
+        value_template: "{{ value_json.ph | round(2) }}"
+        availability: "{{ value_json.phValid }}"
+
+      # Das ist die Groesse, nach der wirklich dosiert wird.
+      - name: "pH-Wert Pool Mittel"
+        unique_id: ph_dosieranlage_ph_avg
+        device_class: ph
+        state_class: measurement
+        value_template: "{{ value_json.phAvg | round(2) }}"
+        availability: "{{ value_json.avgOk }}"
+
+      - name: "pH-Dosieranlage Sollwert"
+        unique_id: ph_dosieranlage_sollwert
+        device_class: ph
+        value_template: "{{ value_json.cfg.sp | round(2) }}"
+
+      - name: "pH-Dosieranlage Sondenspannung"
+        unique_id: ph_dosieranlage_volt
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        value_template: "{{ value_json.volt | round(4) }}"
+
+      # Spanne im Messfenster. Steigt sie an, wird die Sonde unruhig -
+      # meist Ablagerung, Luftblase oder ein Masseproblem.
+      - name: "pH-Dosieranlage Messrauschen"
+        unique_id: ph_dosieranlage_rauschen
+        unit_of_measurement: "mV"
+        state_class: measurement
+        value_template: "{{ value_json.spreadmV | round(1) }}"
+
+      - name: "pH-Dosieranlage Steilheit"
+        unique_id: ph_dosieranlage_steilheit
+        unit_of_measurement: "mV/pH"
+        value_template: >-
+          {{ value_json.slope | round(1) if value_json.cal.ok else none }}
+
+      - name: "pH-Minus heute"
+        unique_id: ph_dosieranlage_heute
+        unit_of_measurement: "mL"
+        state_class: total_increasing
+        icon: mdi:beaker-outline
+        value_template: "{{ value_json.dose.today | round(2) }}"
+
+      # Rollierendes Fenster, also nicht monoton steigend -> measurement.
+      - name: "pH-Minus letzte 24 h"
+        unique_id: ph_dosieranlage_24h
+        unit_of_measurement: "mL"
+        state_class: measurement
+        icon: mdi:beaker-outline
+        value_template: "{{ value_json.dose.last24h | round(2) }}"
+
+      - name: "pH-Minus Tagesrest"
+        unique_id: ph_dosieranlage_rest
+        unit_of_measurement: "mL"
+        state_class: measurement
+        icon: mdi:beaker-question-outline
+        value_template: "{{ value_json.dose.remain | round(2) }}"
+
+      - name: "pH-Minus gesamt"
+        unique_id: ph_dosieranlage_gesamt
+        unit_of_measurement: "mL"
+        state_class: total_increasing
+        icon: mdi:beaker
+        value_template: "{{ value_json.dose.total | round(1) }}"
+
+      - name: "pH-Dosieranlage Dosierungen heute"
+        unique_id: ph_dosieranlage_anzahl
+        state_class: total_increasing
+        icon: mdi:counter
+        value_template: "{{ value_json.dose.count }}"
+
+      # Durchmischungspause nach einer Dosierung.
+      - name: "pH-Dosieranlage Restpause"
+        unique_id: ph_dosieranlage_pause
+        unit_of_measurement: "s"
+        device_class: duration
+        state_class: measurement
+        value_template: "{{ value_json.dose.pauseS }}"
+
+      - name: "pH-Dosieranlage Zustand"
+        unique_id: ph_dosieranlage_zustand
+        icon: mdi:state-machine
+        value_template: "{{ value_json.state }}"
+        # Die Konfiguration haengt als Attribute daran - praktisch, um in
+        # Automationen gegen die tatsaechlich gesetzten Grenzen zu pruefen.
+        json_attributes_path: "$.cfg"
+        json_attributes:
+          - sp
+          - db
+          - dose
+          - maxs
+          - maxd
+          - pause
+          - phlock
+          - filt
+          - avgs
+          - circen
+          - haent
+
+      - name: "pH-Dosieranlage Sperren"
+        unique_id: ph_dosieranlage_sperren
+        icon: mdi:lock-outline
+        value_template: "{{ value_json.locks }}"
+
+      - name: "pH-Dosieranlage Umwaelzpruefung"
+        unique_id: ph_dosieranlage_umwaelzung
+        icon: mdi:pump
+        value_template: "{{ value_json.circ }}"
+
+      - name: "pH-Dosieranlage Laufzeit"
+        unique_id: ph_dosieranlage_laufzeit
+        unit_of_measurement: "h"
+        state_class: measurement
+        value_template: "{{ (value_json.up / 3600000) | round(1) }}"
+
+      - name: "pH-Dosieranlage Signalstaerke"
+        unique_id: ph_dosieranlage_rssi
+        unit_of_measurement: "dBm"
+        device_class: signal_strength
+        state_class: measurement
+        value_template: "{{ value_json.wifi.rssi }}"
+
+    binary_sensor:
+      # Die REST-Plattform erwartet ON/OFF, deshalb wird hier explizit
+      # gerendert statt sich auf Jinjas "True"/"False" zu verlassen.
+      - name: "pH-Dosieranlage Automatik"
+        unique_id: ph_dosieranlage_auto
+        icon: mdi:robot
+        value_template: "{{ 'ON' if value_json.auto else 'OFF' }}"
+
+      - name: "pH-Dosieranlage Pumpe"
+        unique_id: ph_dosieranlage_pumpe
+        device_class: running
+        value_template: "{{ 'ON' if value_json.pump.run else 'OFF' }}"
+
+      - name: "pH-Dosieranlage Stoerung"
+        unique_id: ph_dosieranlage_stoerung
+        device_class: problem
+        value_template: "{{ 'ON' if value_json.fault else 'OFF' }}"
+
+      - name: "pH-Dosieranlage Not-Halt"
+        unique_id: ph_dosieranlage_estop
+        device_class: problem
+        value_template: "{{ 'ON' if value_json.estop else 'OFF' }}"
+
+      - name: "pH-Dosieranlage Sensorfehler"
+        unique_id: ph_dosieranlage_sensorfehler
+        device_class: problem
+        value_template: "{{ 'OFF' if value_json.phValid else 'ON' }}"
+
+      - name: "pH-Dosieranlage Kalibrierung fehlt"
+        unique_id: ph_dosieranlage_kalibrierung
+        device_class: problem
+        value_template: "{{ 'OFF' if value_json.cal.ok else 'ON' }}"
+
+# ---------------------------------------------------------------------------
+# Befehle. Die Parameter gehen als Query-String mit - das nimmt der Webserver
+# des ESP32 genauso an wie ein Formular und spart den content_type.
+# ---------------------------------------------------------------------------
+rest_command:
+  ph_dosieranlage_automatik:
+    url: "http://ph-dosierung.local/api/auto?on={{ 1 if ein else 0 }}"
+    method: POST
+    timeout: 10
+
+  ph_dosieranlage_dosieren:
+    url: "http://ph-dosierung.local/api/dose?ml={{ ml }}"
+    method: POST
+    timeout: 10
+
+  ph_dosieranlage_umdrehungen:
+    url: "http://ph-dosierung.local/api/dose/revs?n={{ n }}"
+    method: POST
+    timeout: 10
+
+  ph_dosieranlage_stop:
+    url: "http://ph-dosierung.local/api/stop"
+    method: POST
+    timeout: 10
+
+  ph_dosieranlage_not_halt:
+    url: "http://ph-dosierung.local/api/estop"
+    method: POST
+    timeout: 10
+
+  ph_dosieranlage_quittieren:
+    url: "http://ph-dosierung.local/api/clearfault"
+    method: POST
+    timeout: 10
+
+  ph_dosieranlage_sollwert:
+    url: "http://ph-dosierung.local/api/settings?sp={{ sp }}"
+    method: POST
+    timeout: 10
+
+# ---------------------------------------------------------------------------
+# Schalter fuer die Automatik. Nach dem Schalten wird die REST-Abfrage sofort
+# angestossen, sonst haengt die Anzeige bis zu 30 s hinterher.
+# ---------------------------------------------------------------------------
+template:
+  - switch:
+      - name: "pH-Automatik"
+        unique_id: ph_dosieranlage_automatik_schalter
+        icon: mdi:robot
+        state: "{{ is_state('binary_sensor.ph_dosieranlage_automatik', 'on') }}"
+        availability: >-
+          {{ not is_state('binary_sensor.ph_dosieranlage_automatik',
+                          'unavailable') }}
+        turn_on:
+          - action: rest_command.ph_dosieranlage_automatik
+            data:
+              ein: true
+          - delay: "00:00:02"
+          - action: homeassistant.update_entity
+            target:
+              entity_id: binary_sensor.ph_dosieranlage_automatik
+        turn_off:
+          - action: rest_command.ph_dosieranlage_automatik
+            data:
+              ein: false
+          - delay: "00:00:02"
+          - action: homeassistant.update_entity
+            target:
+              entity_id: binary_sensor.ph_dosieranlage_automatik
+
+# ---------------------------------------------------------------------------
+# Skripte fuer die Dashboard-Schaltflaechen.
+# Die Mengengrenzen setzt die Anlage selbst durch; die Skripte koennen sie
+# nicht umgehen. Ein abgelehnter Aufruf kommt mit HTTP 409 zurueck.
+# ---------------------------------------------------------------------------
+script:
+  ph_dosieranlage_testdosis:
+    alias: "pH-Dosieranlage - Testdosis"
+    icon: mdi:beaker-plus
+    fields:
+      ml:
+        name: Menge
+        description: "Menge in ml. Die Anlage lehnt alles ueber maxs ab."
+        default: 1
+        selector:
+          number:
+            min: 0.1
+            max: 5
+            step: 0.1
+            unit_of_measurement: mL
+    sequence:
+      - action: rest_command.ph_dosieranlage_dosieren
+        data:
+          ml: "{{ ml | default(1) }}"
+        response_variable: antwort
+      - variables:
+          angenommen: "{{ antwort.status == 200 }}"
+      - condition: template
+        value_template: "{{ not angenommen }}"
+      - action: persistent_notification.create
+        data:
+          title: "pH-Dosierung abgelehnt"
+          message: >-
+            Die Anlage hat die Testdosis nicht angenommen
+            (HTTP {{ antwort.status }}). Grund steht unter
+            sensor.ph_dosieranlage_sperren:
+            {{ states('sensor.ph_dosieranlage_sperren') }}
+
+  ph_dosieranlage_not_halt:
+    alias: "pH-Dosieranlage - Not-Halt"
+    icon: mdi:hand-back-right-off
+    sequence:
+      - action: rest_command.ph_dosieranlage_not_halt
+      - delay: "00:00:02"
+      - action: homeassistant.update_entity
+        target:
+          entity_id: binary_sensor.ph_dosieranlage_estop
+
+  ph_dosieranlage_quittieren:
+    alias: "pH-Dosieranlage - Stoerung quittieren"
+    icon: mdi:restart-alert
+    sequence:
+      - action: rest_command.ph_dosieranlage_quittieren
+      - delay: "00:00:02"
+      - action: homeassistant.update_entity
+        target:
+          entity_id: binary_sensor.ph_dosieranlage_stoerung
