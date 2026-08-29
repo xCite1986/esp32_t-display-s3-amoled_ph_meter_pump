@@ -3,6 +3,7 @@
 #include "StepperPump.h"
 #include "Settings.h"
 #include "Circulation.h"
+#include "History.h"
 #include "Config.h"
 #include <time.h>
 #include <Preferences.h>
@@ -85,6 +86,10 @@ void PHController::checkDayRollover() {
   }
 }
 
+float PHController::referencePh() const {
+  return phMeas.averageReady() ? phMeas.phAverage() : phMeas.ph();
+}
+
 float PHController::dailyMl() const { return settings.dailyMl; }
 
 float PHController::dailyRemainingMl() const {
@@ -117,11 +122,18 @@ uint16_t PHController::evaluateLocks() {
   if (millis() - phMeas.lastGoodMs() > PH_SENSOR_TIMEOUT_MS)        l |= LK_SENSOR;
 
   if (phMeas.valid()) {
+    // Entschieden wird nach dem gleitenden Mittelwert, nicht nach dem
+    // Momentanwert: ein einzelner Ausreisser soll keine Dosierung ausloesen.
+    // Solange das Mittelungsfenster noch nicht gefuellt ist, wird nicht
+    // dosiert - das ist nach einem Neustart der sichere Zustand.
+    float ref = phMeas.averageReady() ? phMeas.phAverage() : phMeas.ph();
+    if (!phMeas.averageReady())              l |= LK_UNSTABLE;
+
     if (!phMeas.stable())                    l |= LK_UNSTABLE;
-    if (phMeas.ph() < settings.phMinLock)    l |= LK_PH_LOW;
-    if (phMeas.ph() < HARD_MIN_PH_LOCK)      l |= LK_PH_LOW;
-    if (phMeas.ph() > settings.phMaxPlaus)   l |= LK_PH_HIGH;
-    if (phMeas.ph() <= settings.phSetpoint + settings.phDeadband) l |= LK_AT_TARGET;
+    if (ref < settings.phMinLock)            l |= LK_PH_LOW;
+    if (ref < HARD_MIN_PH_LOCK)              l |= LK_PH_LOW;
+    if (ref > settings.phMaxPlaus)            l |= LK_PH_HIGH;
+    if (ref <= settings.phSetpoint + settings.phDeadband) l |= LK_AT_TARGET;
   }
 
   if (dailyRemainingMl() <= 0.001f) l |= LK_DAILY_MAX;
@@ -139,6 +151,7 @@ void PHController::bookDose(float ml) {
   settings.saveCounters();
 
   if (ml > 0) {
+    histAddDose(ml);
     time_t now = time(nullptr);
     DoseEvent &e = doseLog_[doseLogIdx_];
     e.epoch = (now > 1700000000) ? (uint32_t)now : 0;
@@ -150,6 +163,13 @@ void PHController::bookDose(float ml) {
 }
 
 void PHController::tick() {
+  histTick();
+  // Verlauf mitschreiben - nur gueltige Messwerte, hoechstens jede Sekunde
+  static uint32_t lastHist = 0;
+  if (phMeas.valid() && millis() - lastHist > 1000) {
+    lastHist = millis();
+    histAddSample(phMeas.ph());
+  }
   checkDayRollover();
   locks_ = evaluateLocks();
 
@@ -229,7 +249,9 @@ bool PHController::manualDose(float ml, String &err) {
   if (ml > dailyRemainingMl())      { err = "Tagesmenge reicht nicht mehr"; return false; }
 
   // Liegt ein gueltiger Messwert vor, gilt die pH-Sperre auch manuell.
-  if (phMeas.valid() && phMeas.ph() < settings.phMinLock) {
+  // Auch hier zaehlt der Mittelwert, solange er belastbar ist.
+  float refPh = phMeas.averageReady() ? phMeas.phAverage() : phMeas.ph();
+  if (phMeas.valid() && refPh < settings.phMinLock) {
     err = "pH unter Sperrschwelle";
     return false;
   }

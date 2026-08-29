@@ -20,6 +20,8 @@ struct Settings {
   float calPhB         = 4.00f;    // Puffer B (typisch 4.00)
   float calVoltB       = 2.00f;    // gemessene Spannung bei Puffer B
   uint8_t adcGain      = (uint8_t)ADS_GAIN_4096;
+  uint16_t filterS     = 30;       // Zeitkonstante der Messwertglaettung
+  uint16_t phAvgS      = 600;      // Mittelungsfenster fuer die Dosierung
 
   // --- Pumpe ---
   float stepsPerMl     = DEFAULT_STEPS_PER_ML;

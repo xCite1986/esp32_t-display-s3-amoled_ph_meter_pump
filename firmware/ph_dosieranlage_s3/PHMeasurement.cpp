@@ -15,6 +15,41 @@ bool PHMeasurement::begin() {
 
 void PHMeasurement::applySettings() {
   ads_.setGain((AdsGain)settings.adcGain);
+
+  // Zeitkonstante in einen EMA-Faktor umrechnen: alpha = 1 - e^(-Ts/tau).
+  float ts  = PH_SAMPLE_PERIOD_MS / 1000.0f;
+  float tau = settings.filterS;
+  if (tau < 0.1f) tau = 0.1f;
+  emaAlpha_ = 1.0f - expf(-ts / tau);
+  if (emaAlpha_ > 1.0f) emaAlpha_ = 1.0f;
+  if (emaAlpha_ < 0.0005f) emaAlpha_ = 0.0005f;
+}
+
+// Alle PH_AVG_PERIOD_MS einen Wert in den Ringpuffer, daraus den Mittelwert
+// ueber das eingestellte Fenster. Der Puffer haelt bis zu 60 Minuten vor.
+void PHMeasurement::updateAverage() {
+  uint32_t now = millis();
+  if (lastAvgMs_ && now - lastAvgMs_ < PH_AVG_PERIOD_MS) return;
+  lastAvgMs_ = now;
+
+  avgBuf_[avgIdx_] = ph_;
+  avgIdx_ = (avgIdx_ + 1) % PH_AVG_SLOTS;
+  if (avgUsed_ < PH_AVG_SLOTS) avgUsed_++;
+
+  uint16_t want = (uint16_t)((uint32_t)settings.phAvgS * 1000UL / PH_AVG_PERIOD_MS);
+  if (want < 1) want = 1;
+  if (want > PH_AVG_SLOTS) want = PH_AVG_SLOTS;
+
+  uint16_t n = (avgUsed_ < want) ? avgUsed_ : want;
+  double sum = 0;
+  for (uint16_t i = 0; i < n; i++) {
+    uint16_t idx = (avgIdx_ + PH_AVG_SLOTS - 1 - i) % PH_AVG_SLOTS;
+    sum += avgBuf_[idx];
+  }
+  avgPh_ = (float)(sum / n);
+  // Erst wenn das Fenster wirklich gefuellt ist, taugt der Mittelwert als
+  // Grundlage fuer eine Dosierung.
+  avgReady_ = (n >= want);
 }
 
 float PHMeasurement::median() const {
@@ -74,7 +109,7 @@ void PHMeasurement::tick() {
 
   float med = median();
   if (!emaInit_) { voltage_ = med; emaInit_ = true; }
-  else           { voltage_ += PH_EMA_ALPHA * (med - voltage_); }
+  else           { voltage_ += emaAlpha_ * (med - voltage_); }
 
   // Stabilitaet: Spanne der Rohspannungen im Fenster, in pH umgerechnet
   float vmin = buf_[0], vmax = buf_[0];
@@ -122,6 +157,7 @@ void PHMeasurement::tick() {
 
   status_   = PH_OK;
   lastGood_ = now;
+  updateAverage();
 }
 
 bool PHMeasurement::calibratePoint(bool pointA, float phValue, String &err) {

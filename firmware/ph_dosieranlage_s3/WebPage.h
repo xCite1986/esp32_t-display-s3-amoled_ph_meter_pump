@@ -25,10 +25,11 @@ body{background:var(--bg);color:var(--fg);
 header{display:flex;justify-content:space-between;align-items:center;
        flex-wrap:wrap;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
 h1{font-size:16px;margin:0;letter-spacing:.08em;text-transform:uppercase}
-main{display:grid;grid-template-columns:1fr 1fr;width:100%}
-.card{border-right:1px solid var(--line);border-bottom:1px solid var(--line);
-      padding:16px 18px}
-.card:nth-child(2n){border-right:0}
+/* Trennlinien als 1px-Luecken im Raster: das bleibt richtig, egal an welcher
+   Stelle eine Karte ueber beide Spalten geht. */
+main{display:grid;grid-template-columns:1fr 1fr;width:100%;
+     gap:1px;background:var(--line)}
+.card{background:var(--bg);padding:16px 18px}
 .wide{grid-column:1 / -1}
 .card h2{font-size:12px;margin:0 0 12px;color:var(--yel);
          text-transform:uppercase;letter-spacing:.1em}
@@ -64,7 +65,7 @@ code{color:var(--yel)}
 #toast{position:fixed;left:0;right:0;bottom:0;background:#000;
        border-top:2px solid var(--yel);padding:12px 18px;display:none}
 @media(max-width:820px){main{grid-template-columns:1fr}
-  .card{border-right:0}.big{font-size:44px}}
+  .big{font-size:44px}}
 </style>
 </head>
 <body>
@@ -77,10 +78,24 @@ code{color:var(--yel)}
 </header>
 
 <main>
+  <section class="card wide">
+    <h2>Verlauf 7 Tage</h2>
+    <div id="chart"></div>
+    <div class="row" style="margin-top:10px;font-size:12px;color:var(--mut)">
+      <span><b style="color:var(--yel)">&#9472;&#9472;</b> pH (Stundenmittel)</span>
+      <span><b style="color:#5a4a12">&#9608;</b> Schwankungsbreite</span>
+      <span><b style="color:var(--org)">&#9608;</b> dosiert [ml/h]</span>
+    </div>
+    <div class="kv" style="margin-top:10px"><span>heute dosiert</span><b id="hd0">-</b></div>
+    <div class="kv"><span>gestern</span><b id="hd1">-</b></div>
+    <div class="kv"><span>Summe 7 Tage</span><b id="hd7">-</b></div>
+  </section>
+
   <section class="card">
     <h2>Messwert</h2>
     <div class="big" id="ph">--.--</div>
     <div class="hint" id="phst" style="margin-top:6px">-</div>
+    <div class="kv"><span>Mittel (Regelgr&ouml;&szlig;e)</span><b id="phavg">-</b></div>
     <div class="kv"><span>Sollwert</span><b id="sp">-</b></div>
     <div class="kv"><span>Spannung</span><b id="volt">-</b></div>
     <div class="kv"><span>ADC roh</span><b id="raw">-</b></div>
@@ -162,6 +177,8 @@ code{color:var(--yel)}
       <div><label>Beschleunigung [S/s&sup2;]</label><input data-k="sacc" type="number" step="100"></div>
       <div><label>Drehrichtung umkehren</label><input data-k="invdir" type="checkbox"></div>
       <div><label>Treiber dauerhaft bestromt</label><input data-k="hold" type="checkbox"></div>
+      <div><label>Filterzeit [s]</label><input data-k="filt" type="number" step="5" min="1" max="300"></div>
+      <div><label>Mittelung f&uuml;r Dosierung [s]</label><input data-k="avgs" type="number" step="60" min="60" max="3600"></div>
       <div><label>ADS1115 Messbereich</label>
         <select data-k="gain">
           <option value="0">+/- 6.144 V</option>
@@ -294,6 +311,7 @@ function fmtDur(s){
 function refresh(){
   fetch('/api/status').then(function(r){return r.json();}).then(function(s){
     window._auto = s.auto;
+    window._sp = s.cfg.sp;
     el('ph').textContent = s.phValid ? s.ph.toFixed(2) : '--.--';
     // Stabilitaet und Spanne nur zeigen, wenn ueberhaupt gemessen wird -
     // sonst steht neben "nicht erreichbar" ein Initialwert, der wie ein
@@ -306,6 +324,9 @@ function refresh(){
             + (s.spreadmV <= 20 ? ' (ruhig genug zum Kalibrieren)'
                                 : ' (noch zu unruhig, < 20 mV nötig)'))
          : s.phStatus);
+    el('phavg').textContent = (s.phAvg === null || s.phAvg === undefined) ? '-'
+      : s.avgOk ? s.phAvg.toFixed(2) + ' pH'
+                : s.phAvg.toFixed(2) + ' pH (Fenster f\u00fcllt sich)';
     el('sp').textContent = s.cfg.sp.toFixed(2);
     el('volt').textContent = s.volt.toFixed(4)+' V';
     el('raw').textContent = s.raw;
@@ -363,8 +384,102 @@ function refresh(){
     }
   }).catch(function(e){el('st').textContent='offline';el('st').className='pill b-err';});
 }
+// ---------------------------------------------------------------------------
+// Verlaufschart. Handgezeichnetes SVG statt einer Bibliothek - die Seite muss
+// ohne Internet funktionieren, und fuer 168 Stundenwerte lohnt kein Framework.
+// ---------------------------------------------------------------------------
+function drawChart(h){
+  var W=1100, H=260, L=44, R=52, T=14, B=26;
+  var n = h.ph.length;
+  if(!n){ el('chart').innerHTML =
+    '<p class="hint">Noch kein Verlauf &mdash; die Aufzeichnung braucht eine g\u00fcltige Uhrzeit (NTP).</p>';
+    return; }
+
+  // pH-Skala aus den Daten, mit etwas Luft und sinnvollem Minimum
+  var lo=99, hi=-99;
+  for(var i=0;i<n;i++){
+    if(h.min[i]!==null){ lo=Math.min(lo,h.min[i]); hi=Math.max(hi,h.max[i]); }
+  }
+  if(lo>hi){ lo=6.8; hi=7.6; }
+  var pad=Math.max(0.15,(hi-lo)*0.15); lo-=pad; hi+=pad;
+
+  var mlMax=0; for(var i=0;i<n;i++) mlMax=Math.max(mlMax,h.ml[i]);
+  if(mlMax<=0) mlMax=1;
+
+  var x=function(i){ return L+(W-L-R)*i/Math.max(1,n-1); };
+  var y=function(v){ return T+(H-T-B)*(1-(v-lo)/(hi-lo)); };
+  var yb=function(v){ return (H-B)-(H-T-B)*0.35*(v/mlMax); };
+
+  var o='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">';
+
+  // Tagesraster: alle 24 Werte eine Linie
+  for(var i=0;i<n;i+=24){
+    o+='<line x1="'+x(i)+'" y1="'+T+'" x2="'+x(i)+'" y2="'+(H-B)+'" stroke="#222"/>';
+    var d=new Date((h.first+i)*3600*1000);
+    o+='<text x="'+x(i)+'" y="'+(H-8)+'" fill="#9a9a9a" font-size="11" text-anchor="middle">'
+      +d.getDate()+'.'+(d.getMonth()+1)+'</text>';
+  }
+  // pH-Achse
+  for(var k=0;k<=4;k++){
+    var v=lo+(hi-lo)*k/4;
+    o+='<line x1="'+L+'" y1="'+y(v)+'" x2="'+(W-R)+'" y2="'+y(v)+'" stroke="#1a1a1a"/>';
+    o+='<text x="'+(L-6)+'" y="'+(y(v)+4)+'" fill="#9a9a9a" font-size="11" text-anchor="end">'
+      +v.toFixed(1)+'</text>';
+  }
+  // Sollwert
+  if(window._sp!==undefined && window._sp>lo && window._sp<hi){
+    o+='<line x1="'+L+'" y1="'+y(window._sp)+'" x2="'+(W-R)+'" y2="'+y(window._sp)
+      +'" stroke="#4fd98a" stroke-dasharray="5 4"/>';
+  }
+
+  // Dosierbalken
+  var bw=Math.max(1,(W-L-R)/n*0.7);
+  for(var i=0;i<n;i++){
+    if(h.ml[i]>0)
+      o+='<rect x="'+(x(i)-bw/2)+'" y="'+yb(h.ml[i])+'" width="'+bw
+        +'" height="'+((H-B)-yb(h.ml[i]))+'" fill="#ff8a00"/>';
+  }
+  // ml-Achse rechts
+  o+='<text x="'+(W-R+6)+'" y="'+(H-B)+'" fill="#ff8a00" font-size="11">0</text>';
+  o+='<text x="'+(W-R+6)+'" y="'+(yb(mlMax)+4)+'" fill="#ff8a00" font-size="11">'
+    +mlMax.toFixed(1)+' ml</text>';
+
+  // Schwankungsband und Linie, Luecken werden nicht ueberbrueckt
+  var band='', line='', open=false;
+  for(var i=0;i<n;i++){
+    if(h.ph[i]===null){ open=false; continue; }
+    line += (open?'L':'M')+x(i)+' '+y(h.ph[i])+' ';
+    open=true;
+    if(h.max[i]-h.min[i]>0.005)
+      band+='<rect x="'+(x(i)-bw/2)+'" y="'+y(h.max[i])+'" width="'+bw
+        +'" height="'+Math.max(1,y(h.min[i])-y(h.max[i]))+'" fill="#5a4a12"/>';
+  }
+  o+=band;
+  o+='<path d="'+line+'" fill="none" stroke="#ffc61a" stroke-width="2"/>';
+  o+='</svg>';
+  el('chart').innerHTML=o;
+
+  // Tagessummen
+  var d0=0,d1=0,d7=0;
+  for(var i=0;i<n;i++){
+    d7+=h.ml[i];
+    if(i>=n-24) d0+=h.ml[i];
+    else if(i>=n-48) d1+=h.ml[i];
+  }
+  el('hd0').textContent=d0.toFixed(1)+' ml';
+  el('hd1').textContent=d1.toFixed(1)+' ml';
+  el('hd7').textContent=d7.toFixed(1)+' ml';
+}
+
+function loadChart(){
+  fetch('/api/history').then(function(r){return r.json();})
+   .then(drawChart).catch(function(){});
+}
+
 refresh();
 setInterval(refresh, 2000);
+loadChart();
+setInterval(loadChart, 300000);   // Verlauf aendert sich stuendlich - alle 5 min reicht
 </script>
 </body>
 </html>

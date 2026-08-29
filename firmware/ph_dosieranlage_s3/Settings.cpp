@@ -60,6 +60,10 @@ void Settings::clampAll() {
   if (pauseS > 86400UL) pauseS = 86400UL;
 
   if (adcGain > (uint8_t)ADS_GAIN_0256) adcGain = (uint8_t)ADS_GAIN_4096;
+  if (filterS < PH_FILTER_MIN_S) filterS = PH_FILTER_MIN_S;
+  if (filterS > PH_FILTER_MAX_S) filterS = PH_FILTER_MAX_S;
+  if (phAvgS  < PH_AVG_MIN_S)    phAvgS  = PH_AVG_MIN_S;
+  if (phAvgS  > PH_AVG_MAX_S)    phAvgS  = PH_AVG_MAX_S;
 
   calPhA = clampf(calPhA, 0.0f, 14.0f);
   calPhB = clampf(calPhB, 0.0f, 14.0f);
@@ -101,6 +105,8 @@ void Settings::load() {
   calPhB     = prefs.getFloat("cphb", 4.00f);
   calVoltB   = prefs.getFloat("cvb", 2.00f);
   adcGain    = prefs.getUChar("gain", (uint8_t)ADS_GAIN_4096);
+  filterS    = (uint16_t)prefs.getULong("filt", 30);
+  phAvgS     = (uint16_t)prefs.getULong("avgs", 600);
 
   stepsPerMl = prefs.getFloat("spml", DEFAULT_STEPS_PER_ML);
   panelRevs  = prefs.getFloat("prevs", 5.0f);
@@ -160,6 +166,8 @@ void Settings::save() {
   prefs.putFloat("cphb", calPhB);
   prefs.putFloat("cvb", calVoltB);
   prefs.putUChar("gain", adcGain);
+  prefs.putULong("filt", filterS);
+  prefs.putULong("avgs", phAvgS);
 
   prefs.putFloat("spml", stepsPerMl);
   prefs.putFloat("prevs", panelRevs);

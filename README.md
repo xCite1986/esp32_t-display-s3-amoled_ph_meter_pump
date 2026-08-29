@@ -84,13 +84,14 @@ Details in [docs/INBETRIEBNAHME.md](docs/INBETRIEBNAHME.md).
 |---|---|
 | `Config.h` | Pinbelegung und **harte** Sicherheitsgrenzen |
 | `Ads1115.*` | eigener, abhängigkeitsfreier ADS1115-Treiber |
-| `PHMeasurement.*` | Abtastung, Median + EMA, Plausibilität, 2-Punkt-Kalibrierung |
+| `PHMeasurement.*` | Abtastung, Median + EMA, gleitender Mittelwert, 2-Punkt-Kalibrierung |
 | `StepperPump.*` | STEP/DIR/EN nicht blockierend, Rampe, Laufzeitüberwachung |
 | `PHController.*` | Zustandsautomat, Verriegelungen, Tages-/Gesamtzähler |
 | `Settings.*` | Persistenz im NVS, Begrenzung aller Werte |
 | `WebInterface.*` | WLAN/AP, Webserver, JSON-API, OTA |
 | `WebPage.h` | Weboberfläche als ein HTML-Dokument im Flash |
 | `PanelUi.*` | LVGL-Oberfläche, Rückfrage, Standby und Nachtmodus |
+| `History.*` | 7-Tage-Verlauf in Stundenauflösung, im NVS gesichert |
 
 Anzeige: pH-Wert in ~136 px Höhe, dosierte Menge der letzten 24 Stunden,
 Zustand und Sperrgründe. Tippen aufs Display öffnet die Rückfrage, erst
@@ -111,6 +112,29 @@ messen → plausibilisieren → eine kleine definierte Dosis
 Es wird nie „auf den Sollwert durchdosiert". Die Schrittzahl bestimmt die
 Menge, nicht die Zeit — deshalb ist die Dosierung auch dann exakt, wenn
 der WLAN-Stack den Ablauf kurz bremst.
+
+Entschieden wird **nach dem gleitenden Mittelwert**, nicht nach dem
+Momentanwert. Eine pH-Sonde im strömenden Wasser rauscht; ein einzelner
+Ausreißer nach unten würde sonst eine unnötige Dosierung auslösen, ein
+Ausreißer nach oben eine überflüssige. Zwei Zeiten sind einstellbar:
+
+| Wert | Vorgabe | Wirkung |
+|---|---|---|
+| Filterzeit | 30 s | Zeitkonstante der Messwertglättung (angezeigter pH) |
+| Mittelung | 600 s | Fenster, aus dem die Regelgröße gebildet wird |
+
+Der Mittelwert entsteht aus einem Ringpuffer mit einem Wert alle 10 s, also
+bis zu 60 Minuten. Solange das Fenster nach einem Neustart noch nicht gefüllt
+ist, gilt die Sperre *instabil* — das ist der sichere Zustand.
+
+### Verlauf und Chart
+
+Das Webinterface zeigt einen 7-Tage-Chart: pH-Linie, Schwankungsband
+(Minimum/Maximum der Stunde) und die dosierte Menge je Stunde als Balken,
+dazu die Tagessummen. Gespeichert wird bewusst **ein Datensatz pro Stunde**
+statt Einzelmesswerten — 168 Slots zu 10 Byte, rund 1,7 kB. Das überlebt
+einen Neustart im NVS, liefert den ganzen Verlauf in einer Antwort und
+belastet weder Flash noch Browser.
 
 ### Sicherheitsgrenzen (nicht abschaltbar)
 

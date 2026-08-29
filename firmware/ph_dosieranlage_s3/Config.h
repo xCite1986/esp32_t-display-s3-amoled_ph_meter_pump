@@ -68,9 +68,22 @@ static const float VOLT_PLAUS_MAX = 3.250f;   // V am ADS-Eingang
 // Messwertaufbereitung
 static const uint8_t  PH_SAMPLE_COUNT    = 15;    // Ringpuffer fuer Median
 static const uint32_t PH_SAMPLE_PERIOD_MS = 200;  // Abtastintervall
-static const float    PH_EMA_ALPHA       = 0.25f; // Glaettung nach Median
+// Die Glaettung wird aus der einstellbaren Filterzeit berechnet, siehe
+// PHMeasurement::applySettings(). Ein Pool aendert seinen pH ueber Stunden -
+// eine lange Zeitkonstante kostet also nichts an Regelguete, macht die
+// Messung aber unempfindlich gegen Stroemung und eingekoppelte Stoerungen.
+static const float    PH_EMA_ALPHA       = 0.25f; // nur noch Rueckfallwert
 static const float    PH_STABLE_BAND     = 0.05f; // max. Spanne fuer "stabil"
 static const uint32_t PH_SENSOR_TIMEOUT_MS = 5000;// ohne gueltige Wandlung -> Fehler
+
+// Gleitender Mittelwert fuer die Dosierentscheidung: alle 10 s ein Wert,
+// Ringpuffer fuer bis zu 60 Minuten.
+static const uint32_t PH_AVG_PERIOD_MS = 10000;
+static const uint16_t PH_AVG_SLOTS     = 360;
+static const uint16_t PH_AVG_MIN_S     = 60;
+static const uint16_t PH_AVG_MAX_S     = 3600;
+static const uint16_t PH_FILTER_MIN_S  = 1;
+static const uint16_t PH_FILTER_MAX_S  = 300;
 
 // Motor-Defaults
 static const float DEFAULT_STEPS_PER_ML  = 1600.0f;  // laut Projektbeschreibung

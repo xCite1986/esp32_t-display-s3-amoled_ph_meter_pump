@@ -27,6 +27,7 @@
 #include "WebInterface.h"
 #include "PanelUi.h"
 #include "Circulation.h"
+#include "History.h"
 
 #include <LilyGo_AMOLED.h>
 #include <LV_Helper.h>
@@ -70,6 +71,7 @@ static void printHelp() {
     "  calreset              Kalibrierung verwerfen\n"
     "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax spml\n"
     "                        sprev prevs srate sacc gain invdir hold\n"
+    "                        filt avgs\n"
     "                        stby shft nite nfrom nto rot180\n"
     "                        circen circfr circrt circof\n"
     "  ha <host> <entity>    Home Assistant fuer die Umwaelzpruefung\n"
@@ -101,7 +103,12 @@ static void printStatus() {
                 settings.dailyMl, settings.maxDailyMl,
                 (unsigned long)controller.doseCountToday(),
                 (unsigned long)controller.pauseRemainingS(), settings.totalMl);
-  Serial.printf("Letzte 24 h: %.2f ml\n", controller.ml24h());
+  Serial.printf("Letzte 24 h: %.2f ml | heute %.2f ml (Verlauf)\n",
+                controller.ml24h(), histDayMl(0));
+  Serial.printf("Mittelwert (%u s): %.3f %s | Filter %u s\n",
+                settings.phAvgS, phMeas.phAverage(),
+                phMeas.averageReady() ? "" : "(Fenster noch nicht voll)",
+                settings.filterS);
   Serial.printf("Pumpe: %s (%lu/%lu Schritte) | %.1f Schritte/ml | Freigabe %.0f Umdr.\n",
                 pump.running() ? "laeuft" : "steht",
                 (unsigned long)pump.stepsDone(),
@@ -143,6 +150,8 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "srate")   s.stepRate    = f;
   else if (key == "sacc")    s.stepAccel   = f;
   else if (key == "gain")    s.adcGain     = (uint8_t)i;
+  else if (key == "filt")    s.filterS     = (uint16_t)i;
+  else if (key == "avgs")    s.phAvgS      = (uint16_t)i;
   else if (key == "invdir")  s.invertDir   = b;
   else if (key == "hold")    s.holdEnabled = b;
   else if (key == "stby")    s.standbyS    = (uint16_t)i;
@@ -380,6 +389,7 @@ void setup() {
                   ADS_I2C_ADDR, Ads1115::gainName((AdsGain)settings.adcGain));
   }
 
+  histBegin();
   controller.begin();
   web.begin();
 

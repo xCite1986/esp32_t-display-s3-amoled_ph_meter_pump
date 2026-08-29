@@ -30,6 +30,13 @@ class PHMeasurement {
   bool  stable() const { return stable_; }       // Spanne < PH_STABLE_BAND
   float spread() const { return spread_; }       // Spanne im Fenster [pH]
   float spreadV() const { return spreadV_; }     // Spanne im Fenster [V] - immer gueltig
+
+  // Gleitender Mittelwert ueber settings.phAvgS. Die Regelung entscheidet
+  // danach, nicht nach dem Momentanwert - ein einzelner Ausreisser soll keine
+  // Dosierung ausloesen.
+  float phAverage() const { return avgPh_; }
+  bool  averageReady() const { return avgReady_; }
+  uint16_t averageCount() const { return avgUsed_; }
   uint32_t lastGoodMs() const { return lastGood_; }
 
   // Kalibrierung: aktuelle (gefilterte) Spannung als Punkt A oder B ablegen.
@@ -50,6 +57,14 @@ class PHMeasurement {
   bool     stable_   = false;
   float    spread_   = 99.0f;
   float    spreadV_  = 0;
+  float    avgBuf_[PH_AVG_SLOTS];
+  uint16_t avgIdx_   = 0;
+  uint16_t avgUsed_  = 0;
+  uint32_t lastAvgMs_ = 0;
+  float    avgPh_    = NAN;
+  bool     avgReady_ = false;
+  float    emaAlpha_ = PH_EMA_ALPHA;
+  void updateAverage();
   bool     emaInit_  = false;
   uint32_t lastSample_ = 0;
   uint32_t lastGood_   = 0;

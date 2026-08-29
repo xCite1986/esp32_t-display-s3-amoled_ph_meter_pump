@@ -6,6 +6,7 @@
 #include "PHController.h"
 #include "PanelUi.h"
 #include "Circulation.h"
+#include "History.h"
 #include "Config.h"
 
 #include <Wire.h>
@@ -103,6 +104,8 @@ String WebInterface::statusJson() const {
   j += ",\"stable\":" + jbool(phMeas.stable());
   j += ",\"spread\":" + jnum(phMeas.spread(), 3);
   j += ",\"spreadmV\":" + jnum(phMeas.spreadV() * 1000.0f, 1);
+  j += ",\"phAvg\":" + jnum(phMeas.phAverage(), 3);
+  j += ",\"avgOk\":" + jbool(phMeas.averageReady());
   j += ",\"volt\":" + jnum(phMeas.voltage(), 5);
   j += ",\"voltRaw\":" + jnum(phMeas.voltageRaw(), 5);
   j += ",\"raw\":" + String(phMeas.rawAdc());
@@ -184,6 +187,8 @@ String WebInterface::statusJson() const {
   j += ",\"invdir\":" + jbool(s.invertDir);
   j += ",\"hold\":" + jbool(s.holdEnabled);
   j += ",\"gain\":" + String(s.adcGain);
+  j += ",\"filt\":" + String(s.filterS);
+  j += ",\"avgs\":" + String(s.phAvgS);
   j += ",\"ssid\":" + jstr(s.wifiSsid);
   j += ",\"host\":" + jstr(s.hostname);
   j += ",\"wuser\":" + jstr(s.webUser);
@@ -278,6 +283,14 @@ void WebInterface::setupRoutes() {
   // I2C-Bus des ADS1115 scannen. Bei der Inbetriebnahme haengt das Geraet oft
   // schon im Netz, aber kein USB-Kabel mehr dran - dann ist das hier der
   // einzige Weg, zwischen "nichts da" und "falsche Adresse" zu unterscheiden.
+  // Verlauf fuer den Chart. Stundenaufloesung, 7 Tage - bewusst grob, damit
+  // die Antwort klein bleibt und der Chart schnell steht.
+  server.on("/api/history", HTTP_GET, [this]() {
+    if (!guard()) return;
+    server.sendHeader("Cache-Control", "no-store");
+    server.send(200, "application/json", histJson());
+  });
+
   server.on("/api/i2c/scan", HTTP_POST, [this]() {
     if (!guard()) return;
     String found;
@@ -426,6 +439,8 @@ void WebInterface::setupRoutes() {
     s.invertDir   = argB("invdir", s.invertDir);
     s.holdEnabled = argB("hold", s.holdEnabled);
 
+    s.filterS     = (uint16_t)argI("filt", s.filterS);
+    s.phAvgS      = (uint16_t)argI("avgs", s.phAvgS);
     uint8_t g = (uint8_t)argI("gain", s.adcGain);
     if (g != s.adcGain) { s.adcGain = g; }
 

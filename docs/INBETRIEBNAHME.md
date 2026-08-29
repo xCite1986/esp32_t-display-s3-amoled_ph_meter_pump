@@ -283,7 +283,18 @@ set pause 1800      30 min Durchmischung zwischen Dosierungen
 set phlock 6.80     unter pH 6,80 wird nie dosiert
 set phmax 9.50      darüber gilt der Messwert als unplausibel
 set srate 1200      in Phase 2 ermittelte Schrittrate
+set filt 30         Filterzeit der Messwertglaettung in s
+set avgs 600        Mittelungsfenster fuer die Dosierentscheidung in s
 ```
+
+`filt` und `avgs` bestimmen, **worauf** geregelt wird. Angezeigt und
+aufgezeichnet wird der mit `filt` geglättete Wert; entschieden wird nach
+dem Mittel der letzten `avgs` Sekunden. Rauscht die Sonde im strömenden
+Wasser, beide Werte erhöhen — die Regelung wird dadurch nicht träger,
+denn ein Pool ändert seinen pH über Stunden, nicht über Sekunden.
+
+Solange das Mittelungsfenster nach einem Neustart noch nicht gefüllt ist,
+steht die Sperre *instabil* — das ist beabsichtigt.
 
 Die Werte für `maxd` müssen zum Beckenvolumen passen. Faustregel für die
 erste Woche: **die Tagesmenge so klein wählen, dass sie den pH rechnerisch

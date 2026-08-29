@@ -59,6 +59,8 @@ class PHController {
   float lastDoseMl() const { return lastDoseMl_; }
   // Echte rollierende 24-Stunden-Summe (unabhaengig vom Kalendertag-Limit)
   float ml24h() const;
+  // Referenzwert der Regelung: Mittelwert, sonst Momentanwert
+  float referencePh() const;
   uint32_t doseCountToday() const { return doseCountToday_; }
 
   void resetDaily();
