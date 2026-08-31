@@ -17,6 +17,14 @@ Umsetzung des Vorhabens aus [ph_minus_dosieranlage_entwicklung.md](ph_minus_dosi
 treibt die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
 Webserver.
 
+![Fertig verdrahteter Aufbau im Gehäuse](docs/bilder/02-aufbau-verdrahtet.jpg)
+
+*Der fertige Aufbau: links oben das pH-Signalboard mit BNC-Buchse, daneben
+der ADS1115, rechts das T-Display S3 AMOLED. Unten links der TMC2209 auf der
+Treiber-Erweiterungskarte mit Kühlkörper, daneben der Buck-Converter. Rechts
+sitzt die Pumpe, das vierpolige Motorkabel führt quer zum Treiber. Darunter
+liegt der ausgedruckte Verdrahtungsplan.*
+
 Der Peristaltikkopf ist ein 3D-Druckteil:
 [V2 Peristaltic Pump auf MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump).
 Die STL liegt unter [hardware/pumpe/](hardware/pumpe/) mit bei. Der Kopf
@@ -45,6 +53,7 @@ docs/FLASHEN.md              Board-Einstellungen, arduino-cli, OTA
 docs/LOETANLEITUNG.md        Schritt für Schritt löten, mit Prüfpunkten
 docs/SCHALTPLAN.md           Netzliste, Pinbelegung, offene Messpunkte
 docs/schaltplan.svg          Verdrahtungsplan als Grafik
+docs/bilder/                 Fotos vom Aufbau, Screenshot der Weboberfläche
 docs/INBETRIEBNAHME.md       Phasen 1–7, Kalibrierung, Konsolenbefehle
 docs/BEDIENPANEL.md          Display und Touch-Bedienung
 docs/HOMEASSISTANT.md        REST-Anbindung an Home Assistant
@@ -159,6 +168,14 @@ Nach der Standby-Zeit zeigt das Display nur noch den pH-Wert, gedimmt und
 regelmäßig versetzt; im Nachtfenster bleibt es ganz dunkel und wacht auf
 Berührung auf. Zeiten sind im Webinterface einstellbar. Details in
 [docs/BEDIENPANEL.md](docs/BEDIENPANEL.md).
+
+![Weboberfläche](docs/bilder/04-webinterface.jpg)
+
+*Die Weboberfläche: zwei Spalten über die volle Breite, Messwert und
+Dosierung oben, darunter Kalibrierung, Grenzwerte, Umwälzprüfung und
+Anzeigeeinstellungen. Das Bild zeigt einen Stand ohne Sonde — daher „ADS1115
+nicht erreichbar" — und noch ohne die Karte „Verlauf 7 Tage", die später
+dazukam.*
 
 ### Dosierprinzip
 

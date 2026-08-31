@@ -23,6 +23,11 @@ reproduzierbar bleibt.
 > geklärt sein, ob die Datei mitgeliefert werden darf, oder es bleibt nur der
 > Link.
 
+![Pumpenkopf montiert](../docs/bilder/03-pumpenkopf.jpg)
+
+*Der gedruckte Kopf montiert: drei Rollenlager im Rotor, in der Mitte das
+608er Kugellager der Wellenaufnahme.*
+
 ### Verstärkte Wellenaufnahme
 
 Die **V2 des Modells hat eine verstärkte Wellenaufnahme** — genau die Stelle,

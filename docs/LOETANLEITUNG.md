@@ -93,6 +93,14 @@ Zusätzlich (siehe Abschnitt 12):
 
 ## 2. Baugruppe A — Platine vorbereiten
 
+![Platine mit gesteckten Modulen](bilder/01-platine-bestueckt.jpg)
+
+*Die bestückte Platine vor dem Verdrahten. Links oben das pH-Signalboard mit
+BNC-Buchse und den beiden Trimmpotis, in der Mitte der ADS1115, rechts das
+T-Display S3 AMOLED. Links unten die Treiber-Erweiterungskarte mit dem
+TMC2209 und dem blauen Kühlkörper, daneben der Buck-Converter. TMC2209 und
+ADS1115 stehen bewusst weit auseinander — der Treiber wird warm.*
+
 1. Platine so ausrichten, dass später gilt: **12 V/Motor links, Signale rechts.**
    Das hält die Leistungsströme von der Messkette fern.
 2. Die Buchsenleisten für TMC2209 und ADS1115 probeweise bestücken und die
@@ -407,6 +415,12 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 
 ## 12. Displayboard einbauen
 
+![Fertig verdrahteter Aufbau](bilder/02-aufbau-verdrahtet.jpg)
+
+*Endzustand: Leistungsseite links (12 V, Treiber, Motorkabel), Messkette
+rechts oben. Das Displayboard ist im Gehäuse fixiert, die Motorleitung kreuzt
+die Platine mit Abstand zum I²C-Bus.*
+
 Am Board selbst wird nichts gelötet — Display und Touch sind integriert. Es
 geht nur um Befestigung und die Anbindung über KL6.
 
@@ -431,6 +445,12 @@ gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
 ---
 
 ## 13. Mechanik und Hydraulik
+
+![Pumpenkopf von außen](bilder/03-pumpenkopf.jpg)
+
+*Der Pumpenkopf von außen auf dem Gehäuse. Im Rotor sitzen drei Rollenlager,
+in der Mitte das 608er Kugellager der verstärkten Wellenaufnahme. Unten die
+beiden Schlauchenden — Saug- und Druckseite.*
 
 * Peristaltikkopf auf die NEMA17-Welle: Wellendurchmesser 5 mm prüfen,
   Madenschraube auf die Abflachung setzen. Verwendet wird das 3D-Druckmodell
