@@ -1,0 +1,84 @@
+# Hardware — Druckteile und Datenblätter
+
+```text
+pumpe/Peristaltic_Pump_V2.stl     Peristaltikkopf, 3D-Druckteil
+datenblaetter/Steppermotor_DE.pdf Datenblatt des NEMA17 (deutsch, 18 Seiten)
+```
+
+---
+
+## Peristaltikkopf
+
+`pumpe/Peristaltic_Pump_V2.stl` — 7884 Dreiecke, Binär-STL.
+
+Quelle: [V2 Peristaltic Pump auf
+MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump).
+Die Datei liegt hier nur mit, damit der Aufbau ohne Portalzugang
+reproduzierbar bleibt.
+
+> **Vor einer Veröffentlichung die Lizenz des Modells prüfen.** Das Druckteil
+> ist fremde Arbeit; MakerWorld-Modelle stehen meist unter einer
+> Creative-Commons-Variante, teils mit `NC`- oder `ND`-Klausel. Solange dieses
+> Repository privat ist, spielt das keine Rolle — wird es öffentlich, muss
+> geklärt sein, ob die Datei mitgeliefert werden darf, oder es bleibt nur der
+> Link.
+
+Der Kopf sitzt direkt auf der 5-mm-Welle des NEMA17. Montage und Hydraulik:
+[../docs/LOETANLEITUNG.md](../docs/LOETANLEITUNG.md), Abschnitt 13.
+
+Der Schlauch im Kopf ist das Verschleißteil der ganzen Anlage — Norprene oder
+Tygon, **kein Silikon** (quillt und wird von Säure angegriffen).
+
+---
+
+## Schrittmotor
+
+`datenblaetter/Steppermotor_DE.pdf` — „Quick Start Anleitung,
+Zweiphasen-Hybrid-Schrittmotor 42".
+
+Kennwerte laut Seite 3:
+
+| | |
+|---|---|
+| Referenz | NEMA17 |
+| Strom/Phase | **0,4 A** |
+| Schrittwinkel | 1,8° (200 Vollschritte/Umdrehung) |
+| Phasen | 2 |
+| Nennspannung | 12 V |
+| Rahmengröße | 42 × 42 mm, Höhe 34 mm |
+| Haltedrehmoment | „28 Nm" (siehe unten) |
+
+### Spulenzuordnung
+
+Seite 5 des Datenblatts, wörtlich:
+
+> Spule A (grünes Kabel, schwarzes Kabel)
+> Spule B (rotes Kabel, blaues Kabel).
+
+Das deckt sich mit der Widerstandsmessung bei der Inbetriebnahme (je 3,6 Ω
+zwischen den Adern eines Paares) und **widerspricht der ursprünglichen
+Projektbeschreibung**, die von rot+grün und blau+schwarz ausging. Verbindlich
+sind Datenblatt und Messung; die Verdrahtungspläne im `docs/`-Ordner sind
+entsprechend korrigiert.
+
+### Zwei Stellen, an denen das Datenblatt nicht zum Aufbau passt
+
+**„Haltedrehmoment 28 Nm" ist ein Fehler im Datenblatt.** 28 N·m wäre die
+Größenordnung eines Industrieservos; ein NEMA17 mit 34 mm Baulänge liefert
+typisch 0,28 N·m. Gemeint sind offensichtlich **28 N·cm**. Für die Auslegung
+der Pumpe wurde mit dem plausiblen Wert gerechnet.
+
+**Der eingestellte Strom liegt über dem Nennstrom.** Das Datenblatt nennt
+0,4 A pro Phase. Im Betrieb steht VREF auf 1,2 V, was am verwendeten
+TMC2209-Modul rund **0,6 A** ergibt — ermittelt nicht aus dem Datenblatt des
+Treibers, sondern aus der Gehäusetemperatur (etwa 45 °C nach fünf Minuten
+Haltestrom). Mit 0,4 A rutschte der Pumpenkopf unter Last durch.
+
+Das ist eine bewusste Abweichung, kein Versehen: 45 °C sind für einen
+Schrittmotor unkritisch, die Wicklung verträgt deutlich mehr. Wer den Motor
+tauscht oder das Treibermodul wechselt, muss VREF neu bestimmen — der
+Umrechnungsfaktor unterscheidet sich je nach Shunt auf dem Modul erheblich
+und ist der häufigste Grund für „dreht nicht" oder „wird zu heiß".
+
+Details zur Ermittlung: [../docs/INBETRIEBNAHME.md](../docs/INBETRIEBNAHME.md),
+Phase 2.

@@ -23,7 +23,7 @@
 | 4 | pH-Sonde, BNC, laborüblich (E-201-C) | 1 | 20 | Verschleißteil, siehe unten |
 | 5 | TMC2209 Stepstick | 1 | 6 | Verschleißteil, Reserve sinnvoll |
 | 6 | Treiber-Erweiterungskarte A4988/DRV8825-Raster | 1 | 3 | meist im 3er-Satz |
-| 7 | NEMA17 Schrittmotor, 5-mm-Welle | 1 | 15 | 0,4 A laut Datenblatt |
+| 7 | NEMA17 Schrittmotor, 5-mm-Welle | 1 | 15 | 0,4 A laut [Datenblatt](../hardware/datenblaetter/Steppermotor_DE.pdf) |
 | 8 | Netzteil 12 V / ≥ 3 A | 1 | 12 | |
 | 9 | Buck-Converter 12 → 5 V, **≥ 1 A** | 1 | 3 | 0,5 A bricht ein, siehe Lötanleitung |
 | | **Zwischensumme** | | **119** | |
@@ -53,7 +53,7 @@
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 19 | Peristaltikkopf, 3D-Druck — [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump) | 1 | 3 |
+| 19 | Peristaltikkopf, 3D-Druck — [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump), [STL im Repo](../hardware/pumpe/Peristaltic_Pump_V2.stl) | 1 | 3 |
 | 20 | Pumpenschlauch Norprene/Tygon (**kein Silikon**) | 1 m | 10 |
 | | **Zwischensumme** | | **13** |
 

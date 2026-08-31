@@ -435,7 +435,8 @@ gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
 * Peristaltikkopf auf die NEMA17-Welle: Wellendurchmesser 5 mm prüfen,
   Madenschraube auf die Abflachung setzen. Verwendet wird das 3D-Druckmodell
   [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump)
-  von MakerWorld.
+  von MakerWorld; die STL liegt unter
+  [../hardware/pumpe/](../hardware/pumpe/) im Repo.
 * Die Pumpe **oberhalb** des Säurebehälters montieren.
 * Saugseite: Schlauch mit Fußventil und Ansaugfilter im Kanister.
 * Druckseite: Impfventil (Rückschlagventil) im Bypass **nach** dem Filter

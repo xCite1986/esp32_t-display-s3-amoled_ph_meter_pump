@@ -19,7 +19,8 @@ Webserver.
 
 Der Peristaltikkopf ist ein 3D-Druckteil:
 [V2 Peristaltic Pump auf MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump).
-Er sitzt direkt auf der 5-mm-Welle des NEMA17. Was sonst noch gebraucht wird und was es
+Die STL liegt unter [hardware/pumpe/](hardware/pumpe/) mit bei. Der Kopf
+sitzt direkt auf der 5-mm-Welle des NEMA17. Was sonst noch gebraucht wird und was es
 ungefähr kostet, steht in [docs/TEILELISTE.md](docs/TEILELISTE.md) —
 in Summe rund **235 €**.
 
@@ -39,6 +40,7 @@ docs/INBETRIEBNAHME.md       Phasen 1–7, Kalibrierung, Konsolenbefehle
 docs/BEDIENPANEL.md          Display und Touch-Bedienung
 docs/HOMEASSISTANT.md        REST-Anbindung an Home Assistant
 homeassistant/               fertiges HA-Package und Dashboard-Karte
+hardware/                    STL des Pumpenkopfs, Motordatenblatt
 scripts/                     build / flash / ota / monitor (PowerShell)
 ```
 
