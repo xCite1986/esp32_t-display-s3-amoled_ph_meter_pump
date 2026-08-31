@@ -252,6 +252,30 @@ wird in der Firmware — dort greift die Logik auch, wenn das WLAN weg ist.
 
 ---
 
+## Lizenz
+
+Firmware, Skripte und Dokumentation stehen unter der
+[MIT-Lizenz](LICENSE) — © 2026 Alex Prohaska.
+
+**Zwei Dateien im Repository gehören anderen und stehen ausdrücklich nicht
+unter MIT:**
+
+| Datei | Urheber | Lizenz |
+|---|---|---|
+| `hardware/pumpe/Peristaltic_Pump_V2.stl` | Max Puschmann | [CC BY](https://creativecommons.org/licenses/by/4.0/deed.de) |
+| `hardware/datenblaetter/Steppermotor_DE.pdf` | Hersteller des Schrittmotors | Herstellerdokument |
+
+Details in [hardware/README.md](hardware/README.md).
+
+> **Keine Gewähr.** Die MIT-Lizenz schließt jede Haftung aus, und das ist hier
+> keine Formalie: Die Anlage dosiert Säure. Wer sie nachbaut, verantwortet
+> Auslegung, Aufbau und Betrieb selbst. Die Sicherheitsgrenzen in der Firmware
+> sind eine zweite Verteidigungslinie, nicht die erste — die ist der Aufbau
+> nach [docs/LOETANLEITUNG.md](docs/LOETANLEITUNG.md), inklusive Sicherung,
+> Impfventil und säurebeständigem Schlauch.
+
+---
+
 ## Offene Punkte aus der Projektbeschreibung
 
 Diese Werte lassen sich nicht am Schreibtisch festlegen und sind in den
