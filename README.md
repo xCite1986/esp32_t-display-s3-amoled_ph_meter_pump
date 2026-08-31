@@ -17,6 +17,12 @@ Umsetzung des Vorhabens aus [ph_minus_dosieranlage_entwicklung.md](ph_minus_dosi
 treibt die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
 Webserver.
 
+Der Peristaltikkopf ist ein 3D-Druckteil:
+[MakerWorld-Modell](https://makerworld.com/models/2225892). Er sitzt direkt
+auf der 5-mm-Welle des NEMA17. Was sonst noch gebraucht wird und was es
+ungefähr kostet, steht in [docs/TEILELISTE.md](docs/TEILELISTE.md) —
+in Summe rund **235 €**.
+
 ---
 
 ## Inhalt
@@ -25,13 +31,14 @@ Webserver.
 firmware/ph_dosieranlage_s3/ die komplette Firmware (Messung, Regelung, UI, Web)
 tools/i2c_adc_test/          Phase 1: I²C-Scan und ADS1115-Rohwerte
 tools/motor_test/            Phase 2: Motor-, Richtungs- und VREF-Test
+docs/TEILELISTE.md           Teileliste mit Kostenübersicht
 docs/LOETANLEITUNG.md        Schritt für Schritt löten, mit Prüfpunkten
 docs/SCHALTPLAN.md           Netzliste, Pinbelegung, offene Messpunkte
 docs/schaltplan.svg          Verdrahtungsplan als Grafik
 docs/INBETRIEBNAHME.md       Phasen 1–7, Kalibrierung, Konsolenbefehle
 docs/BEDIENPANEL.md          Display und Touch-Bedienung
 docs/HOMEASSISTANT.md        REST-Anbindung an Home Assistant
-homeassistant/                fertiges HA-Package und Dashboard-Karte
+homeassistant/               fertiges HA-Package und Dashboard-Karte
 scripts/                     build / flash / ota / monitor (PowerShell)
 ```
 
@@ -150,6 +157,31 @@ Für die Umwälzung gibt es bewusst keinen verdrahteten Eingang. Entweder hängt
 die Anlage am selben geschalteten Stromkreis wie die Poolpumpe — dann kann sie
 physisch nicht in stehendes Wasser dosieren — oder sie fragt unmittelbar vor
 jeder Dosierung eine Home-Assistant-Entität ab.
+
+---
+
+## Home Assistant
+
+Die Anbindung liegt fertig bei und braucht keine zusätzliche Software — kein
+MQTT, keine Custom Integration. Ein REST-Aufruf alle 30 Sekunden versorgt
+alles:
+
+* [homeassistant/ph_dosieranlage.yaml](homeassistant/ph_dosieranlage.yaml) —
+  Package mit 17 Sensoren, 6 Binärsensoren, 7 Befehlen, einem Schalter für
+  die Automatik und drei Skripten
+* [homeassistant/dashboard_karte.yaml](homeassistant/dashboard_karte.yaml) —
+  passende Lovelace-Karte
+* [docs/HOMEASSISTANT.md](docs/HOMEASSISTANT.md) — Einbau, API-Endpunkte,
+  Automationsvorschläge
+
+Den Verlauf muss niemand übertragen: sobald die Sensoren existieren, führt
+Home Assistant seine eigene Historie in voller Auflösung. Der 7-Tage-Chart im
+Webinterface bleibt davon unabhängig und funktioniert auch, wenn HA steht.
+
+In die Gegenrichtung fragt die Anlage vor jeder Dosierung eine HA-Entität ab
+(`switch.poolpumpe`), um sicherzugehen, dass umgewälzt wird. Beides zusammen
+ist bewusst kein Kreisverkehr: HA beobachtet und darf abschalten, geregelt
+wird in der Firmware — dort greift die Logik auch, wenn das WLAN weg ist.
 
 ---
 

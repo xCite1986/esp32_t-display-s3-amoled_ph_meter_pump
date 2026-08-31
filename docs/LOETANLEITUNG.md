@@ -51,6 +51,9 @@ insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
 
 **Material**
 
+Preise und die vollständige Liste inklusive Hydraulik und Chemie stehen in
+[TEILELISTE.md](TEILELISTE.md).
+
 | Pos | Teil | Menge |
 |---|---|---|
 | 1 | Lochrasterplatine 100 × 80 mm, RM 2,54 | 1 |
@@ -430,7 +433,8 @@ gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
 ## 13. Mechanik und Hydraulik
 
 * Peristaltikkopf auf die NEMA17-Welle: Wellendurchmesser 5 mm prüfen,
-  Madenschraube auf die Abflachung setzen.
+  Madenschraube auf die Abflachung setzen. Verwendet wird das 3D-Druckmodell
+  von [MakerWorld](https://makerworld.com/models/2225892).
 * Die Pumpe **oberhalb** des Säurebehälters montieren.
 * Saugseite: Schlauch mit Fußventil und Ansaugfilter im Kanister.
 * Druckseite: Impfventil (Rückschlagventil) im Bypass **nach** dem Filter
