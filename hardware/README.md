@@ -11,17 +11,27 @@ datenblaetter/Steppermotor_DE.pdf Datenblatt des NEMA17 (deutsch, 18 Seiten)
 
 `pumpe/Peristaltic_Pump_V2.stl` — 7884 Dreiecke, Binär-STL.
 
-Quelle: [V2 Peristaltic Pump auf
-MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump).
-Die Datei liegt hier nur mit, damit der Aufbau ohne Portalzugang
-reproduzierbar bleibt.
+**„V2 Peristaltische Pumpe / Wasserpumpe / Dosierpumpe" von Max Puschmann**,
+veröffentlicht am 10.01.2026 auf [MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump), lizenziert unter
+[Creative Commons Attribution (CC BY)](https://creativecommons.org/licenses/by/4.0/deed.de).
+Das Modell ist ein Remix einer früheren Peristaltikpumpe desselben Autors.
 
-> **Vor einer Veröffentlichung die Lizenz des Modells prüfen.** Das Druckteil
-> ist fremde Arbeit; MakerWorld-Modelle stehen meist unter einer
-> Creative-Commons-Variante, teils mit `NC`- oder `ND`-Klausel. Solange dieses
-> Repository privat ist, spielt das keine Rolle — wird es öffentlich, muss
-> geklärt sein, ob die Datei mitgeliefert werden darf, oder es bleibt nur der
-> Link.
+Die STL liegt hier unverändert mit bei — CC BY erlaubt das Weitergeben
+ausdrücklich und verlangt dafür nur die Namensnennung. Die steht in diesem
+Absatz.
+
+### Druckparameter des Autors
+
+| | |
+|---|---|
+| Schichthöhe | 0,2 mm |
+| Wandungen | 4 |
+| Füllung | 30 Prozent |
+| Material | PLA, rund 119 g |
+| Druckzeit | etwa 3 h auf 4 Platten |
+
+Zusätzlich nötig: **vier 608-Kugellager** — drei als Rollen im Rotor, eines
+in der Wellenaufnahme — und weicher Schlauch für den Pumpenkopf.
 
 ![Pumpenkopf montiert](../docs/bilder/03-pumpenkopf.jpg)
 

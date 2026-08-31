@@ -55,11 +55,16 @@
 |---|---|---:|---:|
 | 19 | Peristaltikkopf, 3D-Druck — [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump), [STL im Repo](../hardware/pumpe/Peristaltic_Pump_V2.stl) | 1 | 3 |
 | 20 | Pumpenschlauch Norprene/Tygon (**kein Silikon**) | 1 m | 10 |
-| | **Zwischensumme** | | **13** |
+| 21 | Kugellager 608, für Rotor und Wellenaufnahme | 4 | 4 |
+| | **Zwischensumme** | | **17** |
 
-Der Kopf sitzt direkt auf der 5-mm-Welle des NEMA17 (Pos. 7). Materialkosten
-sind reines Filament, gerechnet mit rund 100 g PETG. Wer nicht selbst druckt,
-liegt bei einem gekauften Peristaltikkopf eher bei 25–50 €.
+Der Kopf sitzt direkt auf der 5-mm-Welle des NEMA17 (Pos. 7). Der Autor gibt
+**119 g PLA** an, 0,2 mm Schicht, 4 Wandungen, 30 Prozent Füllung, rund 3 h
+Druckzeit — die 3 € sind also reines Filament. Wer nicht selbst druckt, liegt
+bei einem gekauften Peristaltikkopf eher bei 25–50 €.
+
+Die vier 608-Kugellager sitzen als Rollen im Rotor (drei) und in der
+Wellenaufnahme (eines).
 
 Der Schlauch ist das eigentliche Verschleißteil der Pumpe — Wechselintervall
 typisch 500–1000 Betriebsstunden, Ersatz gleich mitbestellen.
@@ -68,18 +73,18 @@ typisch 500–1000 Betriebsstunden, Ersatz gleich mitbestellen.
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 21 | Saug-/Druckschlauch, säurebeständig | 2 m | 8 |
-| 22 | Impfventil (Rückschlagventil) für den Einspritzpunkt | 1 | 12 |
-| 23 | Fußventil mit Ansaugfilter für den Kanister | 1 | 10 |
-| 24 | Sondenhalter / Messzelle im Bypass | 1 | 15 |
+| 22 | Saug-/Druckschlauch, säurebeständig | 2 m | 8 |
+| 23 | Impfventil (Rückschlagventil) für den Einspritzpunkt | 1 | 12 |
+| 24 | Fußventil mit Ansaugfilter für den Kanister | 1 | 10 |
+| 25 | Sondenhalter / Messzelle im Bypass | 1 | 15 |
 | | **Zwischensumme** | | **45** |
 
 ## 6. Kalibrierung und Pflege
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 25 | Pufferlösung pH 7,00 und pH 4,00 | je 1 | 10 |
-| 26 | KCl-Aufbewahrungslösung für die Sonde | 1 | 8 |
+| 26 | Pufferlösung pH 7,00 und pH 4,00 | je 1 | 10 |
+| 27 | KCl-Aufbewahrungslösung für die Sonde | 1 | 8 |
 | | **Zwischensumme** | | **18** |
 
 Puffer altern nach dem Öffnen. Zum Kalibrieren immer aus einem sauberen
@@ -94,10 +99,10 @@ Gefäß arbeiten und die Portion danach verwerfen — nie zurück in die Flasche
 | Steuerung und Messkette | 119 |
 | Platine und Kleinteile | 20 |
 | Gehäuse und Montage | 20 |
-| Pumpe | 13 |
+| Pumpe | 17 |
 | Hydraulik | 45 |
 | Kalibrierung und Pflege | 18 |
-| **Gesamt** | **235** |
+| **Gesamt** | **239** |
 
 Nicht enthalten: Werkzeug (Lötstation, Multimeter, Seitenschneider — siehe
 [LOETANLEITUNG.md](LOETANLEITUNG.md), Abschnitt 1), 3D-Drucker, und das
