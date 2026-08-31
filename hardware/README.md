@@ -23,8 +23,28 @@ reproduzierbar bleibt.
 > geklärt sein, ob die Datei mitgeliefert werden darf, oder es bleibt nur der
 > Link.
 
-Der Kopf sitzt direkt auf der 5-mm-Welle des NEMA17. Montage und Hydraulik:
-[../docs/LOETANLEITUNG.md](../docs/LOETANLEITUNG.md), Abschnitt 13.
+### Verstärkte Wellenaufnahme
+
+Die **V2 des Modells hat eine verstärkte Wellenaufnahme** — genau die Stelle,
+an der das gesamte Pumpenmoment vom Motor auf den Rotor übergeht. Beim
+Schlauchquetschen ist das kein kleines Moment: der Rotor drückt den Schlauch
+über die ganze Umschlingung zusammen, und das Losbrechmoment beim Anfahren
+liegt deutlich über dem Dauermoment.
+
+Eine dünn gedruckte Aufnahme leiert dort im Lauf der Zeit aus, die
+Madenschraube gräbt sich ein, und die Pumpe fördert dann zu wenig, ohne dass
+sich elektrisch etwas ändert — die Firmware zählt weiter exakte Schritte und
+verbucht Milliliter, die nie im Becken ankommen. **Das gehört zu den wenigen
+Fehlern, die die Firmware nicht bemerken kann** — wie ein leerer Kanister oder
+ein gerissener Schlauch: die Pumpe läuft, die Zählung stimmt, gefördert wird
+nichts. Auffallen kann so etwas nur daran, dass der pH-Wert trotz Dosierung
+nicht nachgibt. Deshalb ist die verstärkte Fassung hier die richtige.
+
+Beim Aufziehen: Wellendurchmesser 5 mm prüfen und die Madenschraube auf die
+**Abflachung** der Welle setzen, nicht auf das runde Stück.
+
+Montage und Hydraulik: [../docs/LOETANLEITUNG.md](../docs/LOETANLEITUNG.md),
+Abschnitt 13.
 
 Der Schlauch im Kopf ist das Verschleißteil der ganzen Anlage — Norprene oder
 Tygon, **kein Silikon** (quillt und wird von Säure angegriffen).

@@ -20,9 +20,17 @@ Webserver.
 Der Peristaltikkopf ist ein 3D-Druckteil:
 [V2 Peristaltic Pump auf MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump).
 Die STL liegt unter [hardware/pumpe/](hardware/pumpe/) mit bei. Der Kopf
-sitzt direkt auf der 5-mm-Welle des NEMA17. Was sonst noch gebraucht wird und was es
-ungefähr kostet, steht in [docs/TEILELISTE.md](docs/TEILELISTE.md) —
-in Summe rund **235 €**.
+sitzt direkt auf der 5-mm-Welle des NEMA17 — die **V2 hat die verstärkte
+Wellenaufnahme**, und genau dort liegt das volle Pumpenmoment an, siehe
+[hardware/README.md](hardware/README.md).
+
+![Verdrahtungsplan der pH-Minus-Dosieranlage](docs/schaltplan.svg)
+
+*Verdrahtungsplan — als Datei: [docs/schaltplan.svg](docs/schaltplan.svg),
+Netzliste und Pinbelegung in [docs/SCHALTPLAN.md](docs/SCHALTPLAN.md).*
+
+Was sonst noch gebraucht wird und was es ungefähr kostet, steht in
+[docs/TEILELISTE.md](docs/TEILELISTE.md) — in Summe rund **235 €**.
 
 ---
 
@@ -33,6 +41,7 @@ firmware/ph_dosieranlage_s3/ die komplette Firmware (Messung, Regelung, UI, Web)
 tools/i2c_adc_test/          Phase 1: I²C-Scan und ADS1115-Rohwerte
 tools/motor_test/            Phase 2: Motor-, Richtungs- und VREF-Test
 docs/TEILELISTE.md           Teileliste mit Kostenübersicht
+docs/FLASHEN.md              Board-Einstellungen, arduino-cli, OTA
 docs/LOETANLEITUNG.md        Schritt für Schritt löten, mit Prüfpunkten
 docs/SCHALTPLAN.md           Netzliste, Pinbelegung, offene Messpunkte
 docs/schaltplan.svg          Verdrahtungsplan als Grafik
@@ -47,6 +56,9 @@ scripts/                     build / flash / ota / monitor (PowerShell)
 ---
 
 ## Schnellstart
+
+Ausführlich samt Board-Einstellungen der Arduino IDE:
+[docs/FLASHEN.md](docs/FLASHEN.md).
 
 ```bash
 powershell -File scripts/build.ps1
@@ -70,6 +82,42 @@ Board: `esp32:esp32:esp32s3` mit 16 MB Flash, OPI PSRAM und USB-CDC · Port `COM
 
 Die Skripte finden die in der Arduino IDE 2 gebündelte `arduino-cli`
 automatisch; eine separate Installation ist nicht nötig.
+
+---
+
+## Abhängigkeiten
+
+Getestet ist genau diese Kombination — Installation und Begründung in
+[docs/FLASHEN.md](docs/FLASHEN.md):
+
+| Komponente | Version | |
+|---|---|---|
+| ESP32-Core `esp32:esp32` | **3.3.8** | Espressif, nicht `arduino:esp32` |
+| LilyGo-AMOLED-Series | **1.2.4** | Display, Touch, Power |
+| lvgl | **8.4.0** | nicht auf 9.x heben |
+| SensorLib | **0.3.3** | 0.4.1 ist defekt |
+| XPowersLib | **0.3.3** | kommt mit LilyGo-AMOLED-Series |
+| arduino-cli | 1.5.1 | in der Arduino IDE 2 enthalten |
+
+Aus dem Core ohne Zusatzinstallation: `WiFi`, `WebServer`, `ESPmDNS`,
+`ArduinoOTA`, `HTTPClient`, `Preferences`, `Wire`.
+
+**Zwei Versionen sind festgenagelt, nicht nur getestet:**
+
+* **SensorLib 0.4.1 ist kaputt** — das Release-ZIP liefert ein leeres
+  `src/REG/`, wo in 0.3.3 achtzehn Header liegen. Der Build stirbt an
+  `REG/BMA423Config.h: No such file or directory`. Kein Fehler auf dieser
+  Seite, die Datei fehlt schlicht im Paket.
+* **lvgl bleibt bei 8.4** — die Oberfläche zoomt einen Canvas über
+  `lv_img_set_zoom()`, um den pH-Wert mit rund 136 px darzustellen. In
+  lvgl 9 arbeitet diese API anders; das ist Portierungsarbeit, kein
+  Versionswechsel.
+
+Bewusst **nicht** benutzt: eine JSON-Bibliothek (Status wird von Hand
+gebaut, die HA-Antwort per Textsuche gelesen), ein fertiger ADS1115-Treiber
+(eigener in `Ads1115.cpp`) und eine Stepper-Bibliothek — die Schrittausgabe
+muss nicht blockierend sein, sonst ruckelt das Display während einer
+Dosierung.
 
 ---
 

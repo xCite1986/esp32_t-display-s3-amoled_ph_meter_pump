@@ -436,7 +436,10 @@ gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
   Madenschraube auf die Abflachung setzen. Verwendet wird das 3D-Druckmodell
   [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump)
   von MakerWorld; die STL liegt unter
-  [../hardware/pumpe/](../hardware/pumpe/) im Repo.
+  [../hardware/pumpe/](../hardware/pumpe/) im Repo. Die V2 hat die
+  **verstärkte Wellenaufnahme** — dort liegt das volle Pumpenmoment an, und
+  eine ausgeleierte Aufnahme fördert zu wenig, ohne dass es die Firmware
+  merken kann. Begründung in [../hardware/README.md](../hardware/README.md).
 * Die Pumpe **oberhalb** des Säurebehälters montieren.
 * Saugseite: Schlauch mit Fußventil und Ansaugfilter im Kanister.
 * Druckseite: Impfventil (Rückschlagventil) im Bypass **nach** dem Filter
