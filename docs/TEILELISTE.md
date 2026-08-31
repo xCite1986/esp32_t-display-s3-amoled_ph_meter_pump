@@ -53,7 +53,7 @@
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 19 | Peristaltikkopf, 3D-Druck — [MakerWorld-Modell](https://makerworld.com/models/2225892) | 1 | 3 |
+| 19 | Peristaltikkopf, 3D-Druck — [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump) | 1 | 3 |
 | 20 | Pumpenschlauch Norprene/Tygon (**kein Silikon**) | 1 m | 10 |
 | | **Zwischensumme** | | **13** |
 

@@ -18,8 +18,8 @@ treibt die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
 Webserver.
 
 Der Peristaltikkopf ist ein 3D-Druckteil:
-[MakerWorld-Modell](https://makerworld.com/models/2225892). Er sitzt direkt
-auf der 5-mm-Welle des NEMA17. Was sonst noch gebraucht wird und was es
+[V2 Peristaltic Pump auf MakerWorld](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump).
+Er sitzt direkt auf der 5-mm-Welle des NEMA17. Was sonst noch gebraucht wird und was es
 ungefähr kostet, steht in [docs/TEILELISTE.md](docs/TEILELISTE.md) —
 in Summe rund **235 €**.
 
