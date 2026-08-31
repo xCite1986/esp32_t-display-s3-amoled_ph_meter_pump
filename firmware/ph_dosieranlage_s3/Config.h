@@ -8,7 +8,7 @@
 // Firmware-Kennung
 // ---------------------------------------------------------------------------
 #define FW_NAME     "pH-Minus-Dosieranlage"
-#define FW_VERSION  "2.0.0"
+#define FW_VERSION  "2.1.0"
 
 // ---------------------------------------------------------------------------
 // Pinbelegung LilyGo T-Display S3 AMOLED (Variante BOARD_AMOLED_191)
