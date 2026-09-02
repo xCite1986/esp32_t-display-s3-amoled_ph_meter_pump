@@ -67,6 +67,20 @@ static const float VOLT_PLAUS_MAX = 3.250f;   // V am ADS-Eingang
 
 // Messwertaufbereitung
 static const uint8_t  PH_SAMPLE_COUNT    = 15;    // Ringpuffer fuer Median
+
+// Netzsynchrone Mittelung.
+//
+// Eine einzelne Wandlung alle 200 ms trifft eine 50-Hz-Stoerung in zufaelliger
+// Phase - die Messkette hat dann null Netzunterdrueckung. Gemessen wurden im
+// Becken 1283 mV Spitze-Spitze, das sind ueber zehn pH-Einheiten.
+//
+// Der Mittelwert eines Sinus ueber eine ganze Periode ist null. Deshalb wird
+// ueber genau 20 ms gemittelt: das ist eine volle 50-Hz-Periode und zugleich
+// zwei volle 100-Hz-Perioden, deckt also auch die Gleichrichterwelligkeit
+// eines Netzteils oder einer Salzelektrolysezelle ab.
+static const uint32_t PH_MAINS_PERIOD_US = 20000;  // 50 Hz
+static const uint8_t  PH_BURST_SAMPLES   = 16;     // gleichmaessig verteilt
+static const uint32_t PH_BURST_SETTLE_US = 2500;   // zwei Wandlungen verwerfen
 static const uint32_t PH_SAMPLE_PERIOD_MS = 200;  // Abtastintervall
 // Die Glaettung wird aus der einstellbaren Filterzeit berechnet, siehe
 // PHMeasurement::applySettings(). Ein Pool aendert seinen pH ueber Stunden -

@@ -24,11 +24,21 @@ class Ads1115 {
   // Einzelmessung single-ended an Kanal 0..3. true = erfolgreich.
   bool readSingleEnded(uint8_t channel, int16_t &raw);
 
+  // Dauerwandlung mit 860 SPS starten. Danach steht alle ~1,16 ms ein neuer
+  // Wert im Wandlungsregister, den readContinuous() abholt, ohne zu warten.
+  // Gebraucht fuer die netzsynchrone Mittelung in PHMeasurement.
+  bool startContinuous(uint8_t channel);
+  bool readContinuous(int16_t &raw);
+
   // Rohwert -> Spannung in Volt (abhaengig vom eingestellten PGA)
   float toVolts(int16_t raw) const;
 
   // Volle Skala der aktuellen Verstaerkung in Volt
   float fullScale() const;
+
+  // Dasselbe fuer eine beliebige Verstaerkung - gebraucht, um eine
+  // Bereichswahl zu pruefen, bevor sie uebernommen wird.
+  static float fullScaleOf(AdsGain g);
 
   static const char *gainName(AdsGain g);
 

@@ -187,7 +187,7 @@ code{color:var(--yel)}
       <div><label>Treiber dauerhaft bestromt</label><input data-k="hold" type="checkbox"></div>
       <div><label>Filterzeit [s]</label><input data-k="filt" type="number" step="5" min="1" max="300"></div>
       <div><label>Mittelung f&uuml;r Dosierung [s]</label><input data-k="avgs" type="number" step="60" min="60" max="3600"></div>
-      <div><label>ADS1115 Messbereich</label>
+      <div><label>ADS1115 Messbereich (Reserve f&uuml;r St&ouml;rspitzen lassen)</label>
         <select data-k="gain">
           <option value="0">+/- 6.144 V</option>
           <option value="1">+/- 4.096 V</option>

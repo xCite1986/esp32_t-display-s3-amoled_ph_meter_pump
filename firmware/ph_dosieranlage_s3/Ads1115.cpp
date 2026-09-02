@@ -12,6 +12,8 @@ static const uint16_t CFG_OS_SINGLE   = 0x8000;  // Einzelmessung starten
 static const uint16_t CFG_MODE_SINGLE = 0x0100;  // Single-Shot-Modus
 static const uint16_t CFG_DR_128SPS   = 0x0080;  // 128 Samples/s
 static const uint16_t CFG_COMP_OFF    = 0x0003;  // Komparator deaktiviert
+static const uint16_t CFG_MODE_CONT   = 0x0000;  // Dauerwandlung
+static const uint16_t CFG_DR_860SPS   = 0x00E0;  // 860 Samples/s
 
 bool Ads1115::begin(uint8_t addr) {
   addr_ = addr;
@@ -63,8 +65,34 @@ bool Ads1115::readSingleEnded(uint8_t channel, int16_t &raw) {
   return true;
 }
 
-float Ads1115::fullScale() const {
-  switch (gain_) {
+// Dauerwandlung: der Baustein wandelt selbstaendig weiter, wir holen nur ab.
+// Der erste Wert nach dem Umschalten stammt noch aus der alten Einstellung,
+// deshalb verwirft der Aufrufer die ersten Wandlungen (PH_BURST_SETTLE_US).
+bool Ads1115::startContinuous(uint8_t channel) {
+  if (channel > 3) return false;
+
+  uint16_t cfg = CFG_MODE_CONT | CFG_DR_860SPS | CFG_COMP_OFF;
+  cfg |= (uint16_t)(0x4000 | ((uint16_t)channel << 12));  // MUX = AINx vs GND
+  cfg |= (uint16_t)((uint16_t)gain_ << 9);                // PGA
+
+  if (!writeReg(REG_CONFIG, cfg)) { present_ = false; return false; }
+  return true;
+}
+
+// Holt den zuletzt fertiggestellten Wert. Kein Warten, kein Pollen - wer
+// schneller liest als 860 SPS, bekommt denselben Wert zweimal.
+bool Ads1115::readContinuous(int16_t &raw) {
+  uint16_t v = 0;
+  if (!readReg(REG_CONVERT, v)) { present_ = false; return false; }
+  raw = (int16_t)v;
+  present_ = true;
+  return true;
+}
+
+float Ads1115::fullScale() const { return fullScaleOf(gain_); }
+
+float Ads1115::fullScaleOf(AdsGain g) {
+  switch (g) {
     case ADS_GAIN_6144: return 6.144f;
     case ADS_GAIN_4096: return 4.096f;
     case ADS_GAIN_2048: return 2.048f;

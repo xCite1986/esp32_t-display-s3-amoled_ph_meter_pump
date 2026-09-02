@@ -150,6 +150,25 @@ void Settings::load() {
   clampAll();
 }
 
+// 95 Prozent der Vollskala: die letzten Prozent gehoeren der Stoerung, die
+// auf dem Nutzsignal sitzt. Wird die Spitze abgeschnitten, stimmt auch der
+// netzsynchrone Mittelwert nicht mehr.
+bool Settings::gainFitsCalibration(uint8_t gainIdx, String &err) const {
+  if (gainIdx > (uint8_t)ADS_GAIN_0256) { err = "unbekannter Messbereich"; return false; }
+  if (!calValid) return true;                 // ohne Kalibrierung nichts zu pruefen
+
+  float fs   = Ads1115::fullScaleOf((AdsGain)gainIdx) * 0.95f;
+  float vmax = fabsf(calVoltA) > fabsf(calVoltB) ? fabsf(calVoltA) : fabsf(calVoltB);
+  if (vmax <= fs) return true;
+
+  err  = "Messbereich zu klein: Kalibrierpunkt ";
+  err += String(vmax, 3);
+  err += " V passt nicht in +/-";
+  err += String(Ads1115::fullScaleOf((AdsGain)gainIdx), 3);
+  err += " V. Erst Kalibrierung verwerfen, dann umstellen.";
+  return false;
+}
+
 void Settings::save() {
   clampAll();
   prefs.begin(NS, false);

@@ -105,6 +105,8 @@ static void printStatus() {
                 (unsigned long)controller.pauseRemainingS(), settings.totalMl);
   Serial.printf("Letzte 24 h: %.2f ml | heute %.2f ml (Verlauf)\n",
                 controller.ml24h(), histDayMl(0));
+  Serial.printf("Verworfene Messbuendel: %lu (Zeitverzug in der Schleife)\n",
+                (unsigned long)phMeas.burstsDropped());
   Serial.printf("Mittelwert (%u s): %.3f %s | Filter %u s\n",
                 settings.phAvgS, phMeas.phAverage(),
                 phMeas.averageReady() ? "" : "(Fenster noch nicht voll)",
@@ -149,7 +151,11 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "prevs")   s.panelRevs   = f;
   else if (key == "srate")   s.stepRate    = f;
   else if (key == "sacc")    s.stepAccel   = f;
-  else if (key == "gain")    s.adcGain     = (uint8_t)i;
+  else if (key == "gain")    {
+    String gerr;
+    if (!s.gainFitsCalibration((uint8_t)i, gerr)) { Serial.println(gerr); return; }
+    s.adcGain = (uint8_t)i;
+  }
   else if (key == "filt")    s.filterS     = (uint16_t)i;
   else if (key == "avgs")    s.phAvgS      = (uint16_t)i;
   else if (key == "invdir")  s.invertDir   = b;

@@ -84,22 +84,67 @@ float PHMeasurement::slopePerPh() const {
   return (s.calVoltB - s.calVoltA) * 1000.0f / dph;  // mV pro pH
 }
 
+// Ein Messzyklus besteht jetzt aus einem Buendel von PH_BURST_SAMPLES
+// Wandlungen ueber genau eine Netzperiode. Das Buendel laeuft ueber viele
+// Schleifendurchlaeufe verteilt ab - blockierend waeren 20 ms am Stueck genau
+// das, was die Schrittausgabe der Pumpe nicht vertraegt.
 void PHMeasurement::tick() {
+  if (burstOn_) { serviceBurst(); return; }
+
   uint32_t now = millis();
   if (now - lastSample_ < PH_SAMPLE_PERIOD_MS) return;
   lastSample_ = now;
+  startBurst();
+}
 
-  int16_t raw = 0;
-  if (!ads_.readSingleEnded(ADS_CH_PH, raw)) {
-    if (failCount_ < 250) failCount_++;
-    if (failCount_ >= 3) {
-      status_ = PH_NO_SENSOR;
-      // I2C-Bus neu anstossen - haeufigste Ursache ist ein kurzer Wackler
-      if (failCount_ % 10 == 0) ads_.begin(ADS_I2C_ADDR);
-    }
+void PHMeasurement::noteFailure() {
+  if (failCount_ < 250) failCount_++;
+  if (failCount_ >= 3) {
+    status_ = PH_NO_SENSOR;
+    // I2C-Bus neu anstossen - haeufigste Ursache ist ein kurzer Wackler
+    if (failCount_ % 10 == 0) ads_.begin(ADS_I2C_ADDR);
+  }
+}
+
+void PHMeasurement::startBurst() {
+  if (!ads_.startContinuous(ADS_CH_PH)) { noteFailure(); return; }
+  burstOn_  = true;
+  burstIdx_ = 0;
+  burstSum_ = 0;
+  burstT0_  = micros() + PH_BURST_SETTLE_US;
+}
+
+// Holt die faellig gewordenen Abtastwerte. Die Abstaende sind so gewaehlt,
+// dass die Summe genau eine Netzperiode ueberdeckt.
+void PHMeasurement::serviceBurst() {
+  const uint32_t step = PH_MAINS_PERIOD_US / PH_BURST_SAMPLES;
+
+  while (burstIdx_ < PH_BURST_SAMPLES) {
+    uint32_t due = burstT0_ + (uint32_t)burstIdx_ * step;
+    if ((int32_t)(micros() - due) < 0) return;      // noch nicht faellig
+
+    int16_t r = 0;
+    if (!ads_.readContinuous(r)) { burstOn_ = false; noteFailure(); return; }
+    burstSum_ += r;
+    burstIdx_++;
+  }
+
+  burstOn_ = false;
+
+  // Hat die Schleife zwischendurch zu lange gebraucht, sind die Abtastpunkte
+  // nicht mehr gleichmaessig verteilt und die Netzunterdrueckung stimmt nicht.
+  // Dann lieber gar kein Wert als ein falsch gemittelter.
+  if (micros() - burstT0_ > 2 * PH_MAINS_PERIOD_US) {
+    burstDrop_++;
     return;
   }
+
   failCount_ = 0;
+  processSample((int16_t)(burstSum_ / PH_BURST_SAMPLES));
+}
+
+void PHMeasurement::processSample(int16_t raw) {
+  uint32_t now = millis();
   rawAdc_  = raw;
   voltRaw_ = ads_.toVolts(raw);
 

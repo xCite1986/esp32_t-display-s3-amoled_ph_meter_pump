@@ -106,6 +106,7 @@ String WebInterface::statusJson() const {
   j += ",\"spreadmV\":" + jnum(phMeas.spreadV() * 1000.0f, 1);
   j += ",\"phAvg\":" + jnum(phMeas.phAverage(), 3);
   j += ",\"avgOk\":" + jbool(phMeas.averageReady());
+  j += ",\"burstDrop\":" + String((unsigned long)phMeas.burstsDropped());
   j += ",\"volt\":" + jnum(phMeas.voltage(), 5);
   j += ",\"voltRaw\":" + jnum(phMeas.voltageRaw(), 5);
   j += ",\"raw\":" + String(phMeas.rawAdc());
@@ -442,7 +443,11 @@ void WebInterface::setupRoutes() {
     s.filterS     = (uint16_t)argI("filt", s.filterS);
     s.phAvgS      = (uint16_t)argI("avgs", s.phAvgS);
     uint8_t g = (uint8_t)argI("gain", s.adcGain);
-    if (g != s.adcGain) { s.adcGain = g; }
+    if (g != s.adcGain) {
+      String gerr;
+      if (!s.gainFitsCalibration(g, gerr)) { reply(false, gerr); return; }
+      s.adcGain = g;
+    }
 
     if (server.hasArg("ssid"))  strncpy(s.wifiSsid, server.arg("ssid").c_str(), sizeof(s.wifiSsid) - 1);
     if (server.hasArg("pass"))  strncpy(s.wifiPass, server.arg("pass").c_str(), sizeof(s.wifiPass) - 1);

@@ -37,6 +37,10 @@ class PHMeasurement {
   float phAverage() const { return avgPh_; }
   bool  averageReady() const { return avgReady_; }
   uint16_t averageCount() const { return avgUsed_; }
+
+  // Anzahl der Messbuendel, die wegen Zeitverzug verworfen wurden. Steigt der
+  // Wert dauernd, kommt die Schleife nicht schnell genug durch.
+  uint32_t burstsDropped() const { return burstDrop_; }
   uint32_t lastGoodMs() const { return lastGood_; }
 
   // Kalibrierung: aktuelle (gefilterte) Spannung als Punkt A oder B ablegen.
@@ -73,6 +77,20 @@ class PHMeasurement {
   float    buf_[PH_SAMPLE_COUNT];
   uint8_t  bufCount_ = 0;
   uint8_t  bufIdx_   = 0;
+
+  // Netzsynchrone Mittelung als Zustandsautomat. Die 20 ms werden ueber viele
+  // Schleifendurchlaeufe verteilt abgetastet, damit die Schrittausgabe der
+  // Pumpe nicht blockiert wird - siehe loop() in der .ino.
+  bool     burstOn_   = false;
+  uint8_t  burstIdx_  = 0;
+  int32_t  burstSum_  = 0;
+  uint32_t burstT0_   = 0;    // micros() des ersten Abtastzeitpunkts
+  uint32_t burstDrop_ = 0;    // wegen Zeitverzug verworfene Buendel
+
+  void startBurst();
+  void serviceBurst();
+  void processSample(int16_t raw);
+  void noteFailure();
 
   float median() const;
 };

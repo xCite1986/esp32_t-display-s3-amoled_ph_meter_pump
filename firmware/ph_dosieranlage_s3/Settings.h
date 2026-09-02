@@ -70,6 +70,11 @@ struct Settings {
 
   void load();
   void save();
+
+  // Prueft, ob die Kalibrierpunkte in den gewaehlten ADS1115-Messbereich
+  // passen. Ein zu kleiner Bereich laesst das Signal in die Begrenzung
+  // laufen - die Anzeige sieht dann plausibel aus, ist es aber nicht.
+  bool gainFitsCalibration(uint8_t gainIdx, String &err) const;
   void saveCounters();             // nur die Zaehler (haeufiger geschrieben)
   void factoryReset();
 
