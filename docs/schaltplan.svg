@@ -127,7 +127,6 @@
 <path class="w5" d="M 600 900 L 552 900 L 552 800 L 546 800"/>
 <circle cx="600" cy="900" r="3.5" fill="#ef6c00"/>
 <path class="wg" d="M 1000 770 L 1000 935 L 660 935 L 660 800"/>
-<path class="wg" d="M 660 935 L 360 935 L 360 850"/>
 <circle cx="660" cy="935" r="3.5" fill="#000"/>
 
 <!-- ================= T-Display S3 AMOLED ================= -->
@@ -181,10 +180,10 @@
 
 <!-- VDD/GND des ADS1115 gehen NICHT mehr zum Displayboard, sondern auf die
      isolierte Schiene unten links -->
-<path class="w5o" d="M 440 520 L 452 520 L 452 876"/>
-<path class="wg"  d="M 440 560 L 462 560 L 462 940"/>
-<circle cx="452" cy="876" r="3.5" fill="#ef6c00"/>
-<circle cx="462" cy="940" r="3.5" fill="#000"/>
+<path class="w5o" d="M 440 520 L 462 520"/>
+<text x="466" y="516" class="lbl" fill="#ef6c00" font-size="10">+5V iso</text>
+<path class="wg"  d="M 440 560 L 462 560"/>
+<text x="466" y="550" class="lbl" font-size="10">GND iso</text>
 <!-- I2C ueber den Isolator -->
 <path class="wsig" d="M 440 600 L 470 600"/>
 <path class="wsig" d="M 440 640 L 470 640"/>
@@ -216,7 +215,7 @@
 
 <!-- ================= GALVANISCHE TRENNUNG ================= -->
 <path class="iso" d="M 508 432 L 508 972"/>
-<text x="500" y="484" text-anchor="middle" class="isot" transform="rotate(-90 500 484)">TRENNSTELLE</text>
+<text x="508" y="434" text-anchor="middle" class="isot" font-size="11">TRENNSTELLE</text>
 
 <!-- ISO1540: I2C-Isolator, sitzt auf der Trennstelle -->
 <rect x="470" y="556" width="76" height="128" rx="6" class="bxi"/>
@@ -231,8 +230,8 @@
 
 <!-- Versorgung des Isolators: VCC1 aus 3,3 V, VCC2 aus der isolierten Schiene -->
 <path class="w33" d="M 546 660 L 560 660"/>
-<path class="w5o" d="M 470 678 L 456 678 L 456 876"/>
-<circle cx="456" cy="876" r="3.5" fill="#ef6c00"/>
+<path class="w5o" d="M 470 672 L 452 672"/>
+<text x="448" y="676" text-anchor="end" class="lbl" fill="#ef6c00" font-size="10">+5V iso</text>
 
 <!-- B0509S: isolierter DC-DC, sitzt ebenfalls auf der Trennstelle -->
 <rect x="470" y="730" width="76" height="120" rx="6" class="bxi"/>
@@ -242,28 +241,17 @@
 <text x="508" y="812" text-anchor="middle" class="s">Uebertrager</text>
 <text x="508" y="828" text-anchor="middle" class="s">statt Draht</text>
 
-<!-- 9 V heraus auf die isolierte Seite, unter dem pH-Board entlang -->
-<path class="w5o" d="M 470 790 L 466 790 L 466 866 L 226 866 L 226 884"/>
-<text x="336" y="860" text-anchor="middle" class="lbl">9 V iso</text>
+<!-- 9 V heraus auf die isolierte Seite - weiter im Kasten rechts unten -->
+<path class="w5o" d="M 490 850 L 490 872"/>
+<text x="486" y="888" text-anchor="end" class="lbl" fill="#ef6c00">9 V iso</text>
+<text x="486" y="902" text-anchor="end" class="lbl" font-size="10">siehe Kasten</text>
 
 <!-- AMS1117-5.0 auf der isolierten Seite -->
-<rect x="30" y="884" width="185" height="82" rx="6" class="bxa"/>
-<text x="122" y="908" text-anchor="middle" class="t">AMS1117-5.0</text>
-<text x="122" y="926" text-anchor="middle" class="s">9 V &#8594; geregelte 5 V</text>
-<text x="122" y="944" text-anchor="middle" class="s">22 &#181;F + 100 nF am Ausgang</text>
-<text x="122" y="960" text-anchor="middle" class="s">GND iso = eigener Sternpunkt</text>
-
-<!-- isolierte Schienen -->
-<path class="w5o" d="M 215 900 L 232 900 L 232 876 L 456 876"/>
-<path class="wg"  d="M 215 940 L 466 940"/>
-<text x="250" y="870" class="lbl" fill="#ef6c00">+5 V iso</text>
-<text x="250" y="934" class="lbl">GND iso</text>
-
-<!-- pH-Board V+ / G auf die isolierten Schienen -->
+<!-- pH-Board: Versorgung als Netzname, nicht als Leitung quer durchs Bild -->
 <path class="w5o" d="M 300 850 L 300 876"/>
-<path class="wg"  d="M 360 850 L 360 940"/>
-<circle cx="300" cy="876" r="3.5" fill="#ef6c00"/>
-<circle cx="360" cy="940" r="3.5" fill="#000"/>
+<text x="300" y="892" text-anchor="middle" class="lbl" fill="#ef6c00">+5 V iso</text>
+<path class="wg"  d="M 360 850 L 360 918"/>
+<text x="360" y="934" text-anchor="middle" class="lbl">GND iso</text>
 
 <!-- ================= Legende ================= -->
 <rect x="30" y="440" width="185" height="256" rx="6" fill="#fbfbfb" stroke="#ccc" stroke-width="1.5"/>
@@ -298,6 +286,28 @@
 <text x="46" y="410" class="note" font-weight="600">9. GPIO 2 und 3 NICHT belegen - dort h&#228;ngt der</text>
 <text x="46" y="424" class="note" font-weight="600">    Touchcontroller, obwohl sie herausgef&#252;hrt sind.</text>
 
+
+<!-- ============ Kasten: isolierte Versorgung ============ -->
+<rect x="840" y="800" width="410" height="168" rx="6" class="bxi"/>
+<text x="856" y="824" class="t" fill="#7b1fa2">Isolierte Versorgung der Messseite</text>
+
+<rect x="856" y="838" width="86" height="44" rx="4" class="bx"/>
+<text x="899" y="856" text-anchor="middle" class="s">9 V iso</text>
+<text x="899" y="872" text-anchor="middle" class="s">vom B0509S</text>
+<path class="w5o" d="M 942 860 L 976 860"/>
+
+<rect x="976" y="838" width="118" height="44" rx="4" class="bxa"/>
+<text x="1035" y="856" text-anchor="middle" class="s" font-weight="600">AMS1117-5.0</text>
+<text x="1035" y="872" text-anchor="middle" class="s">22 &#181;F + 100 nF</text>
+<path class="w5o" d="M 1094 852 L 1128 852"/>
+<path class="wg"  d="M 1094 872 L 1128 872"/>
+<text x="1132" y="856" class="lbl" fill="#ef6c00">+5 V iso</text>
+<text x="1132" y="876" class="lbl">GND iso</text>
+
+<text x="856" y="906" class="note" font-size="11">Speist: pH-Board V+ &#183; ADS1115 VDD &#183; ISO1540 VCC2</text>
+<text x="856" y="924" class="note" font-size="11">Je 100 nF direkt an jedem Verbraucher.</text>
+<text x="856" y="946" class="note" font-size="11" font-weight="600" fill="#7b1fa2">GND iso ist ein eigener Sternpunkt und hat KEINE</text>
+<text x="856" y="960" class="note" font-size="11" font-weight="600" fill="#7b1fa2">Verbindung zum Sternpunkt der Netzseite.</text>
 
 <text x="24" y="990" class="note">Signalweg: pH-Sonde &#8594; BNC &#8594; pH-Signalboard &#8594; PO &#8594; R2 &#8594; ADS1115 A0 &#8594; ISO1540 &#8594; I&#178;C (Wire1) &#8594; ESP32-S3 &#8594; STEP/DIR/EN &#8594; TMC2209 &#8594; NEMA17 &#8594; Peristaltikpumpe</text>
 <text x="24" y="1006" class="note" fill="#7b1fa2">Links der violetten Linie liegt die Messseite. Sie hat keine Masseverbindung zur Netzseite &#8211; nur SDA/SCL im ISO1540 und die Energie im Uebertrager des B0509S gehen hinueber.</text>
