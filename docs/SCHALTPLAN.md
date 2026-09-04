@@ -11,16 +11,25 @@ separater ESP32-C3 wird nicht mehr verwendet.
 ## 1. Übersicht
 
 ```text
-pH-Sonde ──BNC──> pH-Signalboard ──PO──> R2 10k ──> ADS1115 A0
-                                                        │ I²C (Wire1, GPIO13/14)
-                                                        v
-12 V ──┬──> TMC2209 VMOT ──> NEMA17 ──> Peristaltikpumpe
-       │         ^
-       │         │ STEP/DIR/EN (GPIO11/12/10)
+     GALVANISCH GETRENNTE MESSSEITE          |        NETZBEZOGENE SEITE
+                                             |
+pH-Sonde ─BNC─> pH-Board ─PO─> R2 ─> ADS1115 |
+                                        │    |
+                                    SDA/SCL ─┼─ ISO1540 ─> GPIO13/14 (Wire1)
+                                             |                  │
+                                             |                  v
+12 V ──┬──> TMC2209 VMOT ──> NEMA17 ──> Peristaltikpumpe        │
+       │         ^ STEP/DIR/EN (GPIO11/12/10) ──────────────────┘
        │         │
-       └──> Buck 5 V ──D1──> T-Display S3 AMOLED ──3V3──> ADS1115, TMC2209 VIO
-                     └──> pH-Board V+
+       └──> Buck 5 V ─D1─┬─> T-Display S3 AMOLED ─3V3─> TMC2209 VIO, ISO1540 VCC1
+                         │
+                         └─> B0509S ─9 V iso─> AMS1117-5.0 ─> pH-Board V+,
+                                                              ADS1115 VDD,
+                                                              ISO1540 VCC2
 ```
+
+Die senkrechte Linie ist die Trennstelle. Über sie gehen **nur** SDA und SCL
+im ISO1540 und die Energie im Übertrager des B0509S — **keine Masse.**
 
 ### Was das für die Sicherheit bedeutet
 
@@ -58,6 +67,26 @@ werden bei jedem Dosierauftrag geprüft.
 | +5 V | D1 Kathode | S3 AMOLED `VBUS` (linke Leiste) | 0,25 mm² | orange |
 | +5 V | D1 Kathode | pH-Board `V+` *(nach Messung, s. Abschnitt 5)* | 0,25 mm² | orange |
 | GND | Buck `OUT−` | GND-Sternpunkt | 0,5 mm² | schwarz |
+| +5 V | D1 Kathode | B0509S `+Vin` | 0,25 mm² | orange |
+| GND | GND-Sternpunkt | B0509S `−Vin` | 0,25 mm² | schwarz |
+
+**Isolierte Seite** — ab hier gibt es keine Verbindung mehr zur Masse oben:
+
+| Netz | Von | Nach | Bemerkung |
+|---|---|---|---|
+| +9 V iso | B0509S `+Vout` | AMS1117-5.0 `IN` | 10 µF direkt am Wandlerausgang |
+| GND iso | B0509S `−Vout` | **isolierter Massepunkt** | eigener Lötstützpunkt |
+| +5 V iso | AMS1117 `OUT` | pH-Board `V+`, ADS1115 `VDD`, ISO1540 `VCC2` | 22 µF + 100 nF am Ausgang |
+
+**Warum nicht B0505S?** Ein ungeregelter 1-W-Wandler steigt bei geringer Last
+über seine Nennspannung. Der Bedarf hier liegt bei rund 25 mA von 200 mA, also
+12 % Last — da sind 5,5 bis 6 V zu erwarten, und der ADS1115 ist für maximal
+5,5 V spezifiziert. Der Umweg über 9 V und einen Linearregler kostet 50 Cent
+und liefert lastunabhängig saubere 5 V. Der Regler dämpft nebenbei die
+100-kHz-Welligkeit des Wandlers.
+
+Wer doch einen B0505S einsetzt: Ausgangsspannung **unter echter Last messen**
+und bei über 5,3 V einen Lastwiderstand von rund 150 Ω ergänzen.
 
 **D1** = Schottky SS34 / 1N5819, Durchlassrichtung Buck → Displayboard.
 Sie verhindert, dass beim gleichzeitigen Anstecken von USB und Netzteil
@@ -204,19 +233,49 @@ Das Datenblatt bestätigt auch die gemessene Spulenzuordnung:
 
 ### 2.5 Messkette
 
+**Die gesamte Messkette liegt auf der isolierten Seite.** Ihre Masse heißt hier
+`GND iso` und ist ein eigener Lötstützpunkt, **nicht** der Sternpunkt.
+
 | Von | Nach | Bemerkung |
 |---|---|---|
 | pH-Sonde BNC | pH-Board BNC-Buchse | Kabel kurz, nicht parallel zu Motorleitungen |
-| pH-Board `V+` | +5 V *(erst nach Messung, s. Abschnitt 5)* | |
-| pH-Board `G` | GND-Sternpunkt | |
+| pH-Board `V+` | +5 V iso (AMS1117 `OUT`) | |
+| pH-Board `G` | **GND iso** | nicht an den Sternpunkt! |
 | pH-Board `PO` | R2 (10 kΩ) → ADS1115 `A0` | Analogsignal |
 | pH-Board `TO`, `DO` | – | nicht benötigt |
-| ADS1115 `VDD` | S3 AMOLED `3V3` | **nicht 5 V!** |
-| ADS1115 `GND` | GND-Sternpunkt | |
-| ADS1115 `SDA` | S3 AMOLED `GPIO13` | zweiter I²C-Bus (`Wire1`) |
-| ADS1115 `SCL` | S3 AMOLED `GPIO14` | zweiter I²C-Bus (`Wire1`) |
-| ADS1115 `ADDR` | `GND` | ergibt I²C-Adresse 0x48 |
+| ADS1115 `VDD` | +5 V iso | dieselbe Schiene wie das pH-Board |
+| ADS1115 `GND` | **GND iso** | nicht an den Sternpunkt! |
+| ADS1115 `SDA` | ISO1540 `SDA2` | |
+| ADS1115 `SCL` | ISO1540 `SCL2` | |
+| ADS1115 `ADDR` | `GND iso` | ergibt I²C-Adresse 0x48 |
 | ADS1115 `A1`–`A3` | frei | Reserve |
+
+Und die Trennstelle selbst:
+
+| Von | Nach | Bemerkung |
+|---|---|---|
+| ISO1540 `VCC1` | S3 AMOLED `3V3` | netzbezogene Seite |
+| ISO1540 `GND1` | GND-Sternpunkt | |
+| ISO1540 `SDA1` | S3 AMOLED `GPIO13` | `Wire1` |
+| ISO1540 `SCL1` | S3 AMOLED `GPIO14` | `Wire1` |
+| ISO1540 `VCC2` | +5 V iso | isolierte Seite |
+| ISO1540 `GND2` | GND iso | |
+| Pull-up | `SDA1`/`SCL1` → 3,3 V | je 4,7 kΩ, **falls das Modul keine mitbringt** |
+
+**Die Pull-ups auf Seite 1 sind die häufigste Fehlerquelle beim Umbau.** Bisher
+hat der Bus nur funktioniert, weil die 10 kΩ auf dem ADS1115-Breakout ihn
+hochgezogen haben. Die sitzen jetzt hinter der Trennstelle — die ESP32-Seite
+steht ohne Pull-up da und der Bus ist tot. Das sieht aus wie ein defekter
+Isolator und ist keiner.
+
+Auf Seite 2 liegen die Pull-ups des ADS1115-Breakouts und die des
+Isolatormoduls parallel, zusammen rund 5 kΩ. Unkritisch.
+
+**ADS1115 jetzt an 5 V statt 3,3 V.** Das ist Absicht: pH-Board und ADS1115
+müssen auf derselben isolierten Schiene liegen, sonst arbeiten die Pull-ups
+des Breakouts gegen einen anderen Pegel. Nebengewinn: der eingestellte
+Messbereich von ±4,096 V war bei 3,3 V Versorgung größer als das, was der
+Eingang überhaupt annehmen darf (VDD + 0,3 V). Bei 5 V passt beides zusammen.
 
 **R2 (10 kΩ in Serie zu A0)** begrenzt den Strom in die Schutzdioden des
 ADS1115, falls `PO` kurzzeitig über 3,3 V steigt. Der Widerstand verfälscht

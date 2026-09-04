@@ -241,6 +241,10 @@ liegen innerhalb ±3 %.
 
 ## Phase 4 — pH-Kalibrierung
 
+> **Bekommst du die Spanne nicht unter 20 mV, ist fast immer die Masse schuld,
+> nicht die Sonde.** Siehe „Wenn die Messung rauscht" weiter unten — dort steht
+> ein Test, der in fünf Minuten Gewissheit bringt und nichts kostet.
+
 1. Sonde mit destilliertem Wasser spülen, abtupfen (nicht abreiben).
 2. In **pH-7,00-Puffer** stellen, 2–3 Minuten warten.
 3. Werte beobachten: `mon 60`
@@ -266,6 +270,85 @@ Firmware angezeigte Wert boardabhängig. Wichtig ist:
 
 > Kalibrierung mindestens alle 4–8 Wochen wiederholen. Eine driftende Sonde
 > ist die häufigste Ursache für Fehldosierungen.
+
+---
+
+### Wenn die Messung rauscht
+
+Der häufigste und am schwersten zu findende Fehler dieser Anlage. Das Bild:
+auf der Werkbank misst die Sonde ruhig, im Becken schwankt sie um mehrere
+pH-Einheiten und lässt sich nicht kalibrieren.
+
+**Die Ursache ist fast nie die Sonde.** Eine pH-Elektrode hat bis zu 250 MΩ
+Innenwiderstand. Der Ableitstrom eines Schaltnetzteils fließt über dessen
+Y-Kondensatoren nach Erde und sucht sich den Rückweg — im Zweifel durch die
+Glaselektrode ins geerdete Beckenwasser. **Zwei Nanoampere genügen für einen
+halben Volt Fehler.** Zum Vergleich: der Ableitstrom eines gewöhnlichen
+Steckernetzteils liegt bei 0,1 bis 0,5 Milliampere, fünf Größenordnungen
+darüber.
+
+#### Der Powerbank-Test
+
+Kostet nichts, dauert fünf Minuten und ist eindeutig.
+
+1. **12-V-Netzteil komplett aus der Steckdose ziehen** — nicht nur die Klemme
+   lösen. Es geht um die Netzverbindung, nicht um die Spannung.
+2. **USB-C des Displayboards an eine Powerbank.** Das funktioniert, weil
+   `VBUS` board-intern parallel zur USB-Schiene liegt und das pH-Board hinter
+   D1 an derselben 5-V-Schiene hängt. D1 sperrt Richtung Buck.
+3. Sonde dort lassen, wo sie ist. Eine Minute warten, bis WLAN steht und der
+   Messpuffer voll ist.
+4. Im Webinterface unter *Messwert* die Zeile *Spanne* ablesen.
+
+**Eine echte Powerbank, kein PC-USB-Port und kein Ladegerät** — beide hängen
+am Schutzleiter, dann hast du die Netzverbindung nur verlagert. Und kein
+zweites Kabel nebenher.
+
+Der Motor läuft dabei mangels 12 V nicht. Für den Test wird er nicht
+gebraucht.
+
+| Ergebnis | Bedeutung |
+|---|---|
+| Spanne fällt auf einstellige mV | Der Störweg läuft über die Netzverbindung. Die galvanische Trennung behebt es. |
+| Spanne bleibt hoch | Die Störung sitzt woanders — Kabel, Steckerfeuchtigkeit, Streustrom im Becken. |
+
+#### Was an diesem Aufbau gemessen wurde
+
+Alle Werte sind der vom Gerät gemeldete Median der Spanne, gleiche Firmware,
+gleiche Sonde, nur unterschiedliche Umgebung:
+
+| Aufbau | Spanne |
+|---|---:|
+| Sonde im Becken, Netzteil | 468 mV |
+| Sonde im Kübel Poolwasser, Netzteil | 348 mV |
+| Sonde im Becherglas Puffer, Netzteil | 712 mV |
+| **Sonde im Glas, Powerbank** | **0,7 mV** |
+
+Die ersten drei Zeilen unterscheiden sich um Faktor zwei — Ort, Medium und
+sogar die verwendete Sonde haben also kaum etwas ausgemacht. Die letzte Zeile
+fällt um Faktor tausend heraus. 0,7 mV ist zugleich der Datenblattwert der
+Elektrode; die Messkette arbeitet dann nach Spezifikation.
+
+Vorher war noch eine zweite Ursache im Spiel, die sich ähnlich anfühlte: die
+Firmware wandelte einmal alle 200 ms und hatte damit **keinerlei
+Netzunterdrückung** — jede Messung traf eine 50-Hz-Störung in zufälliger
+Phase. Seit Version 2.1.0 mittelt sie über genau eine Netzperiode. Wer eine
+ältere Firmware fährt, sollte zuerst aktualisieren.
+
+Woran man die beiden unterscheidet: bei reiner Netzeinstreuung ist die
+Verteilung der Messwerte **randbetont** (Arcussinus, typisch für einen
+abgetasteten Sinus), bei einem Masseproblem eher mittenbetont mit Ausreißern.
+
+#### Die Behebung
+
+Galvanische Trennung der Messseite: ISO1540, B0509S-1W und AMS1117-5.0,
+zusammen rund 10 €. Aufbau in [LOETANLEITUNG.md](LOETANLEITUNG.md),
+Abschnitt 6, Netzliste in [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 2.5.
+
+Ein **eigener Stromkreis hilft nicht.** Der Ableitstrom entsteht im Netzteil
+selbst und findet an jeder Steckdose denselben Weg. Ein Trafo-Netzteil würde
+ihn um Faktor zwanzig bis vierzig senken, kostet aber mehr als die Trennung
+und macht den Weg nur hochohmiger, statt ihn zu schließen.
 
 ---
 

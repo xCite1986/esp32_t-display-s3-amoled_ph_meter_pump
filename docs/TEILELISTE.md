@@ -26,36 +26,49 @@
 | 7 | NEMA17 Schrittmotor, 5-mm-Welle | 1 | 15 | 0,4 A laut [Datenblatt](../hardware/datenblaetter/Steppermotor_DE.pdf) |
 | 8 | Netzteil 12 V / ≥ 3 A | 1 | 12 | |
 | 9 | Buck-Converter 12 → 5 V, **≥ 1 A** | 1 | 3 | 0,5 A bricht ein, siehe Lötanleitung |
-| | **Zwischensumme** | | **119** | |
+| 10 | I²C-Isolator ISO1540/ISO1541, als Modul | 1 | 7 | **nicht weglassen**, siehe unten |
+| 11 | Isolierter DC-DC 5 → 9 V, 1 W (B0509S-1W) | 1 | 2 | versorgt die Messseite |
+| 12 | Linearregler AMS1117-5.0 | 1 | 1 | macht daraus geregelte 5 V |
+| | **Zwischensumme** | | **129** | |
+
+**Warum die drei Teile in Position 10–12 nicht optional sind:** Eine pH-Sonde
+hat bis zu 250 MΩ Innenwiderstand. Der Ableitstrom eines Schaltnetzteils sucht
+über die Y-Kondensatoren einen Weg zur Erde und nimmt ihn durch die
+Glaselektrode — zwei Nanoampere genügen für einen halben Volt Fehler.
+
+Gemessen an diesem Aufbau: **712 mV Messspanne am Netzteil, 0,7 mV an einer
+Powerbank.** Faktor tausend, bei sonst identischem Aufbau. Ohne galvanische
+Trennung ist die Messung im Becken nicht kalibrierbar. Details in
+[INBETRIEBNAHME.md](INBETRIEBNAHME.md).
 
 ## 2. Platine und Kleinteile
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 10 | Lochrasterplatine 100 × 80 mm, RM 2,54 | 1 | 2 |
-| 11 | Stift-/Buchsenleisten-Sortiment | 1 Satz | 3 |
-| 12 | Schraubklemmen RM 5,0 (3×) und RM 3,5 (2×) | 5 | 3 |
-| 13 | Elko 100 µF/25 V low ESR, 2× 10 kΩ, Schottky SS34 | 1 Satz | 2 |
-| 14 | Kühlkörper für den TMC2209 | 1 | 1 |
-| 15 | Litze 0,5 mm² und 0,25 mm², Schrumpfschlauch | 1 Satz | 6 |
-| 16 | Sicherungshalter + Feinsicherung 2 A träge | 1 | 3 |
+| 13 | Lochrasterplatine 100 × 80 mm, RM 2,54 | 1 | 2 |
+| 14 | Stift-/Buchsenleisten-Sortiment | 1 Satz | 3 |
+| 15 | Schraubklemmen RM 5,0 (3×) und RM 3,5 (2×) | 5 | 3 |
+| 16 | Elko 100 µF/25 V low ESR, 2× 10 kΩ, Schottky SS34 | 1 Satz | 2 |
+| 17 | Kühlkörper für den TMC2209 | 1 | 1 |
+| 18 | Litze 0,5 mm² und 0,25 mm², Schrumpfschlauch | 1 Satz | 6 |
+| 19 | Sicherungshalter + Feinsicherung 2 A träge | 1 | 3 |
 | | **Zwischensumme** | | **20** |
 
 ## 3. Gehäuse und Montage
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 17 | Gehäuse IP54 mit Sichtfenster (Ausschnitt ~43 × 19 mm) | 1 | 15 |
-| 18 | Abstandsbolzen M3, Schrauben | 1 Satz | 5 |
+| 20 | Gehäuse IP54 mit Sichtfenster (Ausschnitt ~43 × 19 mm) | 1 | 15 |
+| 21 | Abstandsbolzen M3, Schrauben | 1 Satz | 5 |
 | | **Zwischensumme** | | **20** |
 
 ## 4. Pumpe
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 19 | Peristaltikkopf, 3D-Druck — [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump), [STL im Repo](../hardware/pumpe/Peristaltic_Pump_V2.stl) | 1 | 3 |
-| 20 | Pumpenschlauch Norprene/Tygon (**kein Silikon**) | 1 m | 10 |
-| 21 | Kugellager 608, für Rotor und Wellenaufnahme | 4 | 4 |
+| 22 | Peristaltikkopf, 3D-Druck — [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump), [STL im Repo](../hardware/pumpe/Peristaltic_Pump_V2.stl) | 1 | 3 |
+| 23 | Pumpenschlauch Norprene/Tygon (**kein Silikon**) | 1 m | 10 |
+| 24 | Kugellager 608, für Rotor und Wellenaufnahme | 4 | 4 |
 | | **Zwischensumme** | | **17** |
 
 Der Kopf sitzt direkt auf der 5-mm-Welle des NEMA17 (Pos. 7). Der Autor gibt
@@ -73,18 +86,18 @@ typisch 500–1000 Betriebsstunden, Ersatz gleich mitbestellen.
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 22 | Saug-/Druckschlauch, säurebeständig | 2 m | 8 |
-| 23 | Impfventil (Rückschlagventil) für den Einspritzpunkt | 1 | 12 |
-| 24 | Fußventil mit Ansaugfilter für den Kanister | 1 | 10 |
-| 25 | Sondenhalter / Messzelle im Bypass | 1 | 15 |
+| 25 | Saug-/Druckschlauch, säurebeständig | 2 m | 8 |
+| 26 | Impfventil (Rückschlagventil) für den Einspritzpunkt | 1 | 12 |
+| 27 | Fußventil mit Ansaugfilter für den Kanister | 1 | 10 |
+| 28 | Sondenhalter / Messzelle im Bypass | 1 | 15 |
 | | **Zwischensumme** | | **45** |
 
 ## 6. Kalibrierung und Pflege
 
 | Pos | Teil | Menge | ca. € |
 |---|---|---:|---:|
-| 26 | Pufferlösung pH 7,00 und pH 4,00 | je 1 | 10 |
-| 27 | KCl-Aufbewahrungslösung für die Sonde | 1 | 8 |
+| 29 | Pufferlösung pH 7,00 und pH 4,00 | je 1 | 10 |
+| 30 | KCl-Aufbewahrungslösung für die Sonde | 1 | 8 |
 | | **Zwischensumme** | | **18** |
 
 Puffer altern nach dem Öffnen. Zum Kalibrieren immer aus einem sauberen
@@ -96,13 +109,13 @@ Gefäß arbeiten und die Portion danach verwerfen — nie zurück in die Flasche
 
 | Gruppe | ca. € |
 |---|---:|
-| Steuerung und Messkette | 119 |
+| Steuerung und Messkette | 129 |
 | Platine und Kleinteile | 20 |
 | Gehäuse und Montage | 20 |
 | Pumpe | 17 |
 | Hydraulik | 45 |
 | Kalibrierung und Pflege | 18 |
-| **Gesamt** | **239** |
+| **Gesamt** | **249** |
 
 Nicht enthalten: Werkzeug (Lötstation, Multimeter, Seitenschneider — siehe
 [LOETANLEITUNG.md](LOETANLEITUNG.md), Abschnitt 1), 3D-Drucker, und das

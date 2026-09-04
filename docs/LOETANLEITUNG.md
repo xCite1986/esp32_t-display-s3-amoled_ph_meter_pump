@@ -71,12 +71,17 @@ Preise und die vollständige Liste inklusive Hydraulik und Chemie stehen in
 | 13 | Litze 0,25 mm² diverse Farben (Signal) | je 1 m |
 | 14 | Schrumpfschlauch-Sortiment | 1 |
 | 15 | Abstandsbolzen M3 + Gehäuse (IP54 empfohlen) | 1 Satz |
+| 16 | I²C-Isolator ISO1540/ISO1541 als Modul | 1 |
+| 17 | Isolierter DC-DC 5 → 9 V, 1 W (**B0509S-1W**) | 1 |
+| 18 | Linearregler AMS1117-5.0 | 1 |
+| 19 | Elko 10 µF und 22 µF, 2× 100 nF (Filter isolierte Seite) | 1 Satz |
+| 20 | Ferritperle für die isolierte 5-V-Zuleitung | 1 |
 
 Zusätzlich (siehe Abschnitt 12):
 
 | Pos | Teil | Menge |
 |---|---|---|
-| 16 | Gehäuse mit Sichtfenster für das Display | 1 |
+| 21 | Gehäuse mit Sichtfenster für das Display | 1 |
 
 > **Der Buck-Converter muss mindestens 1 A liefern.** Das Displayboard zieht
 > je nach Helligkeit 150–300 mA, dazu kommen pH-Board und Reserve. Ein kleiner
@@ -210,26 +215,68 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 
 ---
 
-## 6. Baugruppe E — Messkette ADS1115
+## 6. Baugruppe E — isolierte Messseite
 
-1. `VDD` des ADS1115-Sockels an S3 `3V3`.
-   **Nicht an 5 V** — der ESP32-S3 ist an SDA/SCL nicht 5-V-tolerant, und
-   die I²C-Pegel richten sich nach VDD des ADS1115.
-2. `GND` an den Sternpunkt.
-3. `SDA` an S3 `GPIO13`, `SCL` an S3 `GPIO14` — das ist der **zweite**
-   I²C-Bus (`Wire1`). Der Touchcontroller des Displays hat seinen eigenen
-   Bus auf GPIO2/3; der bleibt unangetastet.
+**Die gesamte Messkette liegt hinter einer galvanischen Trennstelle.** Das ist
+keine Verfeinerung, sondern Voraussetzung: eine pH-Elektrode hat bis zu
+250 MΩ Innenwiderstand, und der Ableitstrom des Netzteils sucht seinen Weg zur
+Erde durch genau diese Elektrode. Gemessen an diesem Aufbau waren es **712 mV
+Messspanne am Netzteil gegen 0,7 mV an einer Powerbank** — Faktor tausend, bei
+sonst unverändertem Aufbau. Ohne Trennung ist die Anlage im Becken nicht
+kalibrierbar. Hergang in [INBETRIEBNAHME.md](INBETRIEBNAHME.md).
 
-   > Hat dein ADS1115 eine **Qwiic-Buchse**, geht es auch ohne diese vier
-   > Lötstellen: Das Board hat einen STEMMA-QT/Qwiic-Port mit GND, 3V3,
-   > GPIO43 und GPIO44. Dann in `Config.h` `PIN_I2C_SDA = 43` und
-   > `PIN_I2C_SCL = 44` setzen — Details in
-   > [SCHALTPLAN.md](SCHALTPLAN.md), Abschnitt 3.
-4. `ADDR` an `GND` (I²C-Adresse 0x48).
-5. **R2 (10 kΩ)** von KL4 `PO` zum ADS1115-Sockel `A0`.
-   Den Widerstand direkt an der Klemme anlöten und die Verbindung zu `A0`
-   möglichst kurz halten.
-6. `A1`, `A2`, `A3` bleiben frei.
+### 6.1 Isolierte Versorgung
+
+1. **Zweiten Massepunkt anlegen.** Ein eigener Lötstützpunkt, mit deutlichem
+   Abstand zum Sternpunkt, am besten optisch als eigener Bereich markiert.
+   Er heißt ab hier `GND iso`.
+2. `B0509S` `+Vin` an die 5-V-Schiene (D1-Kathode), `−Vin` an den
+   **Sternpunkt**. Das ist die letzte Verbindung zur netzbezogenen Seite.
+3. `B0509S` `−Vout` an `GND iso`, `+Vout` an `AMS1117-5.0` `IN`.
+   **10 µF direkt am Wandlerausgang.**
+4. `AMS1117` `GND` an `GND iso`, `OUT` über die **Ferritperle** auf die
+   isolierte 5-V-Schiene. **22 µF und 100 nF am Reglerausgang**, dazu je
+   100 nF direkt an pH-Board und ADS1115.
+
+> **Kein B0505S.** Ein ungeregelter 1-W-Wandler liefert bei den hier
+> benötigten rund 25 mA — 12 % seiner Nennlast — eher 5,5 bis 6 V. Der
+> ADS1115 verträgt maximal 5,5 V. Der Umweg über 9 V und den Linearregler
+> kostet 50 Cent und nimmt diese Unsicherheit heraus.
+
+### 6.2 Isolator
+
+5. `ISO1540` `VCC1` an S3 `3V3`, `GND1` an den **Sternpunkt**.
+6. `ISO1540` `SDA1` an S3 `GPIO13`, `SCL1` an S3 `GPIO14` — das ist der
+   **zweite** I²C-Bus (`Wire1`). Der Touchcontroller des Displays hat seinen
+   eigenen Bus auf GPIO2/3; der bleibt unangetastet.
+7. `ISO1540` `VCC2` an die isolierte 5-V-Schiene, `GND2` an `GND iso`.
+8. `ISO1540` `SDA2`/`SCL2` an ADS1115 `SDA`/`SCL`.
+
+> **Pull-ups auf Seite 1 nicht vergessen.** Bisher hat den Bus allein das
+> ADS1115-Breakout mit seinen 10 kΩ hochgezogen. Die sitzen jetzt hinter der
+> Trennstelle. Bringt das Isolatormodul auf Seite 1 keine mit, gehören dort
+> **je 4,7 kΩ von SDA und SCL nach 3,3 V** hin — sonst bleibt der Bus tot und
+> es sieht aus wie ein defekter Isolator.
+
+### 6.3 ADS1115
+
+9. `VDD` des ADS1115-Sockels an die **isolierte 5-V-Schiene**, `GND` an
+   `GND iso`.
+
+   > Früher stand hier „nicht 5 V". Das galt, solange der ADS1115 direkt am
+   > ESP32 hing — dessen GPIOs sind nicht 5-V-tolerant. Hinter dem Isolator
+   > ist das gegenstandslos: die Pegelanpassung macht der ISO1540. pH-Board
+   > und ADS1115 **müssen** auf derselben Schiene liegen, sonst arbeiten die
+   > Pull-ups des Breakouts gegen einen anderen Pegel.
+10. `ADDR` an `GND iso` (I²C-Adresse 0x48).
+
+> Die **Qwiic-Buchse** des Displayboards scheidet mit der Trennung aus: sie
+> führt Masse und 3,3 V der netzbezogenen Seite direkt heran und würde die
+> Trennstelle überbrücken.
+11. **R2 (10 kΩ)** von KL4 `PO` zum ADS1115-Sockel `A0`.
+    Den Widerstand direkt an der Klemme anlöten und die Verbindung zu `A0`
+    möglichst kurz halten. R2 liegt vollständig auf der isolierten Seite.
+12. `A1`, `A2`, `A3` bleiben frei.
 
 **Prüfen — und zwar am LEEREN Sockel, bevor der Chip hineinkommt:**
 
@@ -241,7 +288,7 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 > Also: Modul **draußen lassen**, Anlage einschalten, und am leeren Sockel
 > messen:
 >
-> * `VDD` gegen `GND`: **3,3 V ± 0,1**. Nicht 5 V, nicht 12 V.
+> * `VDD` gegen `GND iso`: **5,0 V ± 0,1** vom AMS1117. Nicht 9 V, nicht 12 V.
 > * Messspitzen tauschen: der Wert muss negativ werden. Bestätigt, dass
 >   Versorgung und Masse nicht verpolt sind.
 > * Anlage wieder ausschalten, dann erst das Modul stecken.
@@ -249,10 +296,15 @@ Dann die drei Ergänzungen am TMC2209-Sockel:
 > Dieselbe Messung lohnt an jedem Sockel, in dem ein Halbleiter sitzt.
 
 Danach, stromlos:
-* `VDD` ↔ `GND` am ADS-Sockel: **kein** Durchgang.
+* **`GND iso` ↔ Sternpunkt: KEIN Durchgang.** Das ist die eine Messung, die
+  über Erfolg oder Misserfolg des ganzen Umbaus entscheidet. Bleibt irgendwo
+  eine Ader stehen, funktioniert alles wie vorher — nur die Störung ist
+  wieder da, und man sucht sie lange. Dasselbe zwischen isolierter 5-V-Schiene
+  und der netzbezogenen 5-V-Schiene.
+* `VDD` ↔ `GND iso` am ADS-Sockel: **kein** Durchgang.
 * KL4 `PO` ↔ ADS `A0`: ca. 10 kΩ.
-* `SDA` ↔ `VDD`: ca. 10 kΩ, wenn das Modul eigene Pull-ups hat.
-  Misst du hier „unendlich", ergänze je 4,7 kΩ von SDA und SCL nach 3,3 V.
+* `SDA1` ↔ 3,3 V am Isolator: ca. 4,7–10 kΩ. Misst du „unendlich", fehlen die
+  Pull-ups auf Seite 1 — siehe oben.
 
 ---
 
@@ -382,6 +434,11 @@ kurz anfassen kann.
 ---
 
 ## 11. Abschließende Prüfliste vor dem ersten Volllauf
+
+> **Zuerst, stromlos: `GND iso` gegen Sternpunkt auf Durchgang prüfen.**
+> Es darf keiner bestehen. Diese Messung steht bewusst an erster Stelle —
+> sie ist in einer Minute gemacht und erspart tagelange Fehlersuche an einer
+> Messung, die scheinbar grundlos rauscht.
 
 Alles abhaken, bevor 12 V dauerhaft anliegen:
 

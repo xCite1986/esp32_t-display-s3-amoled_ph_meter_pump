@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1010" width="1280" height="1010" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1030" width="1280" height="1030" font-family="Segoe UI, Arial, sans-serif">
 <style>
   .bx   { fill:#ffffff; stroke:#333333; stroke-width:2; }
   .bxa  { fill:#f3f8f3; stroke:#2e7d32; stroke-width:2; }
@@ -22,9 +22,12 @@
   .comp { stroke:#111; stroke-width:2; fill:#fff; }
   .wrf  { stroke:#7b4fc9; stroke-width:2.5; fill:none; stroke-dasharray:9 6; }
   .w5o  { stroke:#ef6c00; stroke-width:2.5; fill:none; stroke-dasharray:7 5; }
+  .iso  { stroke:#7b1fa2; stroke-width:2.5; fill:none; stroke-dasharray:10 6; }
+  .bxi  { fill:#faf4fd; stroke:#7b1fa2; stroke-width:2; }
+  .isot { font-size:12px; font-weight:700; fill:#7b1fa2; }
 </style>
 
-<rect x="0" y="0" width="1280" height="1010" fill="#ffffff"/>
+<rect x="0" y="0" width="1280" height="1030" fill="#ffffff"/>
 <text x="24" y="34" font-size="22" font-weight="700" fill="#111">pH-Minus-Dosieranlage &#8211; Verdrahtungsplan</text>
 <text x="24" y="54" class="note">Ein Geraet: LilyGo T-Display S3 AMOLED (1,91&quot; QSPI, BOARD_AMOLED_191) &#183; Kreuzung ohne Punkt = keine Verbindung</text>
 
@@ -121,7 +124,7 @@
 <line x1="932" y1="820" x2="948" y2="820" class="comp"/>
 <text x="954" y="810" class="lbl">D1 SS34</text>
 <path class="w5" d="M 940 830 L 940 900 L 600 900 L 600 800"/>
-<path class="w5" d="M 600 900 L 300 900 L 300 850"/>
+<path class="w5" d="M 600 900 L 552 900 L 552 800 L 546 800"/>
 <circle cx="600" cy="900" r="3.5" fill="#ef6c00"/>
 <path class="wg" d="M 1000 770 L 1000 935 L 660 935 L 660 800"/>
 <path class="wg" d="M 660 935 L 360 935 L 360 850"/>
@@ -169,17 +172,24 @@
 <text x="340" y="470" text-anchor="middle" class="t">ADS1115</text>
 <text x="340" y="488" text-anchor="middle" class="s">16-Bit ADC, I&#178;C 0x48</text>
 <text x="340" y="506" text-anchor="middle" class="s">ADDR &#8594; GND</text>
-<text x="340" y="622" text-anchor="middle" class="s">VDD = 3,3 V!</text>
+<text x="340" y="622" text-anchor="middle" class="s">VDD = +5 V iso</text>
 <text x="432" y="524" text-anchor="end" class="p">VDD</text>
 <text x="432" y="564" text-anchor="end" class="p">GND</text>
 <text x="432" y="604" text-anchor="end" class="p">SDA</text>
 <text x="432" y="644" text-anchor="end" class="p">SCL</text>
 <text x="290" y="652" text-anchor="middle" class="p">A0</text>
 
-<path class="w33"  d="M 440 520 L 560 520"/>
-<path class="wg"   d="M 440 560 L 560 560"/>
-<path class="wsig" d="M 440 600 L 560 600"/>
-<path class="wsig" d="M 440 640 L 560 640"/>
+<!-- VDD/GND des ADS1115 gehen NICHT mehr zum Displayboard, sondern auf die
+     isolierte Schiene unten links -->
+<path class="w5o" d="M 440 520 L 452 520 L 452 876"/>
+<path class="wg"  d="M 440 560 L 462 560 L 462 940"/>
+<circle cx="452" cy="876" r="3.5" fill="#ef6c00"/>
+<circle cx="462" cy="940" r="3.5" fill="#000"/>
+<!-- I2C ueber den Isolator -->
+<path class="wsig" d="M 440 600 L 470 600"/>
+<path class="wsig" d="M 440 640 L 470 640"/>
+<path class="wsig" d="M 546 600 L 560 600"/>
+<path class="wsig" d="M 546 640 L 560 640"/>
 
 <!-- A0 <- PO mit Schutzwiderstand R2 -->
 <path class="wana" d="M 290 660 L 290 674"/>
@@ -204,8 +214,59 @@
 <text x="115" y="828" text-anchor="middle" class="s">Kabel kurz halten</text>
 <path class="wana" d="M 200 818 L 240 818"/>
 
+<!-- ================= GALVANISCHE TRENNUNG ================= -->
+<path class="iso" d="M 508 432 L 508 972"/>
+<text x="500" y="484" text-anchor="middle" class="isot" transform="rotate(-90 500 484)">TRENNSTELLE</text>
+
+<!-- ISO1540: I2C-Isolator, sitzt auf der Trennstelle -->
+<rect x="470" y="556" width="76" height="128" rx="6" class="bxi"/>
+<text x="508" y="578" text-anchor="middle" class="isot">ISO1540</text>
+<text x="508" y="596" text-anchor="middle" class="s">SDA</text>
+<text x="508" y="614" text-anchor="middle" class="s">SCL</text>
+<text x="508" y="640" text-anchor="middle" class="s">VCC1</text>
+<text x="508" y="654" text-anchor="middle" class="s">3,3 V</text>
+<text x="508" y="672" text-anchor="middle" class="s">VCC2</text>
+<text x="470" y="700" text-anchor="middle" class="s">iso</text>
+<text x="546" y="700" text-anchor="middle" class="s">Netz</text>
+
+<!-- Versorgung des Isolators: VCC1 aus 3,3 V, VCC2 aus der isolierten Schiene -->
+<path class="w33" d="M 546 660 L 560 660"/>
+<path class="w5o" d="M 470 678 L 456 678 L 456 876"/>
+<circle cx="456" cy="876" r="3.5" fill="#ef6c00"/>
+
+<!-- B0509S: isolierter DC-DC, sitzt ebenfalls auf der Trennstelle -->
+<rect x="470" y="730" width="76" height="120" rx="6" class="bxi"/>
+<text x="508" y="754" text-anchor="middle" class="isot">B0509S</text>
+<text x="508" y="772" text-anchor="middle" class="s">5 V &#8594; 9 V</text>
+<text x="508" y="788" text-anchor="middle" class="s">1 W, isol.</text>
+<text x="508" y="812" text-anchor="middle" class="s">Uebertrager</text>
+<text x="508" y="828" text-anchor="middle" class="s">statt Draht</text>
+
+<!-- 9 V heraus auf die isolierte Seite, unter dem pH-Board entlang -->
+<path class="w5o" d="M 470 790 L 466 790 L 466 866 L 226 866 L 226 884"/>
+<text x="336" y="860" text-anchor="middle" class="lbl">9 V iso</text>
+
+<!-- AMS1117-5.0 auf der isolierten Seite -->
+<rect x="30" y="884" width="185" height="82" rx="6" class="bxa"/>
+<text x="122" y="908" text-anchor="middle" class="t">AMS1117-5.0</text>
+<text x="122" y="926" text-anchor="middle" class="s">9 V &#8594; geregelte 5 V</text>
+<text x="122" y="944" text-anchor="middle" class="s">22 &#181;F + 100 nF am Ausgang</text>
+<text x="122" y="960" text-anchor="middle" class="s">GND iso = eigener Sternpunkt</text>
+
+<!-- isolierte Schienen -->
+<path class="w5o" d="M 215 900 L 232 900 L 232 876 L 456 876"/>
+<path class="wg"  d="M 215 940 L 466 940"/>
+<text x="250" y="870" class="lbl" fill="#ef6c00">+5 V iso</text>
+<text x="250" y="934" class="lbl">GND iso</text>
+
+<!-- pH-Board V+ / G auf die isolierten Schienen -->
+<path class="w5o" d="M 300 850 L 300 876"/>
+<path class="wg"  d="M 360 850 L 360 940"/>
+<circle cx="300" cy="876" r="3.5" fill="#ef6c00"/>
+<circle cx="360" cy="940" r="3.5" fill="#000"/>
+
 <!-- ================= Legende ================= -->
-<rect x="30" y="440" width="185" height="196" rx="6" fill="#fbfbfb" stroke="#ccc" stroke-width="1.5"/>
+<rect x="30" y="440" width="185" height="256" rx="6" fill="#fbfbfb" stroke="#ccc" stroke-width="1.5"/>
 <text x="45" y="464" class="t">Legende</text>
 <line x1="45" y1="482" x2="80" y2="482" class="w12"/><text x="88" y="486" class="lbl">12 V</text>
 <line x1="45" y1="502" x2="80" y2="502" class="w5"/><text x="88" y="506" class="lbl">5 V</text>
@@ -216,6 +277,8 @@
 <circle cx="62" cy="602" r="3.5" fill="#000"/><text x="88" y="606" class="lbl">Verbindung</text>
 <text x="45" y="626" class="lbl">Kreuzung ohne Punkt:</text>
 <text x="45" y="638" class="lbl" font-style="italic">keine Verbindung</text>
+<line x1="45" y1="660" x2="80" y2="660" class="w5o"/><text x="88" y="664" class="lbl">+5 V isoliert</text>
+<line x1="45" y1="680" x2="80" y2="680" class="iso"/><text x="88" y="684" class="lbl">Trennstelle</text>
 
 <!-- ================= Hinweise ================= -->
 <rect x="30" y="120" width="380" height="310" rx="6" fill="#fffdf5" stroke="#d9c98a" stroke-width="1.5"/>
@@ -228,13 +291,14 @@
 <text x="46" y="266" class="note">    Motor gehen (Startwert ca. 0,5 &#215; Nennstrom).</text>
 <text x="46" y="290" class="note">6. Spannung an PO messen, bevor sie an A0 geht.</text>
 <text x="46" y="306" class="note">    &#62; 3,2 V &#8594; zus&#228;tzlich Spannungsteiler vorsehen.</text>
-<text x="46" y="330" class="note">7. ADS1115 zwingend an 3,3 V &#8211; der ESP32-S3 ist</text>
-<text x="46" y="346" class="note">    nicht 5-V-tolerant.</text>
+<text x="46" y="330" class="note" font-weight="600">7. GND iso NIE mit dem Sternpunkt verbinden &#8211;</text>
+<text x="46" y="346" class="note" font-weight="600">    stromlos auf Durchgang pruefen!</text>
 <text x="46" y="370" class="note">8. D1 verhindert R&#252;ckspeisung, wenn USB und</text>
 <text x="46" y="386" class="note">    Netzteil gleichzeitig stecken.</text>
 <text x="46" y="410" class="note" font-weight="600">9. GPIO 2 und 3 NICHT belegen - dort h&#228;ngt der</text>
 <text x="46" y="424" class="note" font-weight="600">    Touchcontroller, obwohl sie herausgef&#252;hrt sind.</text>
 
 
-<text x="24" y="990" class="note">Signalweg: pH-Sonde &#8594; BNC &#8594; pH-Signalboard &#8594; PO &#8594; R2 &#8594; ADS1115 A0 &#8594; I&#178;C (Wire1) &#8594; ESP32-S3 &#8594; STEP/DIR/EN &#8594; TMC2209 &#8594; NEMA17 &#8594; Peristaltikpumpe</text>
+<text x="24" y="990" class="note">Signalweg: pH-Sonde &#8594; BNC &#8594; pH-Signalboard &#8594; PO &#8594; R2 &#8594; ADS1115 A0 &#8594; ISO1540 &#8594; I&#178;C (Wire1) &#8594; ESP32-S3 &#8594; STEP/DIR/EN &#8594; TMC2209 &#8594; NEMA17 &#8594; Peristaltikpumpe</text>
+<text x="24" y="1006" class="note" fill="#7b1fa2">Links der violetten Linie liegt die Messseite. Sie hat keine Masseverbindung zur Netzseite &#8211; nur SDA/SCL im ISO1540 und die Energie im Uebertrager des B0509S gehen hinueber.</text>
 </svg>
