@@ -27,9 +27,9 @@ class PHMeasurement {
   float voltageRaw() const { return voltRaw_; }  // letzter Einzelwert [V]
   float ph() const { return ph_; }               // gefilterter pH
   int16_t rawAdc() const { return rawAdc_; }
-  bool  stable() const { return stable_; }       // Spanne < PH_STABLE_BAND
-  float spread() const { return spread_; }       // Spanne im Fenster [pH]
-  float spreadV() const { return spreadV_; }     // Spanne im Fenster [V] - immer gueltig
+  bool  stable() const { return stable_; }       // Trendspanne <= settings.phStableBand
+  float spread() const { return spread_; }       // Trendspanne (Mittelungspuffer) [pH]
+  float spreadV() const { return spreadV_; }     // rohe Kurzzeitspanne [V] - immer gueltig
 
   // Gleitender Mittelwert ueber settings.phAvgS. Die Regelung entscheidet
   // danach, nicht nach dem Momentanwert - ein einzelner Ausreisser soll keine

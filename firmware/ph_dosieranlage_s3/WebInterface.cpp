@@ -190,6 +190,7 @@ String WebInterface::statusJson() const {
   j += ",\"gain\":" + String(s.adcGain);
   j += ",\"filt\":" + String(s.filterS);
   j += ",\"avgs\":" + String(s.phAvgS);
+  j += ",\"stbnd\":" + jnum(s.phStableBand, 3);
   j += ",\"ssid\":" + jstr(s.wifiSsid);
   j += ",\"host\":" + jstr(s.hostname);
   j += ",\"wuser\":" + jstr(s.webUser);
@@ -442,6 +443,7 @@ void WebInterface::setupRoutes() {
 
     s.filterS     = (uint16_t)argI("filt", s.filterS);
     s.phAvgS      = (uint16_t)argI("avgs", s.phAvgS);
+    s.phStableBand = argF("stbnd", s.phStableBand);
     uint8_t g = (uint8_t)argI("gain", s.adcGain);
     if (g != s.adcGain) {
       String gerr;

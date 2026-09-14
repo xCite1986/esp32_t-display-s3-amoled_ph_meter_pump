@@ -50,6 +50,26 @@ void PHMeasurement::updateAverage() {
   // Erst wenn das Fenster wirklich gefuellt ist, taugt der Mittelwert als
   // Grundlage fuer eine Dosierung.
   avgReady_ = (n >= want);
+
+  // Stabilitaet aus dem geglaetteten Trend beurteilen, nicht aus den Rohwerten
+  // (Begruendung siehe Config.h): die Spanne der letzten Stuetzstellen dieses
+  // Puffers ist frei vom Netz-/Elektrolyserauschen der Einzelmessung.
+  uint16_t sw = PH_STABLE_SLOTS;
+  if (sw > avgUsed_) sw = avgUsed_;
+  if (sw >= PH_STABLE_MIN_SLOTS) {
+    uint16_t newest = (avgIdx_ + PH_AVG_SLOTS - 1) % PH_AVG_SLOTS;
+    float pmin = avgBuf_[newest], pmax = avgBuf_[newest];
+    for (uint16_t i = 0; i < sw; i++) {
+      uint16_t idx = (avgIdx_ + PH_AVG_SLOTS - 1 - i) % PH_AVG_SLOTS;
+      float v = avgBuf_[idx];
+      if (v < pmin) pmin = v;
+      if (v > pmax) pmax = v;
+    }
+    spread_ = pmax - pmin;
+    stable_ = (spread_ <= settings.phStableBand);
+  } else {
+    stable_ = false;              // zu wenig Trenddaten -> sicherer Zustand
+  }
 }
 
 float PHMeasurement::median() const {
@@ -156,7 +176,9 @@ void PHMeasurement::processSample(int16_t raw) {
   if (!emaInit_) { voltage_ = med; emaInit_ = true; }
   else           { voltage_ += emaAlpha_ * (med - voltage_); }
 
-  // Stabilitaet: Spanne der Rohspannungen im Fenster, in pH umgerechnet
+  // Rohe Kurzzeitspanne der Spannungen im Fenster - als Rauschmass (spreadmV)
+  // und fuer die Stabilitaetspruefung beim Kalibrieren. Die Dosier-Stabilitaet
+  // wird dagegen aus dem geglaetteten Trend bestimmt, siehe updateAverage().
   float vmin = buf_[0], vmax = buf_[0];
   for (uint8_t i = 1; i < bufCount_; i++) {
     if (buf_[i] < vmin) vmin = buf_[i];
@@ -191,10 +213,9 @@ void PHMeasurement::processSample(int16_t raw) {
   if (isnan(p)) { status_ = PH_NO_CALIB; return; }
   ph_ = p;
 
-  float pmin = voltToPh(vmin), pmax = voltToPh(vmax);
-  spread_ = fabsf(pmax - pmin);
-  stable_ = (spread_ <= PH_STABLE_BAND);
-
+  // Die Stabilitaet wird NICHT mehr aus dieser Rohspanne bestimmt, sondern
+  // aus dem geglaetteten Trend in updateAverage(). vmin/vmax bleiben nur noch
+  // fuer die Spannungsspanne spreadV_ oben relevant.
   if (ph_ < PH_PLAUS_MIN || ph_ > PH_PLAUS_MAX) {
     status_ = PH_PH_RANGE;
     return;

@@ -64,6 +64,7 @@ void Settings::clampAll() {
   if (filterS > PH_FILTER_MAX_S) filterS = PH_FILTER_MAX_S;
   if (phAvgS  < PH_AVG_MIN_S)    phAvgS  = PH_AVG_MIN_S;
   if (phAvgS  > PH_AVG_MAX_S)    phAvgS  = PH_AVG_MAX_S;
+  phStableBand = clampf(phStableBand, PH_STABLE_BAND_MIN, PH_STABLE_BAND_MAX);
 
   calPhA = clampf(calPhA, 0.0f, 14.0f);
   calPhB = clampf(calPhB, 0.0f, 14.0f);
@@ -107,6 +108,7 @@ void Settings::load() {
   adcGain    = prefs.getUChar("gain", (uint8_t)ADS_GAIN_4096);
   filterS    = (uint16_t)prefs.getULong("filt", 30);
   phAvgS     = (uint16_t)prefs.getULong("avgs", 600);
+  phStableBand = prefs.getFloat("stbnd", PH_STABLE_BAND);
 
   stepsPerMl = prefs.getFloat("spml", DEFAULT_STEPS_PER_ML);
   panelRevs  = prefs.getFloat("prevs", 5.0f);
@@ -187,6 +189,7 @@ void Settings::save() {
   prefs.putUChar("gain", adcGain);
   prefs.putULong("filt", filterS);
   prefs.putULong("avgs", phAvgS);
+  prefs.putFloat("stbnd", phStableBand);
 
   prefs.putFloat("spml", stepsPerMl);
   prefs.putFloat("prevs", panelRevs);

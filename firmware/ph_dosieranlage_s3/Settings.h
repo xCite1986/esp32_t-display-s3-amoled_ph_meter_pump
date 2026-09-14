@@ -22,6 +22,7 @@ struct Settings {
   uint8_t adcGain      = (uint8_t)ADS_GAIN_4096;
   uint16_t filterS     = 30;       // Zeitkonstante der Messwertglaettung
   uint16_t phAvgS      = 600;      // Mittelungsfenster fuer die Dosierung
+  float phStableBand   = PH_STABLE_BAND;  // max. Trendspanne fuer "stabil" [pH]
 
   // --- Pumpe ---
   float stepsPerMl     = DEFAULT_STEPS_PER_ML;
