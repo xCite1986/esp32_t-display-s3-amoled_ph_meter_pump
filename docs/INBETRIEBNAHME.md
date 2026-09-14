@@ -368,6 +368,7 @@ set phmax 9.50      darüber gilt der Messwert als unplausibel
 set srate 1200      in Phase 2 ermittelte Schrittrate
 set filt 30         Filterzeit der Messwertglaettung in s
 set avgs 600        Mittelungsfenster fuer die Dosierentscheidung in s
+set stbnd 0.08      max. Trendspanne, ab der "stabil" gilt, in pH
 ```
 
 `filt` und `avgs` bestimmen, **worauf** geregelt wird. Angezeigt und
@@ -375,6 +376,16 @@ aufgezeichnet wird der mit `filt` geglättete Wert; entschieden wird nach
 dem Mittel der letzten `avgs` Sekunden. Rauscht die Sonde im strömenden
 Wasser, beide Werte erhöhen — die Regelung wird dadurch nicht träger,
 denn ein Pool ändert seinen pH über Stunden, nicht über Sekunden.
+
+Ob der Messwert als *stabil* gilt, wird an der Spanne der letzten ~60 s des
+**geglätteten Trends** beurteilt, nicht mehr an der rohen Kurzzeitspanne der
+Einzelmessungen. Die rohe Spanne wird im strömenden Becken von eingekoppeltem
+Netz- und Elektrolyserauschen dominiert (leicht 0,1 pH) und wurde dort
+praktisch nie ruhig genug — die Automatik blieb dauerhaft gesperrt, obwohl der
+angezeigte Wert bockstill stand. `stbnd` legt die zulässige Trendspanne fest
+(0,02–0,50 pH). Löst die Automatik in einem sehr unruhigen Becken trotzdem
+selten aus, `stbnd` schrittweise erhöhen; das rohe Rauschen sieht man weiterhin
+als `spreadmV` im Status.
 
 Solange das Mittelungsfenster nach einem Neustart noch nicht gefüllt ist,
 steht die Sperre *instabil* — das ist beabsichtigt.

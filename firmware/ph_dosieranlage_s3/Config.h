@@ -8,7 +8,7 @@
 // Firmware-Kennung
 // ---------------------------------------------------------------------------
 #define FW_NAME     "pH-Minus-Dosieranlage"
-#define FW_VERSION  "2.1.0"
+#define FW_VERSION  "2.2.0"
 
 // ---------------------------------------------------------------------------
 // Pinbelegung LilyGo T-Display S3 AMOLED (Variante BOARD_AMOLED_191)
@@ -87,7 +87,9 @@ static const uint32_t PH_SAMPLE_PERIOD_MS = 200;  // Abtastintervall
 // eine lange Zeitkonstante kostet also nichts an Regelguete, macht die
 // Messung aber unempfindlich gegen Stroemung und eingekoppelte Stoerungen.
 static const float    PH_EMA_ALPHA       = 0.25f; // nur noch Rueckfallwert
-static const float    PH_STABLE_BAND     = 0.05f; // max. Spanne fuer "stabil"
+static const float    PH_STABLE_BAND     = 0.08f; // Vorgabe fuer das einstellbare Band
+static const float    PH_STABLE_BAND_MIN = 0.02f;
+static const float    PH_STABLE_BAND_MAX = 0.50f;
 static const uint32_t PH_SENSOR_TIMEOUT_MS = 5000;// ohne gueltige Wandlung -> Fehler
 
 // Gleitender Mittelwert fuer die Dosierentscheidung: alle 10 s ein Wert,
@@ -98,6 +100,18 @@ static const uint16_t PH_AVG_MIN_S     = 60;
 static const uint16_t PH_AVG_MAX_S     = 3600;
 static const uint16_t PH_FILTER_MIN_S  = 1;
 static const uint16_t PH_FILTER_MAX_S  = 300;
+
+// Stabilitaetsbewertung fuer die Dosierfreigabe.
+//
+// Beurteilt wird die Spanne der letzten Stuetzstellen des Mittelungspuffers
+// (je eine alle PH_AVG_PERIOD_MS), NICHT die rohe Kurzzeitspanne der
+// Einzelmessungen. Die Rohspanne wird in stroemendem Beckenwasser von
+// eingekoppeltem Netz-/Elektrolyserauschen dominiert (~0,1 pH) und wurde
+// praktisch nie ruhig genug - dadurch blieb die Automatik dauerhaft gesperrt,
+// obwohl der geglaettete Wert bockstill stand. Die 10-s-Stuetzstellen sind
+// bereits gefiltert und zeigen den echten Trend.
+static const uint16_t PH_STABLE_SLOTS     = 6;   // Trendfenster: 6 x 10 s = 60 s
+static const uint16_t PH_STABLE_MIN_SLOTS = 3;   // mind. 30 s Daten fuer eine Aussage
 
 // Motor-Defaults
 static const float DEFAULT_STEPS_PER_ML  = 1600.0f;  // laut Projektbeschreibung

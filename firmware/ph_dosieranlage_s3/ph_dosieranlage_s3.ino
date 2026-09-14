@@ -71,7 +71,7 @@ static void printHelp() {
     "  calreset              Kalibrierung verwerfen\n"
     "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax spml\n"
     "                        sprev prevs srate sacc gain invdir hold\n"
-    "                        filt avgs\n"
+    "                        filt avgs stbnd\n"
     "                        stby shft nite nfrom nto rot180\n"
     "                        circen circfr circrt circof\n"
     "  ha <host> <entity>    Home Assistant fuer die Umwaelzpruefung\n"
@@ -158,6 +158,7 @@ static void handleSet(const String &key, const String &val) {
   }
   else if (key == "filt")    s.filterS     = (uint16_t)i;
   else if (key == "avgs")    s.phAvgS      = (uint16_t)i;
+  else if (key == "stbnd")   s.phStableBand = f;
   else if (key == "invdir")  s.invertDir   = b;
   else if (key == "hold")    s.holdEnabled = b;
   else if (key == "stby")    s.standbyS    = (uint16_t)i;
