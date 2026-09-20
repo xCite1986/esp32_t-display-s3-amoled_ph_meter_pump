@@ -2,7 +2,7 @@
 #include "Config.h"
 #include "Settings.h"
 #include "PHMeasurement.h"
-#include "StepperPump.h"
+#include "RelayPump.h"
 #include "PHController.h"
 #include "WebInterface.h"
 
@@ -112,10 +112,10 @@ static void onYes(lv_event_t *) {
     lv_refr_now(NULL);
   }
 
-  float ml = (settings.panelRevs * settings.stepsPerRev) / settings.stepsPerMl;
+  float ml = settings.panelDoseMl;
   String err;
   if (controller.manualDose(ml, err))
-    uiToast(String(settings.panelRevs, 0) + " Umdr. = " + String(ml, 2) + " ml", true);
+    uiToast("Dosiere " + String(ml, 2) + " ml", true);
   else
     uiToast(err, false);
 }
@@ -126,9 +126,9 @@ static void onNo(lv_event_t *) {
 }
 
 static void openDialog() {
-  float ml = (settings.panelRevs * settings.stepsPerRev) / settings.stepsPerMl;
-  lv_label_set_text_fmt(lblAsk, "%.0f Umdrehungen freigeben?", settings.panelRevs);
-  lv_label_set_text_fmt(lblAskSub, "entspricht ca. %.2f ml pH-Minus", ml);
+  float ml = settings.panelDoseMl;
+  lv_label_set_text_fmt(lblAsk, "%.2f ml freigeben?", ml);
+  lv_label_set_text_fmt(lblAskSub, "einmalige Dosis pH-Minus");
   lv_obj_clear_flag(overlay, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(overlay);
   dialogOpenMs = millis();

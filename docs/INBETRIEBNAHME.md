@@ -69,6 +69,14 @@ siehe Fehlertabelle in der Lötanleitung.
 
 ## Phase 2 — Motor und Treiber
 
+> **Hinweis (ab Firmware 2.3.0):** Dieser Abschnitt beschreibt den früheren
+> Aufbau mit Schrittmotor (NEMA17) und TMC2209-Treiber. Wird stattdessen ein
+> AC-Synchronmotor über ein 1-Kanal-Relais verwendet, entfällt Phase 2
+> komplett — es gibt weder VREF noch Mikroschritte. Weiter geht es dann direkt
+> mit dem Relaistest und der Förderraten-Kalibrierung in **Phase 3**. Die
+> Hardware-Dokumente (Schaltplan, Lötanleitung, Teileliste) beschreiben noch
+> den Schrittmotor-Aufbau und werden separat überarbeitet.
+
 **Voraussetzung:** VREF eingestellt (Lötanleitung Abschnitt 9),
 Motor angeschlossen (Abschnitt 10), Pumpenkopf **noch nicht** montiert.
 
@@ -208,7 +216,7 @@ dosiert die Anlage später um Faktor 2 daneben.
 
 ---
 
-## Phase 3 — Pumpenkopf und Schritte/ml
+## Phase 3 — Pumpenkopf und Förderrate (ml/s)
 
 Jetzt den Peristaltikkopf montieren und die Hauptfirmware flashen:
 
@@ -220,18 +228,26 @@ powershell -File scripts/flash.ps1
 powershell -File scripts/monitor.ps1
 ```
 
+Die Pumpe ist ein AC-Synchronmotor am Relais und läuft mit konstanter Drehzahl.
+Die Dosiermenge ergibt sich allein aus der **Laufzeit**: Menge = Laufzeit × ml/s.
+Zuerst die Relaislogik prüfen, dann die Förderrate kalibrieren.
+
 Vorgehen (mit **Wasser**, nicht mit Säure):
 
-1. Saug- und Druckschlauch einlegen, Saugseite in ein Wasserglas.
-2. Entlüften: `steps 20000` — so lange wiederholen, bis blasenfrei Wasser
+1. **Relais testen:** `run 3` — die Pumpe muss 3 s laufen und dann **von selbst**
+   stoppen. Läuft sie umgekehrt (an, wenn sie stehen soll, bzw. schon beim
+   Booten), die Logik umstellen: `set rinv 1` (bzw. „Relais invertieren" im
+   Webinterface). Standard ist aktiv-LOW.
+2. Saug- und Druckschlauch einlegen, Saugseite in ein Wasserglas.
+3. Entlüften: `run 30` — so lange wiederholen, bis blasenfrei Wasser
    am Ausgang kommt.
-3. Messgefäß (10-ml-Spritze oder Messzylinder) an den Ausgang.
-4. Definierte Zahl fahren: `steps 16000`
-5. Geförderte Menge ablesen, z. B. 9,4 ml.
-6. Faktor berechnen lassen: `spml 16000 9.4`
-   → Firmware speichert `1702,1 Schritte/ml`.
-7. Gegenprobe: `dose 5` — es müssen ca. 5 ml kommen.
-8. Bei Abweichung > 3 % Schritt 4–6 wiederholen. Peristaltikpumpen
+4. Messgefäß (10-ml-Spritze oder Messzylinder) an den Ausgang.
+5. Definierte Zeit fahren: `run 60`
+6. Geförderte Menge ablesen, z. B. 9,4 ml.
+7. Förderrate berechnen lassen: `mlps 60 9.4`
+   → Firmware speichert `0,157 ml/s`.
+8. Gegenprobe: `dose 5` — es müssen ca. 5 ml kommen (Laufzeit ≈ 32 s).
+9. Bei Abweichung > 3 % Schritt 5–7 wiederholen. Peristaltikpumpen
    fördern erst nach ein paar Minuten Einlaufzeit reproduzierbar.
 
 **Abbruchkriterium:** drei aufeinanderfolgende Dosierungen von 5 ml
@@ -365,7 +381,7 @@ set maxd 60.0       maximale Tagesmenge
 set pause 1800      30 min Durchmischung zwischen Dosierungen
 set phlock 6.80     unter pH 6,80 wird nie dosiert
 set phmax 9.50      darüber gilt der Messwert als unplausibel
-set srate 1200      in Phase 2 ermittelte Schrittrate
+set mlps 0.157      in Phase 3 ermittelte Förderrate in ml/s
 set filt 30         Filterzeit der Messwertglaettung in s
 set avgs 600        Mittelungsfenster fuer die Dosierentscheidung in s
 set stbnd 0.08      max. Trendspanne, ab der "stabil" gilt, in pH
@@ -436,7 +452,7 @@ Im Webinterface unter *Anzeige*:
 | Position versetzen alle [s] | Einbrennschutz im Standby | 300 |
 | Nachtabschaltung | Display nachts ganz aus | ein |
 | Nacht von / bis [Stunde] | Fenster der Abschaltung | 20 / 5 |
-| Umdrehungen pro Touch-Freigabe | was ein Tipp + Bestätigung auslöst | 5 |
+| Dosis pro Touch-Freigabe [ml] | was ein Tipp + Bestätigung auslöst | 10 |
 
 Der Nachtmodus greift nur bei gültiger Uhrzeit — ohne NTP bleibt es beim
 Standby. Eine Berührung weckt immer auf; dieser erste Tipp löst bewusst
@@ -499,8 +515,8 @@ einer unabhängigen Messung.
 | `mon [n]` | n Sekunden Rohwerte im Sekundentakt |
 | `auto on\|off` | Automatik ein/aus (ein nur nach Kalibrierung) |
 | `dose <ml>` | manuelle Dosierung, alle Sicherheitsgrenzen gelten |
-| `steps <n> [rev]` | Servicelauf ohne Mengenverbuchung |
-| `spml <schritte> <ml>` | Schritte/ml aus Testlauf berechnen |
+| `run <s>` | Servicelauf s Sekunden ohne Mengenverbuchung |
+| `mlps <s> <ml>` | Förderrate ml/s aus Testlauf berechnen |
 | `stop` | Pumpe anhalten |
 | `estop` | Not-Halt, schaltet die Automatik ab |
 | `clear` | Störung/Not-Halt quittieren |

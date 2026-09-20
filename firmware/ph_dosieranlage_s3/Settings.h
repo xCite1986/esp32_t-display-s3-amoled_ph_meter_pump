@@ -24,9 +24,9 @@ struct Settings {
   uint16_t phAvgS      = 600;      // Mittelungsfenster fuer die Dosierung
   float phStableBand   = PH_STABLE_BAND;  // max. Trendspanne fuer "stabil" [pH]
 
-  // --- Pumpe ---
-  float stepsPerMl     = DEFAULT_STEPS_PER_ML;
-  float stepsPerRev    = DEFAULT_STEPS_PER_REV;  // fuer Bedienpanel: Umdrehungen -> ml
+  // --- Pumpe (AC-Synchronmotor ueber Relais, zeitgesteuert) ---
+  float mlPerSec       = DEFAULT_ML_PER_SEC;   // Foerderrate, per Testlauf kalibriert
+  bool  relayInvert    = false;                // false = aktiv-LOW (Vorgabe), true = aktiv-HIGH
 
   // --- Umwaelzung ueber Home Assistant ---
   bool  circEnabled    = false;             // Pruefung aktiv
@@ -37,10 +37,6 @@ struct Settings {
   uint16_t circFreshS  = 120;               // juengere Antwort gilt als aktuell
   uint16_t circRetryS  = 60;                // Wartezeit nach Fehlversuch
   uint16_t circOffRetryS = 120;             // Wartezeit, wenn die Umwaelzung steht
-  float stepRate       = DEFAULT_STEP_RATE;
-  float stepAccel      = DEFAULT_STEP_ACCEL;
-  bool  invertDir      = false;
-  bool  holdEnabled    = false;    // Treiber zwischen Dosierungen bestromt lassen
 
   // --- Regelung ---
   bool  autoEnabled    = false;    // Automatik erst nach Kalibrierung einschalten
@@ -61,7 +57,7 @@ struct Settings {
   bool  nightEnabled   = true;     // nachts Display ganz aus
   uint8_t nightFrom    = 20;       // ab Stunde
   uint8_t nightTo      = 5;        // bis Stunde
-  float panelRevs      = 5.0f;     // Umdrehungen pro Touch-Freigabe
+  float panelDoseMl    = DEFAULT_PANEL_DOSE_ML;  // feste Dosis pro Touch-Freigabe [ml]
 
 
   // --- Zaehler (persistent, damit ein Reboot das Tageslimit nicht umgeht) ---

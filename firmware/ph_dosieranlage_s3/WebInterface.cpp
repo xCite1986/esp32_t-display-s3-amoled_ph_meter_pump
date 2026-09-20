@@ -2,7 +2,7 @@
 #include "WebPage.h"
 #include "Settings.h"
 #include "PHMeasurement.h"
-#include "StepperPump.h"
+#include "RelayPump.h"
 #include "PHController.h"
 #include "PanelUi.h"
 #include "Circulation.h"
@@ -130,8 +130,8 @@ String WebInterface::statusJson() const {
   j += ",\"pump\":{\"run\":" + jbool(pump.running()) +
        ",\"ml\":" + jnum(pump.mlDone(), 3) +
        ",\"target\":" + jnum(pump.mlTarget(), 3) +
-       ",\"steps\":" + String(pump.stepsDone()) +
-       ",\"remain\":" + String(pump.stepsRemaining()) + "}";
+       ",\"runS\":" + String(pump.runS()) +
+       ",\"targetS\":" + jnum(pump.targetS(), 1) + "}";
 
   uint32_t since = controller.secondsSinceLastDose();
   j += ",\"dose\":{\"today\":" + jnum(s.dailyMl, 3) +
@@ -166,9 +166,9 @@ String WebInterface::statusJson() const {
   j += ",\"pause\":" + String(s.pauseS);
   j += ",\"phlock\":" + jnum(s.phMinLock, 2);
   j += ",\"phmax\":" + jnum(s.phMaxPlaus, 2);
-  j += ",\"spml\":" + jnum(s.stepsPerMl, 1);
-  j += ",\"sprev\":" + jnum(s.stepsPerRev, 0);
-  j += ",\"prevs\":" + jnum(s.panelRevs, 0);
+  j += ",\"mlps\":" + jnum(s.mlPerSec, 3);
+  j += ",\"pdose\":" + jnum(s.panelDoseMl, 2);
+  j += ",\"rinv\":" + jbool(s.relayInvert);
   j += ",\"stby\":" + String(s.standbyS);
   j += ",\"shft\":" + String(s.shiftS);
   j += ",\"nite\":" + jbool(s.nightEnabled);
@@ -183,10 +183,6 @@ String WebInterface::statusJson() const {
   j += ",\"circfr\":" + String(s.circFreshS);
   j += ",\"circrt\":" + String(s.circRetryS);
   j += ",\"circof\":" + String(s.circOffRetryS);
-  j += ",\"srate\":" + jnum(s.stepRate, 0);
-  j += ",\"sacc\":" + jnum(s.stepAccel, 0);
-  j += ",\"invdir\":" + jbool(s.invertDir);
-  j += ",\"hold\":" + jbool(s.holdEnabled);
   j += ",\"gain\":" + String(s.adcGain);
   j += ",\"filt\":" + String(s.filterS);
   j += ",\"avgs\":" + String(s.phAvgS);
@@ -264,22 +260,6 @@ void WebInterface::setupRoutes() {
     String err;
     if (controller.manualDose(ml, err)) reply(true, "dosiere " + String(ml, 2) + " ml");
     else reply(false, err);
-  });
-
-  // Dosierung in Motorumdrehungen - laeuft bewusst durch manualDose(),
-  // damit alle Sicherheitsgrenzen und die Mengenverbuchung greifen.
-  server.on("/api/dose/revs", HTTP_POST, [this]() {
-    if (!guard()) return;
-    float n = argF("n", 0);
-    if (n <= 0)              { reply(false, "Umdrehungen fehlen"); return; }
-    if (n > HARD_MAX_REVS)   { reply(false, "ueber harte Grenze von " +
-                                     String(HARD_MAX_REVS, 0) + " Umdrehungen"); return; }
-    float ml = (n * settings.stepsPerRev) / settings.stepsPerMl;
-    String err;
-    if (controller.manualDose(ml, err))
-      reply(true, String(n, 1) + " Umdr. = " + String(ml, 2) + " ml");
-    else
-      reply(false, err + " (" + String(ml, 2) + " ml)");
   });
 
   // I2C-Bus des ADS1115 scannen. Bei der Inbetriebnahme haengt das Geraet oft
@@ -372,28 +352,27 @@ void WebInterface::setupRoutes() {
   // --- Pumpenkalibrierung ---
   server.on("/api/pump/run", HTTP_POST, [this]() {
     if (!guard()) return;
-    long steps = argI("steps", 0);
-    bool fwd   = argB("dir", true);
+    float secs = argF("secs", 0);
     String err;
-    if (steps <= 0) { reply(false, "Schrittzahl fehlt"); return; }
-    if (controller.servicePump((uint32_t)steps, fwd, err))
-      reply(true, String("fahre ") + steps + " Schritte");
+    if (secs <= 0) { reply(false, "Laufzeit fehlt"); return; }
+    if (controller.servicePump(secs, err))
+      reply(true, String("laeuft ") + String(secs, 1) + " s");
     else reply(false, err);
   });
 
   server.on("/api/pump/calc", HTTP_POST, [this]() {
     if (!guard()) return;
-    float steps = argF("steps", 0);
-    float ml    = argF("ml", 0);
-    if (steps < 1 || ml <= 0) { reply(false, "Schritte und ml angeben"); return; }
-    float spml = steps / ml;
-    if (spml < HARD_MIN_STEPS_PER_ML || spml > HARD_MAX_STEPS_PER_ML) {
-      reply(false, "Ergebnis unplausibel: " + String(spml, 1) + " Schritte/ml");
+    float secs = argF("secs", 0);
+    float ml   = argF("ml", 0);
+    if (secs <= 0 || ml <= 0) { reply(false, "Sekunden und ml angeben"); return; }
+    float mlps = ml / secs;
+    if (mlps < HARD_MIN_ML_PER_SEC || mlps > HARD_MAX_ML_PER_SEC) {
+      reply(false, "Ergebnis unplausibel: " + String(mlps, 3) + " ml/s");
       return;
     }
-    settings.stepsPerMl = spml;
+    settings.mlPerSec = mlps;
     settings.save();
-    reply(true, String("neu: ") + String(spml, 1) + " Schritte/ml");
+    reply(true, String("neu: ") + String(mlps, 3) + " ml/s");
   });
 
   // --- Einstellungen ---
@@ -410,9 +389,11 @@ void WebInterface::setupRoutes() {
     s.phMinLock   = argF("phlock", s.phMinLock);
     s.phMaxPlaus  = argF("phmax", s.phMaxPlaus);
 
-    s.stepsPerMl  = argF("spml", s.stepsPerMl);
-    s.stepsPerRev = argF("sprev", s.stepsPerRev);
-    s.panelRevs   = argF("prevs", s.panelRevs);
+    s.mlPerSec    = argF("mlps", s.mlPerSec);
+    s.panelDoseMl = argF("pdose", s.panelDoseMl);
+    bool rinvWas  = s.relayInvert;
+    s.relayInvert = argB("rinv", s.relayInvert);
+    if (s.relayInvert != rinvWas) pump.applyIdle();   // Ruhepegel sofort nachziehen
     s.standbyS    = (uint16_t)argI("stby", s.standbyS);
     s.shiftS      = (uint16_t)argI("shft", s.shiftS);
     s.nightEnabled= argB("nite", s.nightEnabled);
@@ -436,10 +417,6 @@ void WebInterface::setupRoutes() {
     s.circRetryS  = (uint16_t)argI("circrt", s.circRetryS);
     s.circOffRetryS = (uint16_t)argI("circof", s.circOffRetryS);
     circInvalidate();          // geaenderte Adresse sofort neu pruefen
-    s.stepRate    = argF("srate", s.stepRate);
-    s.stepAccel   = argF("sacc", s.stepAccel);
-    s.invertDir   = argB("invdir", s.invertDir);
-    s.holdEnabled = argB("hold", s.holdEnabled);
 
     s.filterS     = (uint16_t)argI("filt", s.filterS);
     s.phAvgS      = (uint16_t)argI("avgs", s.phAvgS);

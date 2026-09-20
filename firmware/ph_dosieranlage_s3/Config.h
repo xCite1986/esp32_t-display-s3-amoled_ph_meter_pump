@@ -8,7 +8,7 @@
 // Firmware-Kennung
 // ---------------------------------------------------------------------------
 #define FW_NAME     "pH-Minus-Dosieranlage"
-#define FW_VERSION  "2.2.0"
+#define FW_VERSION  "2.3.0"
 
 // ---------------------------------------------------------------------------
 // Pinbelegung LilyGo T-Display S3 AMOLED (Variante BOARD_AMOLED_191)
@@ -34,11 +34,13 @@
 static const uint8_t PIN_I2C_SDA = 13;
 static const uint8_t PIN_I2C_SCL = 14;
 
-// TMC2209 Steppertreiber
-static const uint8_t PIN_STEP    = 11;
-static const uint8_t PIN_DIR     = 12;
-static const uint8_t PIN_EN      = 10;  // LOW = Treiber aktiv (active low!)
-static const uint8_t PIN_TMC_PDN = 15;  // reserviert fuer spaeteres UART
+// Pumpe: AC-Synchronmotor ueber ein 1-Kanal-Relaismodul, nur EIN/AUS.
+// Fruehere STEP/DIR/EN-Pins (11/12/10) sind damit frei; GPIO 15 ebenso.
+// Die meisten Module sind aktiv-LOW (IN=LOW -> Relais an) - das ist die
+// Vorgabe und in der Weboberflaeche ueber "Relais invertieren" umschaltbar.
+// Der Ruhepegel wird in RelayPump::begin() ZUERST gesetzt, damit die Pumpe
+// beim Start nicht anlaeuft.
+static const uint8_t PIN_PUMP_RELAY = 10;
 
 
 // ---------------------------------------------------------------------------
@@ -56,8 +58,10 @@ static const float    HARD_MAX_DAILY_ML       = 500.0f;   // ml pro Tag
 static const uint32_t HARD_MAX_PUMP_RUN_MS    = 180000UL; // 3 min Dauerlauf max
 static const uint32_t HARD_MIN_PAUSE_S        = 60;       // min. Pause zw. Dosen
 static const float    HARD_MIN_PH_LOCK        = 6.20f;    // darunter NIE dosieren
-static const float    HARD_MAX_STEPS_PER_ML   = 20000.0f;
-static const float    HARD_MIN_STEPS_PER_ML   = 10.0f;
+// Foerderrate der zeitgesteuerten Pumpe: Menge = Laufzeit * ml/s.
+static const float    HARD_MAX_ML_PER_SEC     = 50.0f;    // Plausigrenze Kalibrierung
+static const float    HARD_MIN_ML_PER_SEC     = 0.02f;
+static const uint32_t HARD_MIN_DOSE_MS        = 150;      // kuerzer laeuft der Motor nicht sinnvoll an
 
 // Plausibilitaetsfenster Sensor
 static const float PH_PLAUS_MIN   = 3.00f;
@@ -113,14 +117,10 @@ static const uint16_t PH_FILTER_MAX_S  = 300;
 static const uint16_t PH_STABLE_SLOTS     = 6;   // Trendfenster: 6 x 10 s = 60 s
 static const uint16_t PH_STABLE_MIN_SLOTS = 3;   // mind. 30 s Daten fuer eine Aussage
 
-// Motor-Defaults
-static const float DEFAULT_STEPS_PER_ML  = 1600.0f;  // laut Projektbeschreibung
-static const float DEFAULT_STEPS_PER_REV = 3200.0f;  // 1/16 Microstep, 1,8-Grad-Motor
-static const float HARD_MAX_REVS         = 20.0f;    // Obergrenze fuer /api/dose/revs
-static const float DEFAULT_STEP_RATE    = 1200.0f;  // Schritte/s Zielgeschwindigkeit
-static const float DEFAULT_STEP_ACCEL   = 4000.0f;  // Schritte/s^2
-static const float MIN_STEP_RATE        = 150.0f;   // Startgeschwindigkeit Rampe
-static const float MAX_STEP_RATE        = 8000.0f;
+// Pumpen-Defaults (zeitgesteuert)
+static const float DEFAULT_ML_PER_SEC   = 1.0f;     // Platzhalter bis zur Kalibrierung
+static const float DEFAULT_PANEL_DOSE_ML = 10.0f;   // feste Dosis pro Touch-Freigabe
+static const float MAX_SERVICE_SECONDS  = 180.0f;   // Servicelauf-Obergrenze (= harte Laufzeit)
 
 // Access-Point-Fallback
 #define AP_SSID_DEFAULT "pH-Dosieranlage"
