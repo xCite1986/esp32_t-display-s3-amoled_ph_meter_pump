@@ -45,7 +45,7 @@ class PHController {
   // Manuelle Dosierung in ml. Prueft Sicherheitsgrenzen, false + Grund bei Ablehnung.
   bool manualDose(float ml, String &err);
   // Reiner Motorlauf ohne Mengenverbuchung - nur fuer Pumpenkalibrierung/Entlueften.
-  bool servicePump(uint32_t steps, bool forward, String &err);
+  bool servicePump(float seconds, String &err);
 
   void emergencyStop();               // haelt an und verriegelt
   void clearEmergency();

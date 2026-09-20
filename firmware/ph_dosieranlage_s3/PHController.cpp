@@ -1,6 +1,6 @@
 #include "PHController.h"
 #include "PHMeasurement.h"
-#include "StepperPump.h"
+#include "RelayPump.h"
 #include "Settings.h"
 #include "Circulation.h"
 #include "History.h"
@@ -234,7 +234,7 @@ void PHController::tick() {
   if (ml < 0.05f) { state_ = ST_LOCKED; return; }
 
   serviceRun_ = false;
-  if (pump.startMl(ml, true)) state_ = ST_DOSING;
+  if (pump.startMl(ml)) state_ = ST_DOSING;
 }
 
 bool PHController::manualDose(float ml, String &err) {
@@ -263,19 +263,19 @@ bool PHController::manualDose(float ml, String &err) {
   }
 
   serviceRun_ = false;
-  if (!pump.startMl(ml, true)) { err = "Pumpe konnte nicht gestartet werden"; return false; }
+  if (!pump.startMl(ml)) { err = "Pumpe konnte nicht gestartet werden"; return false; }
   state_ = ST_DOSING;
   return true;
 }
 
-bool PHController::servicePump(uint32_t steps, bool forward, String &err) {
+bool PHController::servicePump(float seconds, String &err) {
   if (pump.running())      { err = "Pumpe laeuft bereits"; return false; }
   if (estop_)              { err = "Not-Halt aktiv"; return false; }
   if (pump.timeoutFault()) { err = "Pumpenfehler - erst quittieren"; return false; }
-  if (steps == 0 || steps > 2000000UL) { err = "Schrittzahl unplausibel"; return false; }
+  if (seconds <= 0 || seconds > MAX_SERVICE_SECONDS) { err = "Laufzeit unplausibel"; return false; }
 
   serviceRun_ = true;
-  if (!pump.startSteps(steps, forward)) { err = "Start fehlgeschlagen"; return false; }
+  if (!pump.startSeconds(seconds)) { err = "Start fehlgeschlagen"; return false; }
   state_ = ST_DOSING;
   return true;
 }
@@ -288,7 +288,7 @@ void PHController::emergencyStop() {
     pump.stop();
     if (!wasService) { lastDoseEndMs_ = millis(); bookDose(done); }
   }
-  pump.enableDriver(false);
+  pump.stop();                 // Relais sicher aus
   state_ = ST_LOCKED;
 }
 

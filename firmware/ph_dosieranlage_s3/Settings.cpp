@@ -12,8 +12,8 @@ static float clampf(float v, float lo, float hi) {
 }
 
 void Settings::clampAll() {
-  stepsPerMl  = clampf(stepsPerMl, HARD_MIN_STEPS_PER_ML, HARD_MAX_STEPS_PER_ML);
-  panelRevs   = clampf(panelRevs, 0.5f, HARD_MAX_REVS);
+  mlPerSec    = clampf(mlPerSec, HARD_MIN_ML_PER_SEC, HARD_MAX_ML_PER_SEC);
+  panelDoseMl = clampf(panelDoseMl, 0.1f, HARD_MAX_SINGLE_DOSE_ML);
 
   if (standbyS < STANDBY_MIN_S) standbyS = STANDBY_MIN_S;
   if (standbyS > STANDBY_MAX_S) standbyS = STANDBY_MAX_S;
@@ -44,9 +44,6 @@ void Settings::clampAll() {
   // die Verriegelung aus, statt jede Dosierung zu blockieren.
   if (strlen(haHost) == 0 || strlen(haEntity) == 0 || strlen(haToken) == 0)
     circEnabled = false;
-  stepsPerRev = clampf(stepsPerRev, 200.0f, 51200.0f);
-  stepRate    = clampf(stepRate, MIN_STEP_RATE, MAX_STEP_RATE);
-  stepAccel   = clampf(stepAccel, 200.0f, 100000.0f);
 
   phSetpoint  = clampf(phSetpoint, 6.0f, 8.5f);
   phDeadband  = clampf(phDeadband, 0.01f, 1.0f);
@@ -110,8 +107,9 @@ void Settings::load() {
   phAvgS     = (uint16_t)prefs.getULong("avgs", 600);
   phStableBand = prefs.getFloat("stbnd", PH_STABLE_BAND);
 
-  stepsPerMl = prefs.getFloat("spml", DEFAULT_STEPS_PER_ML);
-  panelRevs  = prefs.getFloat("prevs", 5.0f);
+  mlPerSec   = prefs.getFloat("mlps", DEFAULT_ML_PER_SEC);
+  panelDoseMl= prefs.getFloat("pdose", DEFAULT_PANEL_DOSE_ML);
+  relayInvert= prefs.getBool("rinv", false);
   standbyS   = (uint16_t)prefs.getULong("stby", 300);
   shiftS     = (uint16_t)prefs.getULong("shft", 300);
   nightEnabled = prefs.getBool("nite", true);
@@ -127,11 +125,6 @@ void Settings::load() {
   circFreshS  = (uint16_t)prefs.getULong("circfr", 120);
   circRetryS  = (uint16_t)prefs.getULong("circrt", 60);
   circOffRetryS = (uint16_t)prefs.getULong("circof", 120);
-  stepsPerRev= prefs.getFloat("sprev", DEFAULT_STEPS_PER_REV);
-  stepRate   = prefs.getFloat("srate", DEFAULT_STEP_RATE);
-  stepAccel  = prefs.getFloat("sacc", DEFAULT_STEP_ACCEL);
-  invertDir  = prefs.getBool("invdir", false);
-  holdEnabled= prefs.getBool("hold", false);
 
   autoEnabled= prefs.getBool("auto", false);
   phSetpoint = prefs.getFloat("sp", 7.20f);
@@ -191,8 +184,9 @@ void Settings::save() {
   prefs.putULong("avgs", phAvgS);
   prefs.putFloat("stbnd", phStableBand);
 
-  prefs.putFloat("spml", stepsPerMl);
-  prefs.putFloat("prevs", panelRevs);
+  prefs.putFloat("mlps", mlPerSec);
+  prefs.putFloat("pdose", panelDoseMl);
+  prefs.putBool("rinv", relayInvert);
   prefs.putULong("stby", standbyS);
   prefs.putULong("shft", shiftS);
   prefs.putBool("nite", nightEnabled);
@@ -208,11 +202,6 @@ void Settings::save() {
   prefs.putULong("circfr", circFreshS);
   prefs.putULong("circrt", circRetryS);
   prefs.putULong("circof", circOffRetryS);
-  prefs.putFloat("sprev", stepsPerRev);
-  prefs.putFloat("srate", stepRate);
-  prefs.putFloat("sacc", stepAccel);
-  prefs.putBool("invdir", invertDir);
-  prefs.putBool("hold", holdEnabled);
 
   prefs.putBool("auto", autoEnabled);
   prefs.putFloat("sp", phSetpoint);

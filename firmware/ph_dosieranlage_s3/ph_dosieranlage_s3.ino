@@ -2,7 +2,7 @@
   Automatische pH-Minus-Dosieranlage - ein Geraet
   ----------------------------------------------
   Hardware : LilyGo T-Display S3 AMOLED (1,91", BOARD_AMOLED_191)
-             + ADS1115 + pH-Signalboard + TMC2209 + NEMA17
+             + ADS1115 + pH-Signalboard + 1-Kanal-Relais + AC-Synchronmotor
   Board    : ESP32S3 Dev Module, 16MB Flash, OPI PSRAM, USB-CDC an
   FQBN     : esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,
              CDCOnBoot=cdc,PartitionScheme=app3M_fat9M_16MB
@@ -10,9 +10,10 @@
   Bibliotheken: LilyGo-AMOLED-Series, lvgl 8.4, XPowersLib,
                 SensorLib 0.3.3 (0.4.1 ist defekt - siehe docs/BEDIENPANEL.md)
 
-  Derselbe Chip zeichnet das Display und steuert die Pumpe. Deshalb:
-    - Schrittimpulse nicht blockierend, die Schrittzahl bleibt exakt
-    - EN des TMC2209 haengt ueber R1 auf 3,3 V: bei Reset steht die Pumpe
+  Die Pumpe ist ein AC-Synchronmotor an einem 1-Kanal-Relais - nur EIN/AUS.
+  Die Dosiermenge ergibt sich aus der Laufzeit (ml/s, siehe RelayPump).
+    - Relais-Ruhepegel wird in RelayPump::begin() ZUERST gesetzt (Pumpe steht)
+    - Standard aktiv-LOW, per settings.relayInvert auf aktiv-HIGH umstellbar
 
   Pinbelegung siehe Config.h. Sicherheitsgrundsatz siehe PHController.h.
   Serielle Konsole: 115200 Baud, "help" eingeben.
@@ -22,7 +23,7 @@
 #include "Settings.h"
 #include "Ads1115.h"
 #include "PHMeasurement.h"
-#include "StepperPump.h"
+#include "RelayPump.h"
 #include "PHController.h"
 #include "WebInterface.h"
 #include "PanelUi.h"
@@ -63,14 +64,13 @@ static void printHelp() {
     "  mon [n]               n Sekunden Rohwerte im Sekundentakt\n"
     "  auto on|off           Automatik ein-/ausschalten\n"
     "  dose <ml>             manuelle Dosierung\n"
-    "  revs <n>              Dosierung in Motorumdrehungen (1..20)\n"
-    "  steps <n> [rev]       Servicelauf (Pumpenkalibrierung/Entlueften)\n"
-    "  spml <schritte> <ml>  Schritte/ml aus Testlauf berechnen\n"
+    "  run <s>               Servicelauf s Sekunden (Kalibrierung/Entlueften)\n"
+    "  mlps <s> <ml>         Foerderrate ml/s aus Testlauf berechnen\n"
     "  stop | estop | clear  Pumpe anhalten / Not-Halt / quittieren\n"
     "  cal <a|b> <ph>        Kalibrierpunkt speichern\n"
     "  calreset              Kalibrierung verwerfen\n"
-    "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax spml\n"
-    "                        sprev prevs srate sacc gain invdir hold\n"
+    "  set <key> <wert>      sp db dose maxs maxd pause phlock phmax\n"
+    "                        mlps pdose rinv gain\n"
     "                        filt avgs stbnd\n"
     "                        stby shft nite nfrom nto rot180\n"
     "                        circen circfr circrt circof\n"
@@ -111,11 +111,12 @@ static void printStatus() {
                 settings.phAvgS, phMeas.phAverage(),
                 phMeas.averageReady() ? "" : "(Fenster noch nicht voll)",
                 settings.filterS);
-  Serial.printf("Pumpe: %s (%lu/%lu Schritte) | %.1f Schritte/ml | Freigabe %.0f Umdr.\n",
+  Serial.printf("Pumpe: %s (%.2f/%.2f ml, %lu/%.1f s) | %.3f ml/s | Freigabe %.2f ml | Relais %s\n",
                 pump.running() ? "laeuft" : "steht",
-                (unsigned long)pump.stepsDone(),
-                (unsigned long)(pump.stepsDone() + pump.stepsRemaining()),
-                settings.stepsPerMl, settings.panelRevs);
+                pump.mlDone(), pump.mlTarget(),
+                (unsigned long)pump.runS(), pump.targetS(),
+                settings.mlPerSec, settings.panelDoseMl,
+                settings.relayInvert ? "aktiv-HIGH" : "aktiv-LOW");
   Serial.printf("Anzeige: %s | Standby nach %u s | Wandern alle %u s | Nacht %s %u-%u Uhr\n",
                 uiStateText(), settings.standbyS, settings.shiftS,
                 settings.nightEnabled ? "ein" : "aus",
@@ -146,11 +147,9 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "pause")   s.pauseS      = (uint32_t)i;
   else if (key == "phlock")  s.phMinLock   = f;
   else if (key == "phmax")   s.phMaxPlaus  = f;
-  else if (key == "spml")    s.stepsPerMl  = f;
-  else if (key == "sprev")   s.stepsPerRev = f;
-  else if (key == "prevs")   s.panelRevs   = f;
-  else if (key == "srate")   s.stepRate    = f;
-  else if (key == "sacc")    s.stepAccel   = f;
+  else if (key == "mlps")    s.mlPerSec    = f;
+  else if (key == "pdose")   s.panelDoseMl = f;
+  else if (key == "rinv")    { s.relayInvert = b; s.save(); pump.applyIdle(); }
   else if (key == "gain")    {
     String gerr;
     if (!s.gainFitsCalibration((uint8_t)i, gerr)) { Serial.println(gerr); return; }
@@ -159,8 +158,6 @@ static void handleSet(const String &key, const String &val) {
   else if (key == "filt")    s.filterS     = (uint16_t)i;
   else if (key == "avgs")    s.phAvgS      = (uint16_t)i;
   else if (key == "stbnd")   s.phStableBand = f;
-  else if (key == "invdir")  s.invertDir   = b;
-  else if (key == "hold")    s.holdEnabled = b;
   else if (key == "stby")    s.standbyS    = (uint16_t)i;
   else if (key == "shft")    s.shiftS      = (uint16_t)i;
   else if (key == "nite")    s.nightEnabled= b;
@@ -241,32 +238,23 @@ static void handleCommand(String line) {
     if (controller.manualDose(a1.toFloat(), err)) Serial.println("dosiere " + a1 + " ml");
     else Serial.println("abgelehnt: " + err);
   }
-  else if (cmd == "revs") {
-    float n = a1.toFloat();
-    if (n <= 0 || n > HARD_MAX_REVS) { Serial.println("Aufruf: revs <1..20>"); return; }
-    float ml = (n * settings.stepsPerRev) / settings.stepsPerMl;
-    if (controller.manualDose(ml, err))
-      Serial.printf("%.1f Umdrehungen = %.2f ml\n", n, ml);
-    else
-      Serial.printf("abgelehnt: %s (%.2f ml)\n", err.c_str(), ml);
-  }
-  else if (cmd == "steps") {
-    bool fwd = !(a2 == "rev" || a2 == "r");
-    if (controller.servicePump((uint32_t)a1.toInt(), fwd, err))
-      Serial.println("Servicelauf " + a1 + (fwd ? " Schritte vorwaerts" : " Schritte rueckwaerts"));
+  else if (cmd == "run") {
+    float secs = a1.toFloat();
+    if (controller.servicePump(secs, err))
+      Serial.println("Servicelauf " + String(secs, 1) + " s");
     else Serial.println("abgelehnt: " + err);
   }
-  else if (cmd == "spml") {
-    float st = a1.toFloat(), ml = a2.toFloat();
-    if (st < 1 || ml <= 0) { Serial.println("Aufruf: spml <schritte> <ml>"); return; }
-    float v = st / ml;
-    if (v < HARD_MIN_STEPS_PER_ML || v > HARD_MAX_STEPS_PER_ML) {
-      Serial.printf("unplausibel: %.1f Schritte/ml\n", v);
+  else if (cmd == "mlps") {
+    float secs = a1.toFloat(), ml = a2.toFloat();
+    if (secs <= 0 || ml <= 0) { Serial.println("Aufruf: mlps <sekunden> <ml>"); return; }
+    float v = ml / secs;
+    if (v < HARD_MIN_ML_PER_SEC || v > HARD_MAX_ML_PER_SEC) {
+      Serial.printf("unplausibel: %.3f ml/s\n", v);
       return;
     }
-    settings.stepsPerMl = v;
+    settings.mlPerSec = v;
     settings.save();
-    Serial.printf("neu: %.1f Schritte/ml (%.2f ul pro Schritt)\n", v, 1000.0f / v);
+    Serial.printf("neu: %.3f ml/s\n", v);
   }
   else if (cmd == "stop")  { pump.stop(); Serial.println("Pumpe gestoppt"); }
   else if (cmd == "estop") {
@@ -355,9 +343,6 @@ static void serialTask() {
 
 // ---------------------------------------------------------------------------
 void setup() {
-  // 1) ZUERST den Treiber sicher abschalten - noch vor allem anderen.
-  pump.begin();
-
   Serial.begin(115200);
   uint32_t t0 = millis();
   while (!Serial && millis() - t0 < 1500) delay(10);
@@ -367,12 +352,18 @@ void setup() {
   Serial.printf ("  %s  v%s\n", FW_NAME, FW_VERSION);
   Serial.println(F("=========================================="));
 
+  // Einstellungen ZUERST laden - die Relaispolaritaet (relayInvert) muss
+  // feststehen, bevor pump.begin() den Ruhepegel setzt. Bis dahin haelt der
+  // Modul-Eingang das Relais ueber seinen eigenen Pullup aus.
   settings.load();
+  pump.begin();               // Relais sicher auf AUS
+
   Serial.printf("[Cfg] Soll pH %.2f | Dosis %.2f ml | max %.1f ml/Tag | Pause %lu s\n",
                 settings.phSetpoint, settings.doseMl, settings.maxDailyMl,
                 (unsigned long)settings.pauseS);
-  Serial.printf("[Cfg] %.1f Schritte/ml | Kalibrierung %s | Automatik %s\n",
-                settings.stepsPerMl,
+  Serial.printf("[Cfg] %.3f ml/s | Relais %s | Kalibrierung %s | Automatik %s\n",
+                settings.mlPerSec,
+                settings.relayInvert ? "aktiv-HIGH" : "aktiv-LOW",
                 settings.calValid ? "gueltig" : "FEHLT",
                 settings.autoEnabled ? "EIN" : "AUS");
 
@@ -405,7 +396,7 @@ void setup() {
 }
 
 void loop() {
-  pump.tick();        // hoechste Prioritaet: Schrittimpulse
+  pump.tick();        // Relais-Timing (Dosierdauer ueberwachen)
   phMeas.tick();
   controller.tick();
   web.tick();
@@ -413,10 +404,7 @@ void loop() {
   lv_timer_handler();
 
   static uint32_t lastUi = 0;
-  // Waehrend die Pumpe laeuft seltener zeichnen: jeder Bildaufbau
-  // unterbricht die Schrittausgabe kurz.
-  uint32_t uiPeriod = pump.running() ? 1000 : 400;
-  if (millis() - lastUi >= uiPeriod) {
+  if (millis() - lastUi >= 400) {
     lastUi = millis();
     uiRefresh();
   }

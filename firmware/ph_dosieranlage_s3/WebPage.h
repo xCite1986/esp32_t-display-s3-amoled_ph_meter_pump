@@ -148,17 +148,14 @@ code{color:var(--yel)}
   <section class="card">
     <h2>Pumpenkalibrierung</h2>
     <p class="hint">Schlauch in ein Messgef&auml;&szlig; legen, erst entl&uuml;ften, dann
-       eine feste Schrittzahl fahren, gef&ouml;rderte Menge abmessen und eintragen.</p>
+       eine feste Zeit laufen lassen, gef&ouml;rderte Menge abmessen und eintragen.</p>
     <div class="grid">
-      <div><label>Schritte fahren</label><input id="pst" type="number" value="16000"></div>
-      <div style="align-self:end"><div class="row">
-        <button onclick="post('/api/pump/run?steps='+v('pst')+'&dir=1')">Vorw&auml;rts</button>
-        <button onclick="post('/api/pump/run?steps='+v('pst')+'&dir=0')">R&uuml;ckw&auml;rts</button>
-      </div></div>
+      <div><label>Laufzeit [s]</label><input id="psec" type="number" step="1" value="60"></div>
+      <div style="align-self:end"><button onclick="post('/api/pump/run?secs='+v('psec'))">Pumpe laufen lassen</button></div>
       <div><label>Gemessene Menge [ml]</label><input id="pml" type="number" step="0.01" value="10.0"></div>
-      <div style="align-self:end"><button class="p" onclick="post('/api/pump/calc?steps='+v('pst')+'&ml='+v('pml'))">Schritte/ml berechnen</button></div>
+      <div style="align-self:end"><button class="p" onclick="post('/api/pump/calc?secs='+v('psec')+'&ml='+v('pml'))">ml/s berechnen</button></div>
     </div>
-    <div class="kv" style="margin-top:12px"><span>Aktuell</span><b id="spml">-</b></div>
+    <div class="kv" style="margin-top:12px"><span>Aktuell</span><b id="mlps">-</b></div>
   </section>
 
   <section class="card">
@@ -179,12 +176,8 @@ code{color:var(--yel)}
   <section class="card">
     <h2>Pumpe und Sensor</h2>
     <div class="grid">
-      <div><label>Schritte pro ml</label><input data-k="spml" type="number" step="1"></div>
-      <div><label>Schritte pro Umdrehung</label><input data-k="sprev" type="number" step="100"></div>
-      <div><label>Schrittrate [Schritte/s]</label><input data-k="srate" type="number" step="50"></div>
-      <div><label>Beschleunigung [S/s&sup2;]</label><input data-k="sacc" type="number" step="100"></div>
-      <div><label>Drehrichtung umkehren</label><input data-k="invdir" type="checkbox"></div>
-      <div><label>Treiber dauerhaft bestromt</label><input data-k="hold" type="checkbox"></div>
+      <div><label>F&ouml;rderrate [ml/s]</label><input data-k="mlps" type="number" step="0.01" min="0.02" max="50"></div>
+      <div><label>Relais invertieren (aktiv-HIGH)</label><input data-k="rinv" type="checkbox"></div>
       <div><label>Filterzeit [s]</label><input data-k="filt" type="number" step="5" min="1" max="300"></div>
       <div><label>Mittelung f&uuml;r Dosierung [s]</label><input data-k="avgs" type="number" step="60" min="60" max="3600"></div>
       <div><label>Stabilit&auml;tsband [pH]</label><input data-k="stbnd" type="number" step="0.01" min="0.02" max="0.5"></div>
@@ -245,7 +238,7 @@ code{color:var(--yel)}
       <div><label>Nachtabschaltung</label><input data-k="nite" type="checkbox"></div>
       <div><label>Nacht von [Stunde]</label><input data-k="nfrom" type="number" step="1" min="0" max="23"></div>
       <div><label>Nacht bis [Stunde]</label><input data-k="nto" type="number" step="1" min="0" max="23"></div>
-      <div><label>Umdrehungen pro Touch</label><input data-k="prevs" type="number" step="1" min="1" max="20"></div>
+      <div><label>Dosis pro Touch [ml]</label><input data-k="pdose" type="number" step="0.5" min="0.1" max="20"></div>
     </div>
     <div class="kv" style="margin-top:12px"><span>Zustand</span><b id="dispst">-</b></div>
     <div class="kv"><span>Freigabe entspricht</span><b id="revml">-</b></div>
@@ -363,16 +356,15 @@ function refresh(){
       ? ('pH '+s.cal.phA.toFixed(2)+' = '+s.cal.vA.toFixed(4)+' V  |  pH '
          +s.cal.phB.toFixed(2)+' = '+s.cal.vB.toFixed(4)+' V')
       : 'keine gültige Kalibrierung';
-    el('spml').textContent = s.cfg.spml.toFixed(1)+' Schritte/ml  ('
-      +(1000/s.cfg.spml).toFixed(1)+' µl/Schritt)';
+    el('mlps').textContent = s.cfg.mlps.toFixed(3)+' ml/s  ('
+      +(s.cfg.mlps*60).toFixed(1)+' ml/min)';
 
     el('circst').textContent = s.circ;
     el('circraw').textContent = s.circRaw || '-';
     el('circtok').textContent = s.cfg.hatok ? 'ja' : 'nein';
     el('circn').textContent = s.circN;
     el('dispst').textContent = s.disp;
-    el('revml').textContent = s.cfg.prevs+' Umdrehungen = '
-      +(s.cfg.prevs*s.cfg.sprev/s.cfg.spml).toFixed(2)+' ml';
+    el('revml').textContent = s.cfg.pdose.toFixed(2)+' ml pro Freigabe';
 
     el('fw').textContent = s.fw;
     el('up').textContent = fmtDur(s.up);
