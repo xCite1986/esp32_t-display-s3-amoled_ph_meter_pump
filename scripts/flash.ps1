@@ -1,7 +1,7 @@
 # flash.ps1 - compilieren und auf das T-Display S3 AMOLED an COM6 uebertragen
 #   .\scripts\flash.ps1                 -> Hauptfirmware
 #   .\scripts\flash.ps1 -Sketch i2c     -> Phase-1-Test
-#   .\scripts\flash.ps1 -Sketch motor   -> Phase-2-Test
+#   .\scripts\flash.ps1 -Sketch relay   -> Relaistest
 #   .\scripts\flash.ps1 -Port COM5      -> anderer Port
 param(
     [string]$Sketch = "main",
@@ -15,8 +15,8 @@ $TargetPort = $Port          # vor dem Dot-Sourcing sichern, sonst
 $path = switch ($Sketch) {
     "main"  { Join-Path $Root "firmware\ph_dosieranlage_s3" }
     "i2c"   { Join-Path $Root "tools\i2c_adc_test" }
-    "motor" { Join-Path $Root "tools\motor_test" }
-    default { throw "Unbekannter Sketch '$Sketch' (main | i2c | motor)" }
+    "relay" { Join-Path $Root "tools\relay_test" }
+    default { throw "Unbekannter Sketch '$Sketch' (main | i2c | relay)" }
 }
 
 $cli  = Get-ArduinoCli

@@ -1,6 +1,6 @@
 # Automatische pH-Minus-Dosieranlage
 
-LilyGo T-Display S3 AMOLED · ADS1115 · pH-Signalboard · TMC2209 · NEMA17 · Peristaltikpumpe
+LilyGo T-Display S3 AMOLED · ADS1115 · pH-Signalboard · 1-Kanal-Relais · AC-Synchronmotor · Peristaltikpumpe
 
 Umsetzung des Vorhabens aus [ph_minus_dosieranlage_entwicklung.md](ph_minus_dosieranlage_entwicklung.md).
 
@@ -14,23 +14,32 @@ Umsetzung des Vorhabens aus [ph_minus_dosieranlage_entwicklung.md](ph_minus_dosi
 > unverändert.
 
 **Ein Gerät für alles:** Das T-Display S3 AMOLED misst den pH-Wert, regelt,
-treibt die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
+schaltet die Peristaltikpumpe und ist zugleich Anzeige, Touch-Bedienteil und
 Webserver.
+
+> **Ab Firmware 2.3.0: Pumpe an Netzspannung.** Die Pumpe ist ein
+> **AC-Synchronmotor** (230 V, konstante Drehzahl), der über ein
+> **1-Kanal-Relais** nur ein- und ausgeschaltet wird. Die Dosiermenge ergibt
+> sich aus der **Laufzeit** (ml/s, per Testlauf kalibriert). TMC2209, NEMA17,
+> das 12-V-Netzteil und der Buck-Converter entfallen; ein AC/DC-Modul
+> (230 V → 5 V) versorgt die Elektronik. ⚠️ Damit ist Netzspannung im Spiel —
+> Aufbau der Netzseite durch eine befähigte Person, siehe
+> [docs/SCHALTPLAN.md](docs/SCHALTPLAN.md) und
+> [docs/LOETANLEITUNG.md](docs/LOETANLEITUNG.md).
 
 ![Fertig verdrahteter Aufbau im Gehäuse](docs/bilder/02-aufbau-verdrahtet.jpg)
 
-*Der fertige Aufbau: links oben das pH-Signalboard mit BNC-Buchse, daneben
-der ADS1115, rechts das T-Display S3 AMOLED. Unten links der TMC2209 auf der
-Treiber-Erweiterungskarte mit Kühlkörper, daneben der Buck-Converter. Rechts
-sitzt die Pumpe, das vierpolige Motorkabel führt quer zum Treiber. Darunter
-liegt der ausgedruckte Verdrahtungsplan.*
+*Das Foto zeigt den **früheren Stepper-Aufbau** (TMC2209 auf der
+Treiber-Erweiterungskarte mit Kühlkörper, daneben der Buck-Converter). Im
+aktuellen Aufbau sitzen dort das 1-Kanal-Relais und ein AC/DC-Netzteil; die
+Messkette (pH-Signalboard mit BNC, ADS1115, T-Display S3 AMOLED) bleibt gleich.*
 
 Der Peristaltikkopf ist ein 3D-Druckteil: [V2 Peristaltische Pumpe von
 Max Puschmann](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump), CC BY.
-Die STL liegt unter [hardware/pumpe/](hardware/pumpe/) mit bei. Der Kopf
-sitzt direkt auf der 5-mm-Welle des NEMA17 — die **V2 hat die verstärkte
-Wellenaufnahme**, und genau dort liegt das volle Pumpenmoment an, siehe
-[hardware/README.md](hardware/README.md).
+Die STL liegt unter [hardware/pumpe/](hardware/pumpe/) mit bei. Der Kopf war
+ursprünglich für die 5-mm-Welle des NEMA17 gezeichnet — für den
+AC-Synchronmotor müssen Wellenaufnahme und Halter an dessen Welle/Flansch
+angepasst werden, siehe [hardware/README.md](hardware/README.md).
 
 ![Verdrahtungsplan der pH-Minus-Dosieranlage](docs/schaltplan.svg)
 
@@ -47,7 +56,7 @@ Was sonst noch gebraucht wird und was es ungefähr kostet, steht in
 ```text
 firmware/ph_dosieranlage_s3/ die komplette Firmware (Messung, Regelung, UI, Web)
 tools/i2c_adc_test/          Phase 1: I²C-Scan und ADS1115-Rohwerte
-tools/motor_test/            Phase 2: Motor-, Richtungs- und VREF-Test
+tools/relay_test/            Relaistest: Schaltlogik (aktiv-LOW/HIGH) prüfen
 docs/TEILELISTE.md           Teileliste mit Kostenübersicht
 docs/FLASHEN.md              Board-Einstellungen, arduino-cli, OTA
 docs/LOETANLEITUNG.md        Schritt für Schritt löten, mit Prüfpunkten
@@ -123,22 +132,23 @@ Aus dem Core ohne Zusatzinstallation: `WiFi`, `WebServer`, `ESPmDNS`,
   Versionswechsel.
 
 Bewusst **nicht** benutzt: eine JSON-Bibliothek (Status wird von Hand
-gebaut, die HA-Antwort per Textsuche gelesen), ein fertiger ADS1115-Treiber
-(eigener in `Ads1115.cpp`) und eine Stepper-Bibliothek — die Schrittausgabe
-muss nicht blockierend sein, sonst ruckelt das Display während einer
-Dosierung.
+gebaut, die HA-Antwort per Textsuche gelesen) und ein fertiger ADS1115-Treiber
+(eigener in `Ads1115.cpp`). Die Pumpe braucht ohnehin keine Motor-Bibliothek —
+sie wird über ein Relais nur ein- und ausgeschaltet, die Menge ergibt sich aus
+der Laufzeit.
 
 ---
 
 ## Reihenfolge
 
 1. **Löten** nach [docs/LOETANLEITUNG.md](docs/LOETANLEITUNG.md) —
-   die Abschnitte bauen aufeinander auf, insbesondere gilt:
-   VREF einstellen *bevor* der Motor drankommt, und `PO` messen
-   *bevor* es an den ADS1115 geht.
-2. **Phase 1–2** mit den Testsketches (`-Sketch i2c`, `-Sketch motor`).
+   die Abschnitte bauen aufeinander auf, insbesondere gilt: `PO` messen
+   *bevor* es an den ADS1115 geht, und die **230-V-Seite zuletzt** (durch
+   eine befähigte Person).
+2. **Tests** mit den Testsketches: I²C/ADS (`-Sketch i2c`) und die
+   Relais-Schaltlogik (`-Sketch relay`, mit abgezogener Pumpe).
 3. **Phase 3–5** mit der Hauptfirmware:
-   Pumpe kalibrieren → pH kalibrieren → Regelung scharf schalten.
+   Förderrate (ml/s) kalibrieren → pH kalibrieren → Regelung scharf schalten.
 4. **Phase 6–7**: WLAN, Webinterface, Bedienpanel, optional Home Assistant.
 
 Details in [docs/INBETRIEBNAHME.md](docs/INBETRIEBNAHME.md).
@@ -152,7 +162,7 @@ Details in [docs/INBETRIEBNAHME.md](docs/INBETRIEBNAHME.md).
 | `Config.h` | Pinbelegung und **harte** Sicherheitsgrenzen |
 | `Ads1115.*` | eigener, abhängigkeitsfreier ADS1115-Treiber |
 | `PHMeasurement.*` | Abtastung, Median + EMA, gleitender Mittelwert, 2-Punkt-Kalibrierung |
-| `StepperPump.*` | STEP/DIR/EN nicht blockierend, Rampe, Laufzeitüberwachung |
+| `RelayPump.*` | Relais ein/aus über GPIO, Menge aus Laufzeit (ml/s), Laufzeitüberwachung |
 | `PHController.*` | Zustandsautomat, Verriegelungen, Tages-/Gesamtzähler |
 | `Settings.*` | Persistenz im NVS, Begrenzung aller Werte |
 | `WebInterface.*` | WLAN/AP, Webserver, JSON-API, OTA |
@@ -162,7 +172,7 @@ Details in [docs/INBETRIEBNAHME.md](docs/INBETRIEBNAHME.md).
 
 Anzeige: pH-Wert in ~136 px Höhe, dosierte Menge der letzten 24 Stunden,
 Zustand und Sperrgründe. Tippen aufs Display öffnet die Rückfrage, erst
-*FREIGEBEN* löst eine Dosierung über eine feste Anzahl Motorumdrehungen aus.
+*FREIGEBEN* löst eine Dosierung über eine feste Dosis (ml) aus.
 
 Nach der Standby-Zeit zeigt das Display nur noch den pH-Wert, gedimmt und
 regelmäßig versetzt; im Nachtfenster bleibt es ganz dunkel und wacht auf
@@ -184,9 +194,10 @@ messen → plausibilisieren → eine kleine definierte Dosis
       → warten und durchmischen → neu messen → ggf. erneut dosieren
 ```
 
-Es wird nie „auf den Sollwert durchdosiert". Die Schrittzahl bestimmt die
-Menge, nicht die Zeit — deshalb ist die Dosierung auch dann exakt, wenn
-der WLAN-Stack den Ablauf kurz bremst.
+Es wird nie „auf den Sollwert durchdosiert". Die Menge ergibt sich aus der
+**Laufzeit** der Pumpe (Laufzeit × ml/s). Da eine Dosis über mehrere Sekunden
+läuft, fällt ein kurzes Bremsen durch den WLAN-Stack nicht ins Gewicht; die
+Laufzeit wird in der Hauptschleife überwacht und hart auf 180 s begrenzt.
 
 Entschieden wird **nach dem gleitenden Mittelwert**, nicht nach dem
 Momentanwert. Eine pH-Sonde im strömenden Wasser rauscht; ein einzelner
@@ -283,11 +294,13 @@ Dokumenten als Messpunkte markiert:
 
 * Versorgungsspannung und tatsächlicher `PO`-Bereich des pH-Boards
   → [docs/SCHALTPLAN.md](docs/SCHALTPLAN.md), Abschnitt 5
-* Spulenpaare des NEMA17 → Lötanleitung, Abschnitt 10
-* Motorstrom / VREF → Lötanleitung, Abschnitt 9
-* Fördermenge pro Umdrehung, Schritte/ml → Inbetriebnahme, Phase 3
+* Schaltlogik des Relaismoduls (aktiv-LOW/HIGH) → mit `-Sketch relay` bzw.
+  `run 3` prüfen, `set rinv` setzen → Lötanleitung, Abschnitt 8
+* Wellen-/Flanschmaße des AC-Motors für die Pumpenkopf-Aufnahme
+  → [hardware/README.md](hardware/README.md)
+* Förderrate `ml/s` aus einem Testlauf → Inbetriebnahme, Phase 3
 * Sichere Dosiergrenzen für das konkrete Beckenvolumen → Inbetriebnahme, Phase 5
 
-Der Peristaltik-Pumpenkopf und der säurebeständige Schlauch stehen laut
-Projektstand noch aus. Für die Firmware ist das unkritisch — `Schritte/ml`
-ist ein Kalibrierwert und wird in Phase 3 ermittelt.
+Der säurebeständige Schlauch und die Anpassung des Pumpenkopfs an den AC-Motor
+stehen laut Projektstand noch aus. Für die Firmware ist das unkritisch — die
+Förderrate `ml/s` ist ein Kalibrierwert und wird in Phase 3 ermittelt.
