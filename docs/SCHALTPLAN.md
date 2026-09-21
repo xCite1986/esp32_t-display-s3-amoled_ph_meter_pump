@@ -6,6 +6,32 @@ Grafik: [schaltplan.svg](schaltplan.svg) (im Browser oder in Inkscape öffnen, d
 Regelung, Pumpenansteuerung, Anzeige, Bedienung und Webinterface. Ein
 separater ESP32-C3 wird nicht mehr verwendet.
 
+> **Ab Firmware 2.3.0: Pumpe an Netzspannung statt Schrittmotor.** Die Pumpe
+> ist jetzt ein **AC-Synchronmotor** (230 V, konstante Drehzahl), der über ein
+> **1-Kanal-Relais** nur ein- und ausgeschaltet wird. TMC2209, NEMA17, das
+> 12-V-Netzteil und der Buck-Converter entfallen. Die **Dosiermenge ergibt sich
+> aus der Laufzeit** (ml/s, per Testlauf kalibriert), nicht mehr aus Schritten.
+
+---
+
+## ⚠️ Sicherheit: Netzspannung
+
+Dieser Aufbau schaltet **230 V** direkt. Das ist kein Kleinspannungsprojekt
+mehr:
+
+* Aufbau, Absicherung und Inbetriebnahme der Netzseite gehören in die Hand
+  einer **elektrotechnisch befähigten Person**. Im Zweifel eine Fachkraft
+  hinzuziehen.
+* Alles Netzführende (L, N, Relaiskontakte, TSP-05-Eingang, Motorleitung) muss
+  in ein **geschlossenes, berührungssicheres Gehäuse** mit Zugentlastung und
+  ausreichenden **Luft- und Kriechstrecken** (mind. 3 mm) zur Kleinspannung.
+* Eine **Vorsicherung** (träge, passend zur Last — 1 A genügt hier reichlich)
+  in die Phase, vor TSP-05 und Relais.
+* Schutzleiter (PE) anschließen, wo der Motor/Aufbau ihn vorsieht.
+* **Nur spannungsfrei arbeiten** — Netzstecker ziehen, nicht nur schalten.
+
+Die Firmware-Grenzen sind die **zweite** Verteidigungslinie, nicht die erste.
+
 ---
 
 ## 1. Übersicht
@@ -18,227 +44,143 @@ pH-Sonde ─BNC─> pH-Board ─PO─> R2 ─> ADS1115 |
                                     SDA/SCL ─┼─ ISO1540 ─> GPIO13/14 (Wire1)
                                              |                  │
                                              |                  v
-12 V ──┬──> TMC2209 VMOT ──> NEMA17 ──> Peristaltikpumpe        │
-       │         ^ STEP/DIR/EN (GPIO11/12/10) ──────────────────┘
-       │         │
-       └──> Buck 5 V ─D1─┬─> T-Display S3 AMOLED ─3V3─> TMC2209 VIO, ISO1540 VCC1
-                         │
-                         └─> B0509S ─9 V iso─> AMS1117-5.0 ─> pH-Board V+,
-                                                              ADS1115 VDD,
-                                                              ISO1540 VCC2
+230 V ──┬── TSP-05 (AC/DC) ─5 V─D1─┬─> T-Display S3 AMOLED ─3V3─> ISO1540 VCC1
+ (L,N)  │                          ├─> Relais-Modul (+ / −), S <── GPIO10
+        │                          └─> B0509S ─9 V iso─> AMS1117-5.0 ─> pH-Board V+,
+        │                                                              ADS1115 VDD,
+        │                                                              ISO1540 VCC2
+        │
+        └── L ─> Relais COM ── NO ─> AC-Synchronmotor ─> N   (Peristaltikpumpe)
 ```
 
-Die senkrechte Linie ist die Trennstelle. Über sie gehen **nur** SDA und SCL
-im ISO1540 und die Energie im Übertrager des B0509S — **keine Masse.**
+Die senkrechte Linie ist die Trennstelle der **Messkette**. Über sie gehen
+**nur** SDA und SCL im ISO1540 und die Energie im Übertrager des B0509S —
+**keine Masse.**
+
+Die **Netzseite** (230 V) und die 5-V-Logik trennt das **Relais selbst**: seine
+Spule (5 V) und seine Kontakte (230 V) sind im Bauteil isoliert. Die Logik
+berührt die Netzspannung nirgends.
 
 ### Was das für die Sicherheit bedeutet
 
-In der Zwei-Geräte-Variante liefen Dosierlogik und Bedienoberfläche auf
-getrennten Mikrocontrollern — ein Absturz der Oberfläche konnte die Dosierung
-nicht beeinflussen. Das ist jetzt nicht mehr so: **derselbe Chip zeichnet das
-Display und steuert die Pumpe.**
+Derselbe Chip zeichnet das Display und steuert die Pumpe. Drei Dinge sorgen
+dafür, dass die Pumpe im Zweifel **steht**:
 
-Zwei Dinge fangen das in der Firmware ab:
+* Das Relais schaltet über den **Schließer (NO)**. Ist die Spule stromlos —
+  bei Reset, Absturz oder Stromausfall —, ist der Motorkreis offen.
+* Der Steuereingang `S` bekommt einen **10 kΩ Pulldown nach GND**. Während der
+  S3 bootet (GPIO kurz hochohmig), bleibt die Spule sicher stromlos.
+* Die Firmware lädt **zuerst** die Einstellungen und setzt dann den
+  Relais-Ruhepegel (aus) — die Polarität steht fest, bevor der Ausgang treibt
+  (siehe `RelayPump::begin()`).
 
-* Die Schrittimpulse werden nicht blockierend erzeugt. Wenn LVGL für einen
-  Bildaufbau ein paar Millisekunden braucht, läuft der Motor kurz
-  unregelmäßiger — die **Schrittzahl und damit die Dosiermenge bleibt exakt**.
-* `EN` des TMC2209 hängt über R1 auf 3,3 V. Startet der S3 neu oder hängt er
-  im Reset, ist der Treiber stromlos und die Pumpe steht — unabhängig davon,
-  was die Software gerade tut.
-
-Die harten Dosiergrenzen liegen weiterhin im nichtflüchtigen Speicher und
-werden bei jedem Dosierauftrag geprüft.
+Die harten Dosiergrenzen (max. Einzeldosis, Tagesmenge, 180 s Dauerlauf,
+Sperre unter pH 6,20) liegen weiterhin im nichtflüchtigen Speicher und werden
+bei jedem Dosierauftrag geprüft.
 
 ---
 
 ## 2. Netzliste
 
-### 2.1 Leistung
+### 2.1 Versorgung 230 V → 5 V
 
-| Netz | Von | Nach | Querschnitt | Farbe |
-|---|---|---|---|---|
-| +12 V | Netzteil + | TMC2209 `VMOT` | 0,5 mm² | rot |
-| +12 V | Netzteil + | Buck `IN+` | 0,5 mm² | rot |
-| GND-12V | Netzteil − | TMC2209 `GND` (Leistungsseite) | 0,5 mm² | schwarz |
-| GND-12V | Netzteil − | Buck `IN−` | 0,5 mm² | schwarz |
-| C1 | TMC2209 `VMOT` | TMC2209 `GND` | 100 µF / 25 V, **direkt am Modul** | – |
-| +5 V | Buck `OUT+` | D1 Anode | 0,25 mm² | orange |
-| +5 V | D1 Kathode | S3 AMOLED `VBUS` (linke Leiste) | 0,25 mm² | orange |
-| +5 V | D1 Kathode | pH-Board `V+` *(nach Messung, s. Abschnitt 5)* | 0,25 mm² | orange |
-| GND | Buck `OUT−` | GND-Sternpunkt | 0,5 mm² | schwarz |
-| +5 V | D1 Kathode | B0509S `+Vin` | 0,25 mm² | orange |
-| GND | GND-Sternpunkt | B0509S `−Vin` | 0,25 mm² | schwarz |
-
-**Isolierte Seite** — ab hier gibt es keine Verbindung mehr zur Masse oben:
+Das **TSP-05** (bzw. ein gleichwertiges AC/DC-Modul) macht aus der Netzspannung
+die 5 V für die gesamte Kleinspannungsseite.
 
 | Netz | Von | Nach | Bemerkung |
 |---|---|---|---|
-| +9 V iso | B0509S `+Vout` | AMS1117-5.0 `IN` | 10 µF direkt am Wandlerausgang |
-| GND iso | B0509S `−Vout` | **isolierter Massepunkt** | eigener Lötstützpunkt |
-| +5 V iso | AMS1117 `OUT` | pH-Board `V+`, ADS1115 `VDD`, ISO1540 `VCC2` | 22 µF + 100 nF am Ausgang |
+| L (230 V) | Netz/Sicherung | TSP-05 `AC` | über Vorsicherung |
+| N (230 V) | Netz | TSP-05 `AC` | AC ist ungepolt |
+| +5 V | TSP-05 `+Vo` | D1 Anode | |
+| +5 V | D1 Kathode | S3 AMOLED `VBUS` (linke Leiste) | anti-Backfeed gegen USB |
+| +5 V | D1 Kathode | Relais-Modul `+` | Spulenversorgung |
+| +5 V | D1 Kathode | B0509S `+Vin` | speist die isolierte Messseite |
+| +5 V | TSP-05 `+Vo` | **C_bulk 470–1000 µF** + 100 nF | direkt an der 5-V-Schiene |
+| GND | TSP-05 `−Vo` | GND-Sternpunkt | |
 
-**Warum nicht B0505S?** Ein ungeregelter 1-W-Wandler steigt bei geringer Last
-über seine Nennspannung. Der Bedarf hier liegt bei rund 25 mA von 200 mA, also
-12 % Last — da sind 5,5 bis 6 V zu erwarten, und der ADS1115 ist für maximal
-5,5 V spezifiziert. Der Umweg über 9 V und einen Linearregler kostet 50 Cent
-und liefert lastunabhängig saubere 5 V. Der Regler dämpft nebenbei die
-100-kHz-Welligkeit des Wandlers.
+> **Reserve des Netzteils.** Das TSP-05 liefert **3 W ≈ 600 mA**. Der S3 mit
+> AMOLED zieht 150–300 mA, WLAN-Sendespitzen gehen bis ~500 mA (bei schwachem
+> Empfang läuft der Sender auf Volllast), dazu die Relaisspule (~70–80 mA) und
+> die Messseite (~25 mA). Damit ist das TSP-05 **grenzwertig**: ohne
+> Stützkondensator drohen Brownouts/Resets beim Senden oder beim Anziehen des
+> Relais. **Empfehlung: mindestens 470 µF (besser 1000 µF) an die 5-V-Schiene**
+> — und bei anhaltenden Resets ein größeres 5-V-Netzteil (**≥ 1 A / ≥ 5 W**,
+> z. B. HLK-10M05).
 
-Wer doch einen B0505S einsetzt: Ausgangsspannung **unter echter Last messen**
-und bei über 5,3 V einen Lastwiderstand von rund 150 Ω ergänzen.
-
-**D1** = Schottky SS34 / 1N5819, Durchlassrichtung Buck → Displayboard.
-Sie verhindert, dass beim gleichzeitigen Anstecken von USB und Netzteil
-5 V aus dem USB in den Buck-Ausgang zurückgespeist werden.
-
-**Strombedarf:** Der S3 mit AMOLED zieht je nach Helligkeit 150–300 mA, dazu
-das pH-Board (~20 mA) und Reserve. **Buck mit mindestens 1 A auslegen.**
+**D1** = Schottky SS34 / 1N5819, Durchlassrichtung TSP-05 → Displayboard.
+Sie verhindert, dass beim gleichzeitigen Anstecken von USB und Netzteil 5 V aus
+dem USB in den TSP-05-Ausgang zurückgespeist werden.
 
 **Einspeisepunkt:** Die 5 V gehen auf einen der beiden **`VBUS`**-Pads der
-linken Stiftleiste, GND auf ein `GND`-Pad daneben.
+linken Stiftleiste, GND auf ein `GND`-Pad daneben. `VBUS` liegt board-intern
+parallel zur 5-V-Schiene des USB-C-Anschlusses — genau deshalb sitzt D1 in der
+Zuleitung. Der Akkuanschluss (JST GH 1,25 mm) bleibt frei.
 
-`VBUS` liegt board-intern parallel zur 5-V-Schiene des USB-C-Anschlusses.
-Genau deshalb sitzt **D1** in der Zuleitung: ohne sie würden Netzteil und USB
-gegeneinander arbeiten, sobald beide stecken. Der Akkuanschluss (JST GH
-1,25 mm) bleibt frei — die Ladeelektronik wird nicht gebraucht.
+### 2.2 Pumpe: Relais und Motor (230 V)
 
-### 2.2 Masse (Sternpunkt)
-
-Alle folgenden GND müssen **auf einen gemeinsamen Punkt** (Klemmleiste oder
-ein Lötstützpunkt auf der Platine):
-
-```text
-Netzteil GND · TMC2209 GND · Buck IN− und OUT− · S3 AMOLED GND
-ADS1115 GND · pH-Board G
-```
-
-Leistungs-GND (Motor) und Signal-GND laufen erst am Sternpunkt zusammen —
-nicht den Motorstrom über die Signalmasse führen.
-
-### 2.3 Steuersignale S3 AMOLED → TMC2209
-
-| S3 AMOLED | TMC2209 | Funktion |
-|---|---|---|
-| GPIO11 | `STEP` | Schrittimpuls |
-| GPIO12 | `DIR` | Drehrichtung |
-| GPIO10 | `EN` | Freigabe, **aktiv LOW** |
-| 3V3 | `VIO` | Logikversorgung des Treibers |
-| GND | `GND` (Logikseite) | |
-| GPIO15 | `PDN/UART` | **derzeit nicht verdrahtet**, für spätere UART-Erweiterung freihalten |
-
-### Wo die Pins am Modul liegen
-
-Der TMC2209 nutzt den Stepstick-Footprint des A4988. Die **rechte Spalte
-(Leistungsseite) ist bei allen Herstellern gleich**, die linke variiert —
-dort sitzen SPREAD, DIAG, INDEX und PDN/UART in unterschiedlicher Reihenfolge.
-
-```text
-        ┌─────────────────────┐
-   EN ──┤ 1                16 ├── VMOT   12 V
-  MS1 ──┤ 2                15 ├── GND    Leistungsmasse
-  MS2 ──┤ 3                14 ├── 2B
-  ...  ─┤ 4                13 ├── 2A
-  ...  ─┤ 5                12 ├── 1A
-  ...  ─┤ 6                11 ├── 1B
- STEP ──┤ 7                10 ├── VIO    3,3 V
-  DIR ──┤ 8                 9 ├── GND    Logikmasse
-        └─────────────────────┘
-```
-
-**VMOT und VIO sind zwei getrennte Versorgungen.** VIO speist nur die Logik;
-liegen dort 3,3 V, heißt das nichts über VMOT. Ohne ausreichendes VMOT nimmt
-der Treiber Schrittimpulse bereitwillig an und zählt sie mit — der Motor
-zittert dann höchstens, statt zu drehen.
-
-Sicher erkennen lässt sich VMOT an drei Dingen: am Aufdruck (`VM` oder
-`VMOT`), an **C1**, der genau zwischen VMOT und der Leistungsmasse sitzt, und
-an der Nachbarschaft zu den vier Motoradern. Elektrisch bestätigen, stromlos:
-
-| Messung | erwartet |
-|---|---|
-| Pin ↔ Plusseite von C1 | Durchgang |
-| Pin ↔ KL1-Plus (12 V) | Durchgang |
-| Pin ↔ `VIO` | **kein** Durchgang |
-
-Piept die letzte Zeile, sind Logik- und Motorversorgung verbunden — dann
-liegen 12 V auf dem 3,3-V-Netz. In dem Fall nichts einschalten.
-
-Zusätzlich am TMC2209-Modul:
-
-| Pin | Beschaltung | Wirkung |
-|---|---|---|
-| `MS1` | auf `VIO` (3,3 V) | zusammen mit MS2: 1/16 Microstep |
-| `MS2` | auf `VIO` (3,3 V) | → 3200 Schritte pro Umdrehung |
-| `SPREAD` | offen lassen | StealthChop = leiser Lauf |
-| `DIAG`, `INDEX` | offen lassen | nicht genutzt |
-| `R1` | 10 kΩ von `EN` nach `VIO` | Treiber bleibt beim Booten/Reset sicher gesperrt |
-
-TMC2209-Microstep-Tabelle (MS2, MS1):
-
-| MS2 | MS1 | Auflösung | Schritte/Umdr. (1,8°-Motor) |
+| Netz | Von | Nach | Bemerkung |
 |---|---|---|---|
-| L | L | 1/8 | 1600 |
-| L | H | 1/32 | 6400 |
-| H | L | 1/64 | 12800 |
-| **H** | **H** | **1/16** | **3200** ← so verdrahten |
+| Steuerung | S3 `GPIO10` | Relais `S` | + 10 kΩ Pulldown `S` → GND |
+| +5 V | 5-V-Schiene | Relais `+` | Spulenversorgung |
+| GND | GND-Sternpunkt | Relais `−` | gemeinsame Masse mit dem S3 |
+| L (230 V) | Netz/Sicherung | Relais `COM` | geschaltete Phase |
+| L geschaltet | Relais `NO` | Motor L | **NO**, nicht NC → Ruhezustand = aus |
+| N (230 V) | Netz | Motor N | |
 
-> Praktisch gegenprüfen: 3200 Schritte müssen **genau** eine Umdrehung ergeben.
+Das Relaismodul (TONGLING JQC-3FF-S-Z, 5-V-Spule, Kontakte 10 A/250 V) hat den
+3-poligen Steuerheader **`S · + · −`** (Signal, +5 V, GND) und die Schraubklemme
+**`NC · COM · NO`**. Verwendet wird **`COM` + `NO`**: bei stromloser Spule ist
+der Kontakt offen, der Motor steht.
 
-### 2.4 Motor
+> **Schaltlogik prüfen (aktiv-LOW/HIGH).** Dieses KY-019-Board hat **keinen
+> Optokoppler** (nur LED + Freilaufdiode, direkte Transistoransteuerung) und ist
+> damit typischerweise **aktiv-HIGH**: `S` HIGH → Relais an. Die Firmware ist
+> per `settings.relayInvert` umstellbar (Vorgabe aktiv-LOW). **Vor dem
+> Anschluss der Netzseite** mit abgezogener Pumpe testen: `run 3` — das Relais
+> muss anziehen und nach 3 s von selbst abfallen. Fällt es verkehrt, `set rinv`
+> umschalten (bzw. „Relais invertieren" im Webinterface).
 
-**Am vorliegenden Motor gemessen** — nicht aus der Farbfolge abgeleitet:
+> **3,3-V-Ansteuerung.** Gerade weil es kein Opto-Board ist, treibt der
+> 3,3-V-GPIO den Transistor sauber. Der 10 kΩ Pulldown an `S` stellt sicher,
+> dass die Spule beim Booten/Reset nicht ungewollt anzieht.
 
-| Spule | Adern | Widerstand |
+### 2.3 Masse (Sternpunkt)
+
+Alle folgenden GND müssen **auf einen gemeinsamen Punkt** (Klemmleiste oder ein
+Lötstützpunkt auf der Platine):
+
+```text
+TSP-05 −Vo · S3 AMOLED GND · Relais − · B0509S −Vin · ISO1540 GND1
+```
+
+Der isolierte Massepunkt `GND iso` der Messseite läuft **nicht** hier zusammen
+(siehe 2.5). Die 230-V-Masse existiert nicht — N ist der Netz-Neutralleiter und
+wird **nie** mit dem Sternpunkt verbunden.
+
+### 2.4 Steuersignal S3 AMOLED → Relais
+
+| S3 AMOLED | Relais-Modul | Funktion |
 |---|---|---|
-| 1 | **rot + blau** | 3,6 Ω |
-| 2 | **grün + schwarz** | 3,6 Ω |
+| GPIO10 | `S` | Schaltsignal (+ 10 kΩ Pulldown nach GND) |
+| 3V3/5V | `+` | **5 V** (Spulenversorgung, nicht 3,3 V!) |
+| GND | `−` | gemeinsame Masse |
 
-Daraus folgt die Belegung:
+> Die 5-V-Spule des JQC-3FF-S-Z zieht erst ab ~3,75 V sicher an — das Modul-`+`
+> gehört an **5 V**, nicht an 3,3 V. Nur das **Signal** `S` kommt vom 3,3-V-GPIO.
 
-| TMC2209 | Motorader |
-|---|---|
-| `1A` | blau |
-| `1B` | rot |
-| `2A` | grün |
-| `2B` | schwarz |
+Die früheren Pins `GPIO11` (STEP), `GPIO12` (DIR) und `GPIO15` (UART-Reserve)
+sind jetzt **frei**.
 
-> Die ursprüngliche Projektbeschreibung vermutete rot+grün und blau+schwarz
-> anhand der Steckerbelegung `rot | frei | grün | blau | frei | schwarz`.
-> Die Messung hat das widerlegt. Bei einem anderen Motor also **immer neu
-> messen**, statt diese Tabelle zu übernehmen.
-
-**Die einzige Regel, die zählt:** `1A` und `1B` müssen die beiden Enden
-*derselben* Wicklung sein, ebenso `2A` und `2B`. Welches Paar auf `1x` liegt
-und wie herum innerhalb eines Paares, ändert nur die Drehrichtung — das
-korrigiert `set invdir 1` in der Firmware, ohne Lötkolben.
-
-Liegt je eine Hälfte zweier verschiedener Wicklungen auf einem Ausgang, sieht
-der Treiber eine offene Last: der Motor brummt und dreht nicht.
-
-**Prüfen ohne Messgerät:** zwei Adern kurzschließen und die Welle von Hand
-drehen. Wird sie spürbar schwergängig, sind die beiden ein Paar.
-
-### Nennstrom: aus dem Datenblatt, nicht aus dem Widerstand
-
-**Der verwendete Motor ist mit 0,4 A pro Phase angegeben** (Zweiphasen-Hybrid
-NEMA17, 42 × 34 mm, 28 Ncm, 1,8°).
-
-> Der Spulenwiderstand taugt **nicht** zum Schätzen des Nennstroms. Aus den
-> gemessenen 3,6 Ω ließe sich ein Motor der 1,3-A-Klasse ableiten — das wäre
-> hier um den Faktor drei daneben. Es gilt ausschließlich das Datenblatt.
-
-Das Datenblatt bestätigt auch die gemessene Spulenzuordnung:
-**Spule A = grün + schwarz, Spule B = rot + blau.**
-
-### 2.5 Messkette
+### 2.5 Messkette (unverändert, isoliert)
 
 **Die gesamte Messkette liegt auf der isolierten Seite.** Ihre Masse heißt hier
-`GND iso` und ist ein eigener Lötstützpunkt, **nicht** der Sternpunkt.
+`GND iso` und ist ein eigener Lötstützpunkt, **nicht** der Sternpunkt. Versorgt
+wird sie über B0509S → AMS1117 aus der 5-V-Schiene des TSP-05 — an der Messkette
+selbst ändert der Pumpen-Umbau **nichts**.
 
 | Von | Nach | Bemerkung |
 |---|---|---|
-| pH-Sonde BNC | pH-Board BNC-Buchse | Kabel kurz, nicht parallel zu Motorleitungen |
+| pH-Sonde BNC | pH-Board BNC-Buchse | Kabel kurz, nicht parallel zu Netzleitungen |
 | pH-Board `V+` | +5 V iso (AMS1117 `OUT`) | |
 | pH-Board `G` | **GND iso** | nicht an den Sternpunkt! |
 | pH-Board `PO` | R2 (10 kΩ) → ADS1115 `A0` | Analogsignal |
@@ -249,6 +191,23 @@ Das Datenblatt bestätigt auch die gemessene Spulenzuordnung:
 | ADS1115 `SCL` | ISO1540 `SCL2` | |
 | ADS1115 `ADDR` | `GND iso` | ergibt I²C-Adresse 0x48 |
 | ADS1115 `A1`–`A3` | frei | Reserve |
+
+Isolierte Versorgung:
+
+| Netz | Von | Nach | Bemerkung |
+|---|---|---|---|
+| +5 V | 5-V-Schiene (D1-Kathode) | B0509S `+Vin` | letzte Verbindung zur Netzseite |
+| GND | GND-Sternpunkt | B0509S `−Vin` | |
+| +9 V iso | B0509S `+Vout` | AMS1117-5.0 `IN` | 10 µF direkt am Wandlerausgang |
+| GND iso | B0509S `−Vout` | **isolierter Massepunkt** | eigener Lötstützpunkt |
+| +5 V iso | AMS1117 `OUT` | pH-Board `V+`, ADS1115 `VDD`, ISO1540 `VCC2` | 22 µF + 100 nF am Ausgang |
+
+**Warum nicht B0505S?** Ein ungeregelter 1-W-Wandler steigt bei geringer Last
+über seine Nennspannung. Der Bedarf hier liegt bei rund 25 mA von 200 mA, also
+12 % Last — da sind 5,5 bis 6 V zu erwarten, und der ADS1115 ist für maximal
+5,5 V spezifiziert. Der Umweg über 9 V und einen Linearregler kostet 50 Cent
+und liefert lastunabhängig saubere 5 V. Der Regler dämpft nebenbei die
+100-kHz-Welligkeit des Wandlers.
 
 Und die Trennstelle selbst:
 
@@ -262,56 +221,44 @@ Und die Trennstelle selbst:
 | ISO1540 `GND2` | GND iso | |
 | Pull-up | `SDA1`/`SCL1` → 3,3 V | je 4,7 kΩ, **falls das Modul keine mitbringt** |
 
-**Die Pull-ups auf Seite 1 sind die häufigste Fehlerquelle beim Umbau.** Bisher
-hat der Bus nur funktioniert, weil die 10 kΩ auf dem ADS1115-Breakout ihn
-hochgezogen haben. Die sitzen jetzt hinter der Trennstelle — die ESP32-Seite
+**Die Pull-ups auf Seite 1 sind die häufigste Fehlerquelle beim Umbau.** Die
+10 kΩ des ADS1115-Breakouts sitzen hinter der Trennstelle — die ESP32-Seite
 steht ohne Pull-up da und der Bus ist tot. Das sieht aus wie ein defekter
 Isolator und ist keiner.
 
-Auf Seite 2 liegen die Pull-ups des ADS1115-Breakouts und die des
-Isolatormoduls parallel, zusammen rund 5 kΩ. Unkritisch.
-
-**ADS1115 jetzt an 5 V statt 3,3 V.** Das ist Absicht: pH-Board und ADS1115
-müssen auf derselben isolierten Schiene liegen, sonst arbeiten die Pull-ups
-des Breakouts gegen einen anderen Pegel. Nebengewinn: der eingestellte
-Messbereich von ±4,096 V war bei 3,3 V Versorgung größer als das, was der
-Eingang überhaupt annehmen darf (VDD + 0,3 V). Bei 5 V passt beides zusammen.
-
 **R2 (10 kΩ in Serie zu A0)** begrenzt den Strom in die Schutzdioden des
-ADS1115, falls `PO` kurzzeitig über 3,3 V steigt. Der Widerstand verfälscht
-die Messung nicht nennenswert und wird durch die 2-Punkt-Kalibrierung ohnehin
-mit erfasst.
+ADS1115, falls `PO` kurzzeitig über die Versorgung steigt. Der Widerstand
+verfälscht die Messung nicht nennenswert und wird durch die 2-Punkt-
+Kalibrierung ohnehin mit erfasst.
 
 #### Warum ein eigener I²C-Bus
 
 Der Touchcontroller CST816T hängt bereits auf einem I²C-Bus (`GPIO3` = SDA,
-`GPIO2` = SCL) und wird von LVGL laufend abgefragt. Adressseitig gäbe es mit
-dem ADS1115 (0x48) keinen Konflikt — trotzdem bekommt der ADS1115 den
-**zweiten Hardware-I²C-Bus** auf GPIO13/14.
-
-Grund: Der ADS1115 sitzt am Ende von Kabeln, oft 10–30 cm, in der Nähe der
-Motorleitungen. Diese Leitungskapazität und die eingekoppelten Störungen dem
-Touchbus aufzubürden hieße, die Bedienbarkeit des Displays von der Qualität der
-Sensorverkabelung abhängig zu machen. Getrennte Busse kosten zwei GPIOs und
-lösen das Problem vollständig.
+`GPIO2` = SCL) und wird von LVGL laufend abgefragt. Der ADS1115 bekommt trotz
+fehlenden Adresskonflikts den **zweiten Hardware-I²C-Bus** auf GPIO13/14: Er
+sitzt am Ende von Kabeln in der Nähe der (jetzt netzführenden) Motorleitung.
+Diese Störungen dem Touchbus aufzubürden hieße, die Bedienbarkeit des Displays
+von der Qualität der Sensorverkabelung abhängig zu machen.
 
 ### 2.6 Umwälzung
 
-Es gibt **keinen** verdrahteten Rückmelde-Eingang. Statt einen
-Strömungswächter anzuschließen, wird die Anlage an denselben geschalteten
-Stromkreis wie die Umwälzpumpe gehängt:
+Es gibt **keinen** verdrahteten Rückmelde-Eingang. Statt einen Strömungswächter
+anzuschließen, wird die Anlage an denselben geschalteten Stromkreis wie die
+Umwälzpumpe gehängt:
 
 ```text
 Zeitschaltung / Shelly der Poolpumpe
         │
         ├──> Umwälzpumpe
-        └──> 12-V-Netzteil der Dosieranlage
+        └──> 230-V-Versorgung der Dosieranlage (TSP-05 + Dosierpumpe)
 ```
 
-Damit kann die Anlage **physisch nicht** in stehendes Wasser dosieren — kein
-Kontakt, keine Leitung, keine Software, die versagen könnte. Der Preis ist,
-dass die Messung nur läuft, während die Pumpe läuft; für die Regelung ist das
-kein Nachteil, weil ohne Umwälzung ohnehin nicht dosiert werden darf.
+Damit kann die Anlage **physisch nicht** in stehendes Wasser dosieren — sie hat
+schlicht keinen Strom, wenn die Umwälzpumpe steht. Der Preis ist, dass die
+Messung nur läuft, während die Pumpe läuft; für die Regelung ist das kein
+Nachteil, weil ohne Umwälzung ohnehin nicht dosiert werden darf. Das ist der
+Grund, warum der gleitende Mittelwert nach jedem Einschalten erst wieder
+einige Minuten füllen muss, bevor dosiert wird (siehe INBETRIEBNAHME.md).
 
 Wird die Anlage dauerhaft versorgt — etwa weil der pH-Wert auch außerhalb der
 Pumpenzeiten sichtbar sein soll —, prüft die Firmware die Umwälzung stattdessen
@@ -348,46 +295,32 @@ die SPI/SD-Variante hätte zusätzlich den Ladechip BQ25896 auf `0x6B`.
 
 | GPIO | Funktion |
 |---|---|
-| 10 | TMC2209 `EN` (aktiv LOW, Pull-up nach 3,3 V) |
-| 11 | TMC2209 `STEP` |
-| 12 | TMC2209 `DIR` |
-| 13 | ADS1115 `SDA` (Wire1) |
-| 14 | ADS1115 `SCL` (Wire1) |
-| 15 | Reserve für TMC-UART |
+| 10 | Relais `S` (Schaltsignal, 10 kΩ Pulldown nach GND) |
+| 13 | ADS1115 `SDA` (Wire1, über ISO1540) |
+| 14 | ADS1115 `SCL` (Wire1, über ISO1540) |
+| 11, 12, 15 | **frei** (früher STEP/DIR/UART) |
 
-**Alle sieben liegen auf der linken Stiftleiste** und sind damit gegen das
-offizielle Pinout bestätigt. Die Leiste führt von oben nach unten:
+**Alle liegen auf der linken Stiftleiste** und sind damit gegen das offizielle
+Pinout bestätigt. Die Leiste führt von oben nach unten:
 
 ```text
 links:   3V3 · 1 · 2 · 3 · 10 · 11 · 12 · 13 · 14 · 15 · GND · VBUS · VBUS · 16
 rechts:  GND · GND · 46 · 45 · 44 · 43 · 42 · 41 · 40 · GND · GND · 3V3 · 3V3 · 39
 ```
 
-Frei bleiben zusätzlich: **1** und **16** (links) sowie
-**39, 40, 41, 42** (rechts).
-`43`/`44` sind UART0 und gleichzeitig der Qwiic-Port, siehe unten.
+Frei bleiben zusätzlich: **1, 11, 12, 15, 16** (links) sowie
+**39, 40, 41, 42** (rechts). `43`/`44` sind UART0 und gleichzeitig der
+Qwiic-Port, siehe unten.
 
 ### Alternative: ADS1115 über den Qwiic-Port
 
 Das Board hat einen **STEMMA-QT/Qwiic-Anschluss** (JST-SH 1,0 mm, 4-polig) mit
-`GND · 3V3 · GPIO43 · GPIO44`. Wer einen ADS1115 mit Qwiic-Buchse hat, spart
-sich damit vier Lötstellen und bekommt Versorgung und Bus in einem Stecker.
+`GND · 3V3 · GPIO43 · GPIO44`.
 
-Dafür in `Config.h` ändern:
-
-```cpp
-static const uint8_t PIN_I2C_SDA = 43;
-static const uint8_t PIN_I2C_SCL = 44;
-```
-
-Zwei Punkte dazu:
-
-* Die Zuordnung SDA/SCL am Stecker ist die übliche Qwiic-Reihenfolge
-  (GND, 3V3, SDA, SCL) — vor dem ersten Versuch am Board gegenprüfen. Falls
-  nichts gefunden wird, die beiden Pins tauschen.
-* GPIO43/44 sind zugleich UART0 (TXD/RXD). Solange die Konsole über USB-CDC
-  läuft, ist das unkritisch — man verliert nur die serielle Notfallebene über
-  UART0. **Der Standard bleibt deshalb GPIO13/14.**
+> Mit galvanischer Trennung scheidet der Qwiic-Port allerdings aus: er führt
+> Masse und 3,3 V der netzbezogenen Seite direkt heran und würde die Trennstelle
+> der Messkette überbrücken. Er bleibt nur eine Option, wenn **ohne** Isolation
+> gearbeitet wird — davon ist im Beckenbetrieb abzuraten.
 
 ---
 
@@ -405,16 +338,20 @@ Diese Punkte **vor** der endgültigen Verdrahtung klären:
 
 1. **Herausgeführte GPIOs des Displayboards** (siehe Abschnitt 3).
 2. **5-V-Einspeisepunkt am Displayboard** (siehe Abschnitt 2.1).
-3. **Versorgungsspannung des pH-Boards.** Die meisten laufen mit 5 V. Steht
+3. **Schaltlogik des Relaismoduls** (aktiv-LOW/HIGH) mit `run 3` und abgezogener
+   Pumpe prüfen, `set rinv` entsprechend setzen (siehe Abschnitt 2.2).
+4. **Reserve des 5-V-Netzteils** unter WLAN-Last messen: fällt die 5-V-Schiene
+   beim Senden oder beim Anziehen des Relais unter ~4,7 V, Stützkondensator
+   vergrößern oder ein stärkeres Netzteil einsetzen.
+5. **Versorgungsspannung des pH-Boards.** Die meisten laufen mit 5 V. Steht
    auf der Platine „3.3–5 V", ist auch 3,3 V möglich — dann liegt `PO` sicher
    im ADS-Bereich, das Signal wird aber kleiner.
-4. **Spannungsbereich von `PO`.** Board mit Sonde in pH-7-Puffer betreiben und
+6. **Spannungsbereich von `PO`.** Board mit Sonde in pH-7-Puffer betreiben und
    `PO` gegen `G` messen, danach in pH-4-Puffer. Beide Werte notieren.
    * Maximalwert ≤ 3,2 V → direkt über R2 an `A0`.
    * Maximalwert > 3,2 V → zusätzlich Spannungsteiler (z. B. 10 kΩ / 20 kΩ).
      Die Kalibrierung rechnet den Teiler automatisch heraus.
-5. **Potentiometer auf dem pH-Board** nicht verstellen, solange die Funktion
+7. **Potentiometer auf dem pH-Board** nicht verstellen, solange die Funktion
    nicht geklärt ist. Position vorher fotografieren.
-6. **I²C-Pull-ups am ADS1115.** Fast alle Breakouts haben 10 kΩ nach VDD an
-   Bord. Stromlos zwischen `SDA` und `VDD` messen: ca. 10 kΩ → gut. Fehlen sie,
-   je 4,7 kΩ von SDA und SCL nach 3,3 V ergänzen.
+8. **I²C-Pull-ups auf Seite 1 des ISO1540** (je 4,7 kΩ nach 3,3 V), falls das
+   Isolatormodul keine mitbringt — sonst bleibt der Bus tot.
