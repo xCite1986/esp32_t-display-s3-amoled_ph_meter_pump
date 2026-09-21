@@ -208,8 +208,8 @@ rest_command:
     method: POST
     timeout: 10
 
-  ph_dosieranlage_umdrehungen:
-    url: "http://ph-dosierung.local/api/dose/revs?n={{ n }}"
+  ph_dosieranlage_servicelauf:
+    url: "http://ph-dosierung.local/api/pump/run?secs={{ s }}"
     method: POST
     timeout: 10
 
