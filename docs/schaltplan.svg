@@ -48,7 +48,7 @@
 <path class="mains" d="M 190 131 L 212 131"/>
 <path class="mains" d="M 272 131 L 760 131"/>                      <!-- L-Schiene (230 V) -->
 <path class="mains" d="M 300 131 L 300 210"/>                      <!-- L zu TSP AC -->
-<path class="mains" d="M 760 131 L 760 660 L 712 660"/>           <!-- L zu Relais COM -->
+<path class="mains" d="M 760 131 L 760 636 L 712 636"/>           <!-- L zu Relais COM -->
 <circle cx="300" cy="131" r="3.5" fill="#c62828"/>
 <text x="360" y="126" class="lbl">L (Phase, 230 V)</text>
 
@@ -65,8 +65,9 @@
 <path d="M 470 245 L 486 237 L 486 253 Z" fill="#fff" stroke="#111" stroke-width="2"/>
 <line x1="486" y1="237" x2="486" y2="253" stroke="#111" stroke-width="2"/>
 <text x="478" y="228" class="lbl">D1</text>
-<!-- +5V Bus -->
-<path class="w5" d="M 486 245 L 486 360 L 1140 360"/>
+<!-- +5V Bus (D1-Speisung + horizontale Schiene bis in den linken Kanal) -->
+<path class="w5" d="M 486 245 L 486 360"/>
+<path class="w5" d="M 440 360 L 1140 360"/>
 <text x="1146" y="364" class="w5" fill="#ef6c00" font-size="12" font-weight="700">+5 V</text>
 <!-- Cbulk -->
 <path class="w5" d="M 430 245 L 430 268"/>
@@ -90,39 +91,41 @@
 <text x="590" y="428" text-anchor="middle" class="t">T-Display S3 AMOLED</text>
 <text x="590" y="446" text-anchor="middle" class="s">misst &#183; regelt &#183; schaltet &#183; zeigt</text>
 <text x="482" y="474" class="p">VBUS(5V)</text>
-<text x="482" y="494" class="p">GND</text>
+<text x="482" y="504" class="p">GPIO10</text>
+<text x="482" y="540" class="p">GND</text>
 <text x="700" y="474" text-anchor="end" class="p">3V3</text>
-<text x="700" y="494" text-anchor="end" class="p">GPIO10</text>
 <text x="700" y="514" text-anchor="end" class="p">GPIO13/14</text>
-<!-- VBUS from +5V bus -->
-<path class="w5" d="M 520 400 L 520 360"/>
-<circle cx="520" cy="360" r="3.5" fill="#ef6c00"/>
-<!-- GND -->
+<!-- VBUS aus dem +5V-Bus (oben) -->
+<path class="w5" d="M 540 400 L 540 360"/>
+<circle cx="540" cy="360" r="3.5" fill="#ef6c00"/>
+<!-- GND nach unten zum Bus -->
 <path class="wg" d="M 500 550 L 500 790"/>
 <circle cx="500" cy="790" r="3.5" fill="#000"/>
+<!-- GPIO10 -> linker Kanal (x=424) -> Relais S -->
+<path class="wsig" d="M 470 500 L 424 500 L 424 632 L 470 632"/>
+<text x="360" y="496" class="lbl">Relais-Signal (GPIO10)</text>
 
 <!-- ===== Relais ===== -->
-<rect x="470" y="590" width="240" height="120" rx="6" class="bxc"/>
-<text x="590" y="616" text-anchor="middle" class="t">1-Kanal-Relais</text>
-<text x="590" y="633" text-anchor="middle" class="s">JQC-3FF-S-Z &#183; 5 V &#183; 10 A/250 V</text>
-<text x="482" y="660" class="p">S</text>
-<text x="482" y="680" class="p">+ (5V)</text>
-<text x="482" y="700" class="p">&#8722; (GND)</text>
-<text x="700" y="660" text-anchor="end" class="p">COM</text>
-<text x="700" y="700" text-anchor="end" class="p">NO</text>
-<!-- GPIO10 -> S (Signal) -->
-<path class="wsig" d="M 704 490 L 740 490 L 740 655 L 560 655"/>
-<text x="744" y="486" class="lbl">Relais-Signal</text>
-<!-- 10k Pulldown S -> GND -->
-<path class="wsig" d="M 540 655 L 540 730"/>
-<rect x="531" y="700" width="18" height="24" fill="#fff" stroke="#111"/>
-<text x="524" y="716" text-anchor="end" class="lbl">10k</text>
-<path class="wg" d="M 540 724 L 540 790"/>
-<!-- + from 5V bus -->
-<path class="w5" d="M 600 675 L 600 360"/>
-<circle cx="600" cy="360" r="3.5" fill="#ef6c00"/>
-<!-- - to GND -->
-<path class="wg" d="M 560 695 L 460 695 L 460 790"/>
+<rect x="470" y="592" width="240" height="118" rx="6" class="bxc"/>
+<text x="590" y="618" text-anchor="middle" class="t">1-Kanal-Relais</text>
+<text x="590" y="636" text-anchor="middle" class="s">JQC-3FF-S-Z &#183; 5 V &#183; 10 A/250 V</text>
+<text x="482" y="636" class="p">S</text>
+<text x="482" y="666" class="p">+ (5V)</text>
+<text x="482" y="696" class="p">&#8722; (GND)</text>
+<text x="700" y="636" text-anchor="end" class="p">COM</text>
+<text x="700" y="696" text-anchor="end" class="p">NO</text>
+<!-- + (5V): linker Kanal x=448 hoch zum +5V-Bus -->
+<path class="w5" d="M 470 662 L 448 662 L 448 360"/>
+<circle cx="448" cy="360" r="3.5" fill="#ef6c00"/>
+<!-- - (GND): linker Kanal x=462 runter zum GND-Bus -->
+<path class="wg" d="M 470 692 L 462 692 L 462 790"/>
+<circle cx="462" cy="790" r="3.5" fill="#000"/>
+<!-- 10k Pulldown: Signalkanal x=424 ueber Widerstand nach GND -->
+<path class="wsig" d="M 424 632 L 424 700"/>
+<rect x="415" y="700" width="18" height="26" fill="#fff" stroke="#111"/>
+<text x="410" y="718" text-anchor="end" class="lbl">10k</text>
+<path class="wg" d="M 424 726 L 424 790"/>
+<circle cx="424" cy="790" r="3.5" fill="#000"/>
 
 <!-- ===== Motor ===== -->
 <rect x="810" y="598" width="210" height="104" rx="6" class="bxp"/>
@@ -132,10 +135,10 @@
 <text x="822" y="680" class="p">L</text>
 <text x="822" y="700" class="p">N</text>
 <!-- Relais NO -> Motor L (230V) -->
-<path class="mains" d="M 712 700 L 770 700 L 770 674 L 810 674"/>
-<text x="722" y="694" class="lbl">NO</text>
-<circle cx="712" cy="700" r="3.5" fill="#c62828"/>
-<circle cx="810" cy="695" r="3.5" fill="#c62828"/>
+<path class="mains" d="M 712 696 L 770 696 L 770 674 L 810 674"/>
+<text x="724" y="690" class="lbl">NO</text>
+<circle cx="712" cy="696" r="3.5" fill="#c62828"/>
+<circle cx="810" cy="700" r="3.5" fill="#c62828"/>
 
 <!-- ===== Isolationsbarriere Messseite ===== -->
 <path class="iso" d="M 862 70 L 862 560"/>
@@ -184,10 +187,10 @@
 <text x="1014" y="418" class="lbl">A0/PO</text>
 
 <!-- ISO1540 <-> ESP (Wire1) -->
-<path class="wsig" d="M 704 512 L 820 512 L 820 300 L 880 300"/>
-<text x="726" y="508" class="lbl">GPIO13/14 (Wire1)</text>
-<path class="wsig" d="M 704 470 L 840 470 L 840 285 L 880 285"/>
-<text x="726" y="466" class="lbl">3V3 &#8594; VCC1</text>
+<path class="wsig" d="M 710 514 L 820 514 L 820 300 L 880 300"/>
+<text x="726" y="510" class="lbl">GPIO13/14 (Wire1)</text>
+<path class="wsig" d="M 710 474 L 840 474 L 840 285 L 880 285"/>
+<text x="726" y="470" class="lbl">3V3 &#8594; VCC1</text>
 
 <!-- ===== Legende ===== -->
 <rect x="24" y="360" width="330" height="170" rx="8" fill="#fafafa" stroke="#ccc"/>
