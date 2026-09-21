@@ -2,29 +2,47 @@
 
 Begleitend: [SCHALTPLAN.md](SCHALTPLAN.md) und [schaltplan.svg](schaltplan.svg).
 
-Steuerung ist der **LilyGo T-Display S3 AMOLED** — er misst, regelt, treibt die
-Pumpe und ist gleichzeitig Anzeige und Bedienteil. Ein separater ESP32-C3
-kommt nicht mehr vor.
+Steuerung ist der **LilyGo T-Display S3 AMOLED** — er misst, regelt, schaltet die
+Pumpe und ist gleichzeitig Anzeige und Bedienteil. Ein separater ESP32-C3 kommt
+nicht mehr vor.
+
+> **Ab Firmware 2.3.0: Pumpe an Netzspannung.** Die Pumpe ist ein
+> **AC-Synchronmotor** (230 V), der über ein **1-Kanal-Relais** ein- und
+> ausgeschaltet wird. Versorgt wird die Elektronik aus einem **AC/DC-Netzteil
+> 230 V → 5 V** (TSP-05 o. ä.). TMC2209, NEMA17, 12-V-Netzteil und Buck-Converter
+> entfallen. Verdrahtet werden Stromversorgung, ADS1115, Relais und Motor.
 
 Display und Touch sind auf dem Board integriert: dafür ist **nichts zu löten**.
-Verdrahtet werden nur Stromversorgung, ADS1115, TMC2209 und Motor.
-
-Die Reihenfolge ist bewusst so gewählt, dass nach jedem Abschnitt geprüft
-werden kann, bevor mehr Spannung ins Spiel kommt. **Bitte nicht vorgreifen** —
-insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
+Die Reihenfolge ist bewusst so gewählt, dass nach jedem Abschnitt geprüft werden
+kann, bevor mehr Spannung ins Spiel kommt. **Bitte nicht vorgreifen** —
+insbesondere kommt die Netzseite (230 V) erst ganz zum Schluss.
 
 ---
 
 ## 0. Sicherheit zuerst
 
-**Elektrisch**
+**⚠️ Netzspannung (230 V)**
 
-* Nur mit **gezogenem Netzstecker** löten. Der 12-V-Zweig kann bei Kurzschluss
-  mehrere Ampere liefern — das reicht für Brandspuren und geschmolzene Litze.
-* Eine **2-A-Sicherung (träge)** in die 12-V-Zuleitung. Nicht optional.
-* **Der Motorstecker wird niemals bei eingeschaltetem VMOT gezogen oder
-  gesteckt.** Das zerstört den TMC2209 zuverlässig.
+Dieser Aufbau schaltet 230 V direkt. Das ist der wichtigste Unterschied zum
+früheren 12-V-Aufbau:
+
+* Die **Netzseite gehört in die Hand einer elektrotechnisch befähigten Person.**
+  Im Zweifel eine Fachkraft hinzuziehen — 230 V sind lebensgefährlich.
+* Nur mit **gezogenem Netzstecker** arbeiten. Nicht „nur ausgeschaltet".
+* **Vorsicherung (träge, 1 A)** in die Phase, vor TSP-05 und Relais.
+* Alles Netzführende (L, N, Relaiskontakte, TSP-05-Eingang, Motorleitung) in ein
+  **geschlossenes, berührungssicheres Gehäuse** mit Zugentlastung. Zur
+  Kleinspannung **mind. 3 mm Luft- und Kriechstrecke** halten; 230-V- und
+  5-V-Verdrahtung räumlich trennen.
+* Netzleitung in **H05VV-F / 0,75 mm²** (oder kräftiger), keine dünne Signallitze
+  für 230 V.
+* Schutzleiter (PE) anschließen, wo Motor/Aufbau ihn vorsehen.
+
+**Elektronisch (Kleinspannung)**
+
 * Elkos richtig herum: Minusseite ist am Gehäuse markiert.
+* Reihenfolge einhalten — die isolierte Messseite verträgt keine verschleppte
+  Masse.
 
 **Chemisch (später bei der Inbetriebnahme)**
 
@@ -47,7 +65,6 @@ insbesondere darf der Motor erst dran, wenn VREF eingestellt ist.
 * Lötzinn 0,7–1,0 mm (bleihaltig lötet sich für Handarbeit deutlich einfacher)
 * Seitenschneider, Abisolierzange, Pinzette
 * Multimeter (Durchgangsprüfer, DC-Spannung, Widerstand)
-* Kleiner Keramik-/Kunststoffschraubendreher für das VREF-Poti
 
 **Material**
 
@@ -58,41 +75,36 @@ Preise und die vollständige Liste inklusive Hydraulik und Chemie stehen in
 |---|---|---|
 | 1 | Lochrasterplatine 100 × 80 mm, RM 2,54 | 1 |
 | 2 | Stift-/Buchsenleiste passend zum Header des S3 AMOLED | 1 Satz |
-| 3 | Buchsenleiste 1×8 (für TMC2209) | 2 |
-| 4 | Buchsenleiste 1×10 (für ADS1115) | 1 |
-| 5 | Schraubklemme 2-polig, RM 5,0 (12 V, Motor) | 3 |
-| 6 | Schraubklemme 3-polig, RM 3,5 (pH-Board, Reserve) | 2 |
-| 7 | Elko 100 µF / 25 V, low ESR (**C1**) | 1 |
-| 8 | Widerstand 10 kΩ (**R1**, EN-Pull-up) | 1 |
-| 9 | Widerstand 10 kΩ (**R2**, Schutz vor A0) | 1 |
-| 10 | Schottky-Diode SS34 oder 1N5819 (**D1**) | 1 |
-| 11 | Kühlkörper für den TMC2209 | 1 |
-| 12 | Litze 0,5 mm² rot/schwarz (Leistung) | je 1 m |
-| 13 | Litze 0,25 mm² diverse Farben (Signal) | je 1 m |
+| 3 | Buchsenleiste 1×10 (für ADS1115) | 1 |
+| 4 | 1-Kanal-Relaismodul, 5-V-Spule (JQC-3FF-S-Z), Header `S·+·−` | 1 |
+| 5 | AC/DC-Netzteil 230 V → 5 V, **≥ 1 A** (TSP-05 grenzwertig, HLK-10M05 besser) | 1 |
+| 6 | AC-Synchronmotor 230 V (Peristaltik) | 1 |
+| 7 | Schraubklemme Kleinspannung (pH-Board, Reserve) | 2 |
+| 8 | **Netzspannungsfeste Klemmen** für L, N, Motor | 1 Satz |
+| 9 | Elko **470–1000 µF / 25 V** (**C_bulk**) + 100 nF | 1 Satz |
+| 10 | Widerstand 10 kΩ (**Pulldown** am Relais-`S`) | 1 |
+| 11 | Widerstand 10 kΩ (**R2**, Schutz vor A0) | 1 |
+| 12 | Schottky-Diode SS34 oder 1N5819 (**D1**) | 1 |
+| 13 | Litze 0,25 mm² (Signal) + **H05VV-F 0,75 mm² (230 V)** | je 1 m |
 | 14 | Schrumpfschlauch-Sortiment | 1 |
-| 15 | Abstandsbolzen M3 + Gehäuse (IP54 empfohlen) | 1 Satz |
-| 16 | I²C-Isolator ISO1540/ISO1541 als Modul | 1 |
-| 17 | Isolierter DC-DC 5 → 9 V, 1 W (**B0509S-1W**) | 1 |
-| 18 | Linearregler AMS1117-5.0 | 1 |
-| 19 | Elko 10 µF und 22 µF, 2× 100 nF (Filter isolierte Seite) | 1 Satz |
-| 20 | Ferritperle für die isolierte 5-V-Zuleitung | 1 |
+| 15 | Sicherungshalter + Feinsicherung **1 A träge** (Netzseite) | 1 |
+| 16 | Gehäuse, berührungssicher, mit Sichtfenster | 1 |
+| 17 | I²C-Isolator ISO1540/ISO1541 als Modul | 1 |
+| 18 | Isolierter DC-DC 5 → 9 V, 1 W (**B0509S-1W**) | 1 |
+| 19 | Linearregler AMS1117-5.0 | 1 |
+| 20 | Elko 10 µF und 22 µF, 2× 100 nF (Filter isolierte Seite) | 1 Satz |
+| 21 | Ferritperle für die isolierte 5-V-Zuleitung | 1 |
 
-Zusätzlich (siehe Abschnitt 12):
+> **Das 5-V-Netzteil sollte mindestens 1 A liefern.** Es versorgt Displayboard,
+> Relaisspule und die isolierte Messseite gemeinsam. Ein knappes 3-W-Modul
+> (600 mA) wie das TSP-05 ist grenzwertig — ohne kräftigen Stützkondensator
+> bricht die 5-V-Schiene beim WLAN-Senden oder beim Anziehen des Relais ein und
+> der ESP32 startet neu.
 
-| Pos | Teil | Menge |
-|---|---|---|
-| 21 | Gehäuse mit Sichtfenster für das Display | 1 |
-
-> **Der Buck-Converter muss mindestens 1 A liefern.** Das Displayboard zieht
-> je nach Helligkeit 150–300 mA, dazu kommen pH-Board und Reserve. Ein kleiner
-> 0,5-A-Buck bricht ein, sobald das Display hell wird und gleichzeitig der
-> Motor anläuft.
-
-> **Buchsenleisten statt Direktlöten.** TMC2209 und ADS1115 werden gesteckt,
-> nicht eingelötet. Der TMC2209 ist ein Verschleißteil — und Auslöten von
-> 16 Pins auf Lochraster endet meistens mit einer zerstörten Platine.
-> Zum Displayboard führen ohnehin nur wenige Adern; die kommen an eine
-> steckbare Verbindung, damit das Board für Reparaturen frei wird.
+> **Buchsenleiste statt Direktlöten für den ADS1115.** Der ADS1115 wird
+> gesteckt, nicht eingelötet. Auch zum Displayboard und zum Relaismodul führen
+> nur wenige Adern — die kommen an steckbare Verbindungen, damit die Module für
+> Reparaturen frei werden.
 
 ---
 
@@ -100,132 +112,103 @@ Zusätzlich (siehe Abschnitt 12):
 
 ![Platine mit gesteckten Modulen](bilder/01-platine-bestueckt.jpg)
 
-*Die bestückte Platine vor dem Verdrahten. Links oben das pH-Signalboard mit
-BNC-Buchse und den beiden Trimmpotis, in der Mitte der ADS1115, rechts das
-T-Display S3 AMOLED. Links unten die Treiber-Erweiterungskarte mit dem
-TMC2209 und dem blauen Kühlkörper, daneben der Buck-Converter. TMC2209 und
-ADS1115 stehen bewusst weit auseinander — der Treiber wird warm.*
+*(Das Foto zeigt den **früheren Stepper-Aufbau** mit TMC2209 und Buck-Converter.
+Die Messkette links/oben — pH-Board mit BNC, ADS1115, T-Display S3 AMOLED —
+bleibt gleich; anstelle von Treiber und Buck sitzen jetzt Relaismodul und
+AC/DC-Netzteil.)*
 
-1. Platine so ausrichten, dass später gilt: **12 V/Motor links, Signale rechts.**
-   Das hält die Leistungsströme von der Messkette fern.
-2. Die Buchsenleisten für TMC2209 und ADS1115 probeweise bestücken und die
-   Position anzeichnen. Zwischen TMC2209 und ADS1115 mindestens 20 mm Abstand
-   lassen — der Treiber wird warm. Das Displayboard sitzt nicht auf der
-   Lochrasterplatine, sondern hinter dem Gehäusefenster und wird über eine
-   steckbare Leitung angebunden.
-3. Buchsenleisten löten: erst **je einen Eckpin** anlöten, Ausrichtung
-   prüfen (Leiste muss plan aufliegen), dann die restlichen Pins.
-4. Schraubklemmen einlöten:
-   * KL1 (2-polig, RM 5,0): 12-V-Eingang
-   * KL2 (2-polig, RM 5,0): Motor Spule 1
-   * KL3 (2-polig, RM 5,0): Motor Spule 2
-   * KL4 (3-polig, RM 3,5): pH-Board (V+, G, PO)
-   * KL5 (3-polig, RM 3,5): Reserve
-   * KL6 (6-polig oder Stiftleiste): Leitung zum Displayboard
-     (5 V, GND, 3V3, STEP, DIR, EN, SDA, SCL — Aufteilung nach Platzangebot)
-5. **GND-Sternpunkt** anlegen: ein kräftiger Lötpunkt (oder ein 2-poliger
-   Lötstützpunkt) etwa mittig auf der Platine. Alle Massen laufen dorthin,
-   nicht kreuz und quer von Modul zu Modul.
+1. Platine so ausrichten, dass später gilt: **Netzseite (TSP-05, Relais, Motor)
+   auf einer Seite, Messkette auf der anderen.** Das hält Netzspannung und
+   Störungen von der hochohmigen Messkette fern.
+2. Die Buchsenleiste für den ADS1115 probeweise bestücken und die Position
+   anzeichnen. Das Displayboard und das Relaismodul sitzen nicht fest auf der
+   Lochrasterplatine, sondern werden über steckbare Leitungen angebunden.
+3. Buchsenleisten löten: erst **je einen Eckpin** anlöten, Ausrichtung prüfen
+   (Leiste muss plan aufliegen), dann die restlichen Pins.
+4. Klemmen/Steckverbinder einlöten:
+   * KL_pH (Kleinspannung, 3-polig): pH-Board (V+, G, PO)
+   * KL_disp (Stiftleiste): Leitung zum Displayboard
+     (5 V, GND, 3V3, Relais-`S`, SDA, SCL)
+   * KL_relay (Stiftleiste 3-polig): zum Relais-Header `S · + · −`
+   * **Netzklemmen** (getrennter, berührungssicherer Bereich): L, N, Motor
+5. **GND-Sternpunkt** anlegen: ein kräftiger Lötpunkt etwa mittig auf der
+   Kleinspannungsseite. Alle Kleinspannungs-Massen laufen dorthin — **nicht** der
+   Netz-Neutralleiter N.
 
 **Prüfen:** Durchgangsprüfer zwischen benachbarten Pins jeder Buchsenleiste —
 darf **nirgends** piepen. Lötbrücken jetzt finden, nicht später.
 
 ---
 
-## 3. Baugruppe B — Masse und 12-V-Zweig
+## 3. Baugruppe B — 5-V-Versorgung aus dem AC/DC-Netzteil
 
-1. Alle GND-Pins mit 0,5 mm² schwarz sternförmig an den GND-Sternpunkt:
-   * KL1 Minus
-   * TMC2209-Sockel `GND` (beide, Leistungs- und Logikseite)
-   * KL6 `GND` (zum Displayboard)
-   * ADS1115-Sockel `GND`
-   * KL4 `G`
-   * Buck `IN−` und `OUT−`
-2. `+12 V` von KL1 auf den TMC2209-Sockel `VMOT` — kurze, dicke Leitung.
-3. **C1 (100 µF)** direkt zwischen die Sockelpins `VMOT` und `GND` löten,
-   so dicht wie möglich am Treiber. Plus an VMOT, Minus (markierte Seite)
-   an GND. Ohne diesen Elko können Spannungsspitzen beim Motorstart den
-   TMC2209 zerstören.
-4. `+12 V` von KL1 zusätzlich zum Buck-Converter `IN+`.
+> ⚠️ **Die 230-V-Seite des TSP-05 wird erst in Abschnitt 10 gemeinsam mit dem
+> Motor verdrahtet — und von einer befähigten Person.** Hier geht es nur um die
+> 5-V-Ausgangsseite.
 
-**Prüfen:**
-* Durchgang KL1-Minus ↔ Sternpunkt: piept.
-* Durchgang KL1-Plus ↔ KL1-Minus: **piept nicht** (nur ein kurzes Aufladen
-  von C1, dann muss es hochohmig werden).
+1. TSP-05 provisorisch (durch eine Fachkraft, im Gehäuse) mit 230 V versorgen und
+   den Ausgang messen: **`+Vo` gegen `−Vo` ≈ 5,0 V.** Danach wieder spannungsfrei.
+2. `−Vo` an den **GND-Sternpunkt**.
+3. **C_bulk (470–1000 µF)** direkt zwischen `+Vo` und `−Vo`, dazu ein 100 nF
+   parallel. Plus an `+Vo`, Minus (markiert) an GND. Der Elko fängt die
+   WLAN- und Relais-Stromspitzen ab.
+4. `+Vo` über **D1** (Schottky, Ring/Kathode Richtung Display) auf die
+   Kleinspannungs-5-V-Schiene.
+5. Von der 5-V-Schiene (hinter D1) gehen ab:
+   * KL_disp `5V` → Displayboard `VBUS`
+   * Relais `+`
+   * B0509S `+Vin` (Messseite, Abschnitt 6)
 
----
-
-## 4. Baugruppe C — Buck-Converter einstellen
-
-**Dieser Schritt passiert isoliert, bevor der Buck an die Platine kommt.**
-
-1. Buck-Modul (**min. 1 A**) **ohne** angeschlossene Last mit 12 V versorgen.
-2. Ausgangsspannung messen und mit dem Trimmpoti auf **5,00 V** einstellen.
-   Bei MP1584-Modulen sind das oft mehrere Umdrehungen — geduldig drehen und
-   dabei messen.
-3. 12 V abschalten, Poti mit einem Tropfen Nagellack sichern.
-4. Erst jetzt: `OUT+` über **D1** (Schottky, Ring/Kathode Richtung Display)
-   auf KL6 `5V`, `OUT−` an den Sternpunkt.
-5. Vom Punkt hinter D1 zusätzlich eine Leitung zu KL4 `V+`
-   — **aber noch nicht anschließen**, bis Abschnitt 8 (Messung am pH-Board)
-   erledigt ist. Bis dahin die Ader isoliert beiseitelegen.
-
-**Prüfen:** Nach dem Einschalten (nur Buck, Displayboard noch nicht
+**Prüfen:** Nach dem Einschalten (nur TSP-05, Displayboard noch nicht
 angeschlossen) muss an D1-Kathode gegen GND ca. **4,6–4,8 V** liegen
 (5,0 V minus Diodenspannung).
 
-Die 5 V gehen auf ein **`VBUS`**-Pad der linken Stiftleiste (dort gibt es
-zwei davon, direkt über `GPIO16`). `VBUS` liegt board-intern parallel zur
-5-V-Schiene des USB-C-Anschlusses — genau deshalb sitzt D1 in der Zuleitung.
-Der Akkuanschluss bleibt frei.
+Die 5 V gehen auf ein **`VBUS`**-Pad der linken Stiftleiste (dort gibt es zwei
+davon, direkt über `GPIO16`). `VBUS` liegt board-intern parallel zur 5-V-Schiene
+des USB-C-Anschlusses — genau deshalb sitzt D1 in der Zuleitung. Der
+Akkuanschluss bleibt frei.
 
 ---
 
-## 5. Baugruppe D — Signalleitungen Displayboard ↔ TMC2209
+## 4. Baugruppe C — Relais anbinden (Steuerseite)
 
-Mit 0,25 mm² Litze, möglichst kurz und nicht parallel zu den Motorleitungen:
+Mit 0,25 mm² Litze, möglichst kurz:
 
 | Von | Nach | Farbvorschlag |
 |---|---|---|
-| S3 `GPIO11` | TMC2209 `STEP` | gelb |
-| S3 `GPIO12` | TMC2209 `DIR` | grün |
-| S3 `GPIO10` | TMC2209 `EN` | weiß |
-| S3 `3V3` | TMC2209 `VIO` | rot dünn |
+| S3 `GPIO10` | Relais `S` | weiß |
+| 5-V-Schiene | Relais `+` | rot |
+| GND-Sternpunkt | Relais `−` | schwarz |
 
-Alle benötigten Pins liegen auf der **linken Stiftleiste**, von oben nach
-unten: `3V3 · 1 · 2 · 3 · 10 · 11 · 12 · 13 · 14 · 15 · GND · VBUS · VBUS · 16`.
+Dann die eine Ergänzung:
 
-> **Nicht an GPIO 2 und 3 gehen.** Die sehen auf der Leiste frei aus, hängen
-> bei der Touch-Variante aber am CST816T. Wer sie belegt, verliert den Touch.
+5. **10 kΩ Pulldown** von Relais-`S` nach GND. Damit bleibt die Spule stromlos,
+   solange der ESP32 bootet oder im Reset hängt — ohne diesen Widerstand könnte
+   ein floatender `S`-Pin das Relais unkontrolliert anziehen.
 
-Dann die drei Ergänzungen am TMC2209-Sockel:
+> **Das Relais-`+` gehört an 5 V, nicht an 3,3 V.** Die 5-V-Spule zieht erst ab
+> ~3,75 V sicher an. Nur das **Signal** `S` kommt vom 3,3-V-GPIO.
 
-5. **R1 (10 kΩ)** von `EN` nach `VIO`. Damit ist der Treiber gesperrt,
-   solange der ESP32 bootet oder im Reset hängt — ohne diesen Widerstand
-   kann ein floatender EN-Pin den Motor unkontrolliert bestromen.
-6. `MS1` **und** `MS2` mit einer Drahtbrücke auf `VIO` (3,3 V) legen.
-   Ergibt 1/16 Microstepping = 3200 Schritte pro Umdrehung.
-7. `SPREAD`, `DIAG`, `INDEX`, `PDN/UART` bleiben **offen** — nichts anlöten.
-   `GPIO15` bleibt am S3 unbeschaltet, aber als UART-Reserve zugänglich.
+Die früheren Signaladern STEP/DIR/EN entfallen; `GPIO11`, `GPIO12` und `GPIO15`
+bleiben frei.
 
 **Prüfen:**
-* `EN` ↔ `VIO`: ca. 10 kΩ.
-* `MS1` ↔ `VIO` und `MS2` ↔ `VIO`: Durchgang.
-* `STEP`, `DIR`, `EN` gegen GND: **kein** Durchgang.
+* `S` ↔ GND: ca. 10 kΩ (der Pulldown).
+* `+` ↔ 5-V-Schiene: Durchgang. `−` ↔ Sternpunkt: Durchgang.
 
 ---
 
-## 6. Baugruppe E — isolierte Messseite
+## 5. Baugruppe D — isolierte Messseite
 
 **Die gesamte Messkette liegt hinter einer galvanischen Trennstelle.** Das ist
-keine Verfeinerung, sondern Voraussetzung: eine pH-Elektrode hat bis zu
-250 MΩ Innenwiderstand, und der Ableitstrom des Netzteils sucht seinen Weg zur
-Erde durch genau diese Elektrode. Gemessen an diesem Aufbau waren es **712 mV
-Messspanne am Netzteil gegen 0,7 mV an einer Powerbank** — Faktor tausend, bei
-sonst unverändertem Aufbau. Ohne Trennung ist die Anlage im Becken nicht
-kalibrierbar. Hergang in [INBETRIEBNAHME.md](INBETRIEBNAHME.md).
+keine Verfeinerung, sondern Voraussetzung: eine pH-Elektrode hat bis zu 250 MΩ
+Innenwiderstand, und der Ableitstrom des Netzteils sucht seinen Weg zur Erde
+durch genau diese Elektrode. Gemessen an einem vergleichbaren Aufbau waren es
+**712 mV Messspanne am Netzteil gegen 0,7 mV an einer Powerbank** — Faktor
+tausend. Ohne Trennung ist die Anlage im Becken nicht kalibrierbar. Hergang in
+[INBETRIEBNAHME.md](INBETRIEBNAHME.md).
 
-### 6.1 Isolierte Versorgung
+### 5.1 Isolierte Versorgung
 
 1. **Zweiten Massepunkt anlegen.** Ein eigener Lötstützpunkt, mit deutlichem
    Abstand zum Sternpunkt, am besten optisch als eigener Bereich markiert.
@@ -238,12 +221,12 @@ kalibrierbar. Hergang in [INBETRIEBNAHME.md](INBETRIEBNAHME.md).
    isolierte 5-V-Schiene. **22 µF und 100 nF am Reglerausgang**, dazu je
    100 nF direkt an pH-Board und ADS1115.
 
-> **Kein B0505S.** Ein ungeregelter 1-W-Wandler liefert bei den hier
-> benötigten rund 25 mA — 12 % seiner Nennlast — eher 5,5 bis 6 V. Der
-> ADS1115 verträgt maximal 5,5 V. Der Umweg über 9 V und den Linearregler
-> kostet 50 Cent und nimmt diese Unsicherheit heraus.
+> **Kein B0505S.** Ein ungeregelter 1-W-Wandler liefert bei den hier benötigten
+> rund 25 mA — 12 % seiner Nennlast — eher 5,5 bis 6 V. Der ADS1115 verträgt
+> maximal 5,5 V. Der Umweg über 9 V und den Linearregler kostet 50 Cent und
+> nimmt diese Unsicherheit heraus.
 
-### 6.2 Isolator
+### 5.2 Isolator
 
 5. `ISO1540` `VCC1` an S3 `3V3`, `GND1` an den **Sternpunkt**.
 6. `ISO1540` `SDA1` an S3 `GPIO13`, `SCL1` an S3 `GPIO14` — das ist der
@@ -252,221 +235,166 @@ kalibrierbar. Hergang in [INBETRIEBNAHME.md](INBETRIEBNAHME.md).
 7. `ISO1540` `VCC2` an die isolierte 5-V-Schiene, `GND2` an `GND iso`.
 8. `ISO1540` `SDA2`/`SCL2` an ADS1115 `SDA`/`SCL`.
 
-> **Pull-ups auf Seite 1 nicht vergessen.** Bisher hat den Bus allein das
-> ADS1115-Breakout mit seinen 10 kΩ hochgezogen. Die sitzen jetzt hinter der
-> Trennstelle. Bringt das Isolatormodul auf Seite 1 keine mit, gehören dort
-> **je 4,7 kΩ von SDA und SCL nach 3,3 V** hin — sonst bleibt der Bus tot und
-> es sieht aus wie ein defekter Isolator.
+> **Pull-ups auf Seite 1 nicht vergessen.** Bringt das Isolatormodul auf Seite 1
+> keine mit, gehören dort **je 4,7 kΩ von SDA und SCL nach 3,3 V** hin — sonst
+> bleibt der Bus tot und es sieht aus wie ein defekter Isolator.
 
-### 6.3 ADS1115
+### 5.3 ADS1115
 
 9. `VDD` des ADS1115-Sockels an die **isolierte 5-V-Schiene**, `GND` an
-   `GND iso`.
-
-   > Früher stand hier „nicht 5 V". Das galt, solange der ADS1115 direkt am
-   > ESP32 hing — dessen GPIOs sind nicht 5-V-tolerant. Hinter dem Isolator
-   > ist das gegenstandslos: die Pegelanpassung macht der ISO1540. pH-Board
-   > und ADS1115 **müssen** auf derselben Schiene liegen, sonst arbeiten die
-   > Pull-ups des Breakouts gegen einen anderen Pegel.
+   `GND iso`. pH-Board und ADS1115 **müssen** auf derselben Schiene liegen,
+   sonst arbeiten die Pull-ups des Breakouts gegen einen anderen Pegel.
 10. `ADDR` an `GND iso` (I²C-Adresse 0x48).
-
-> Die **Qwiic-Buchse** des Displayboards scheidet mit der Trennung aus: sie
-> führt Masse und 3,3 V der netzbezogenen Seite direkt heran und würde die
-> Trennstelle überbrücken.
-11. **R2 (10 kΩ)** von KL4 `PO` zum ADS1115-Sockel `A0`.
-    Den Widerstand direkt an der Klemme anlöten und die Verbindung zu `A0`
-    möglichst kurz halten. R2 liegt vollständig auf der isolierten Seite.
+11. **R2 (10 kΩ)** von KL_pH `PO` zum ADS1115-Sockel `A0`. Direkt an der Klemme
+    anlöten, Verbindung zu `A0` kurz halten. R2 liegt vollständig auf der
+    isolierten Seite.
 12. `A1`, `A2`, `A3` bleiben frei.
 
-**Prüfen — und zwar am LEEREN Sockel, bevor der Chip hineinkommt:**
+**Prüfen — am LEEREN Sockel, bevor der Chip hineinkommt:**
 
-> **Diese Messung entscheidet über das Bauteil.** Der ADS1115 verträgt laut
-> Datenblatt maximal 5,5 V an `VDD`. Liegen dort versehentlich die 12 V der
-> Motorschiene, raucht er in dem Moment ab, in dem du ihn einsteckst — und ein
-> IC, das geraucht hat, ist Schrott, auch wenn es danach noch antwortet.
->
-> Also: Modul **draußen lassen**, Anlage einschalten, und am leeren Sockel
-> messen:
->
-> * `VDD` gegen `GND iso`: **5,0 V ± 0,1** vom AMS1117. Nicht 9 V, nicht 12 V.
-> * Messspitzen tauschen: der Wert muss negativ werden. Bestätigt, dass
->   Versorgung und Masse nicht verpolt sind.
-> * Anlage wieder ausschalten, dann erst das Modul stecken.
->
-> Dieselbe Messung lohnt an jedem Sockel, in dem ein Halbleiter sitzt.
+> * `VDD` gegen `GND iso`: **5,0 V ± 0,1** vom AMS1117. Nicht 9 V.
+> * Messspitzen tauschen: der Wert muss negativ werden (Versorgung/Masse nicht
+>   verpolt).
+> * Anlage ausschalten, dann erst das Modul stecken.
 
 Danach, stromlos:
-* **`GND iso` ↔ Sternpunkt: KEIN Durchgang.** Das ist die eine Messung, die
-  über Erfolg oder Misserfolg des ganzen Umbaus entscheidet. Bleibt irgendwo
-  eine Ader stehen, funktioniert alles wie vorher — nur die Störung ist
-  wieder da, und man sucht sie lange. Dasselbe zwischen isolierter 5-V-Schiene
-  und der netzbezogenen 5-V-Schiene.
+* **`GND iso` ↔ Sternpunkt: KEIN Durchgang.** Das ist die eine Messung, die über
+  Erfolg oder Misserfolg des ganzen Aufbaus entscheidet. Dasselbe zwischen
+  isolierter und netzbezogener 5-V-Schiene.
 * `VDD` ↔ `GND iso` am ADS-Sockel: **kein** Durchgang.
-* KL4 `PO` ↔ ADS `A0`: ca. 10 kΩ.
-* `SDA1` ↔ 3,3 V am Isolator: ca. 4,7–10 kΩ. Misst du „unendlich", fehlen die
-  Pull-ups auf Seite 1 — siehe oben.
+* KL_pH `PO` ↔ ADS `A0`: ca. 10 kΩ.
+* `SDA1` ↔ 3,3 V am Isolator: ca. 4,7–10 kΩ. „Unendlich" → Pull-ups auf Seite 1
+  fehlen.
 
 ---
 
-## 7. Erster Funktionstest — nur Logik, kein Motor, keine 12 V
+## 6. Erster Funktionstest — nur Logik, keine Netzspannung
 
-1. **TMC2209-Modul noch NICHT stecken.** 12-V-Netzteil bleibt aus.
-2. ADS1115 in den Sockel stecken, Displayboard über KL6 anschließen —
-   aber **nur** GND, 3V3, SDA und SCL. Die 5-V-Ader bleibt vorerst ab.
-3. Displayboard nur per **USB-C** mit dem PC verbinden.
-4. Testsketch `tools/i2c_adc_test` flashen (siehe
-   [INBETRIEBNAHME.md](INBETRIEBNAHME.md), Phase 1).
-5. Im seriellen Monitor muss stehen: `gefunden: 0x48 <- sieht nach ADS1115 aus`.
+1. **TSP-05 nicht an 230 V.** Motor nicht angeschlossen.
+2. ADS1115 in den Sockel stecken, Displayboard anschließen (GND, 3V3, SDA, SCL),
+   Relaismodul über `S·+·−` anbinden.
+3. Displayboard nur per **USB-C** mit dem PC verbinden (versorgt Logik und
+   Relaisspule über die 5-V-Schiene).
+4. Testsketch `tools/i2c_adc_test` flashen (siehe [INBETRIEBNAHME.md](INBETRIEBNAHME.md),
+   Phase 1).
+5. Im seriellen Monitor muss `0x48` erscheinen (ADS1115).
 
-Kommt hier nichts, liegt es fast immer an: SDA/SCL vertauscht, GND fehlt,
-VDD fehlt, oder Pull-ups fehlen. Erst weitermachen, wenn 0x48 erscheint.
-
-> Der Touchcontroller `0x15` liegt auf dem **anderen** I²C-Bus (GPIO2/3) und
-> taucht in diesem Scan nicht auf. Das ist richtig so.
+Kommt hier nichts, liegt es fast immer an: SDA/SCL vertauscht, GND fehlt, VDD
+fehlt, oder Pull-ups fehlen. Der Touchcontroller `0x15` liegt auf dem **anderen**
+Bus (GPIO2/3) und taucht in diesem Scan nicht auf — das ist richtig so.
 
 ---
 
-## 8. pH-Board messen und anschließen
+## 7. pH-Board messen und anschließen
 
-**Erst jetzt** wird das pH-Board mit Spannung versorgt — und zwar zunächst
-auf dem Tisch, nicht an der Platine.
+**Erst jetzt** wird das pH-Board mit Spannung versorgt — zunächst auf dem Tisch.
 
 1. Aufdruck des Boards lesen: 5 V oder 3,3–5 V?
-2. Board provisorisch mit der passenden Spannung versorgen (Labornetzteil
-   oder der bereits eingestellte Buck), `G` an GND.
+2. Board provisorisch mit der passenden Spannung versorgen, `G` an GND.
 3. pH-Sonde anstecken, in **pH-7-Pufferlösung** stellen, 2 Minuten warten.
 4. `PO` gegen `G` messen und notieren: ____ V
-5. Sonde spülen (destilliertes Wasser), in **pH-4-Pufferlösung**,
-   2 Minuten warten, `PO` messen und notieren: ____ V
+5. Sonde spülen, in **pH-4-Pufferlösung**, 2 Minuten warten, `PO` messen: ____ V
 6. Auswerten:
-   * Beide Werte ≤ 3,2 V → alles gut, `PO` direkt an KL4 anschließen.
-   * Ein Wert > 3,2 V → Spannungsteiler ergänzen: 10 kΩ von `PO` nach
-     `A0`-Knoten (das ist bereits R2) plus 20 kΩ von diesem Knoten nach GND.
-     Damit landen 3,3 V-Eingangssignal ≈ 2,2 V am ADC. Die Kalibrierung
-     rechnet den Faktor automatisch heraus.
-7. Erst jetzt die in Abschnitt 4 beiseitegelegte `V+`-Ader an KL4 anschließen.
-8. pH-Board und Sonde an KL4 verdrahten: `V+`, `G`, `PO`.
+   * Beide Werte ≤ 3,2 V → `PO` direkt an KL_pH anschließen.
+   * Ein Wert > 3,2 V → Spannungsteiler ergänzen (10 kΩ = R2 plus 20 kΩ nach
+     GND iso). Die Kalibrierung rechnet den Faktor automatisch heraus.
+7. pH-Board an KL_pH verdrahten: `V+` (an +5 V iso), `G` (an GND iso), `PO`.
 
-**Kabelführung:** Das BNC-Kabel der Sonde und die Leitung zum pH-Board
-möglichst kurz halten und mit **mindestens 10 cm Abstand** zu den
-Motorleitungen verlegen. Das Sondensignal ist hochohmig und fängt
-Störungen aus den Motorleitungen sonst zuverlässig ein.
+**Kabelführung:** Das BNC-Kabel der Sonde und die Leitung zum pH-Board möglichst
+kurz halten und mit **mindestens 10 cm Abstand** zu Netz- und Motorleitungen
+verlegen. Das Sondensignal ist hochohmig und fängt Störungen sonst zuverlässig
+ein.
 
 ---
 
-## 9. TMC2209 vorbereiten — VREF einstellen
+## 8. Relais und Pumpe testen — noch OHNE Netzspannung am Motor
 
-**Bevor der Motor angeschlossen wird.**
+**Zuerst die Schaltlogik klären, mit abgezogener Pumpe.** Das Relaismodul
+(KY-019, Header `S·+·−`) hat keinen Optokoppler und ist typischerweise
+**aktiv-HIGH**.
 
-1. Kühlkörper auf den Treiberchip kleben (Wärmeleitpad, nicht auf die
-   Rückseite der Platine).
-2. TMC2209-Modul in den Sockel stecken. **Motor noch nicht anschließen.**
-   Auf die Einbaurichtung achten — die Pinbeschriftung des Moduls muss
-   zur Beschriftung der Platine passen. Verkehrt herum gesteckt raucht der
-   Treiber sofort ab.
-3. 12 V einschalten.
-4. VREF messen: Multimeter-Minus an GND, Plus an den **Schleifer des
-   Trimmpotis** (bei vielen Modulen gibt es einen kleinen Testpunkt daneben).
-   Kein metallischer Schraubendreher am Poti, während gemessen wird —
-   ein Ausrutscher schließt VREF kurz.
-5. **Nennstrom des Motors aus dem Datenblatt nehmen.** Nicht aus dem
-   Spulenwiderstand ableiten — das geht um Faktoren daneben. Der hier
-   verwendete NEMA17 ist mit **0,4 A pro Phase** angegeben, obwohl seine
-   3,6 Ω nach einem deutlich stärkeren Motor aussehen.
+1. Nur USB/5 V, **Motorklemme frei** (kein 230 V am Relaiskontakt).
+2. Hauptfirmware flashen, serielle Konsole öffnen.
+3. `run 3` eingeben. Das Relais muss hörbar **anziehen (Klick + LED)** und nach
+   3 Sekunden **von selbst abfallen**.
+   * Zieht es **verkehrt** an (Ruhe = angezogen, oder schon beim Booten) →
+     `set rinv 1` (aktiv-HIGH) und erneut `run 3`. Alternativ „Relais
+     invertieren" im Webinterface.
+4. Ergebnis merken: Das Relais darf im Ruhezustand **nicht** angezogen sein.
 
-6. Zielstrom auf **70–80 % des Nennstroms** legen, also 0,28–0,32 A.
-   Die Formel hängt am Treiber:
-
-   | Treiber | Formel | für 0,28–0,32 A |
-   |---|---|---|
-   | **A4988**, Rsense 0,1 Ω | `VREF = I × 8 × Rsense` | **0,224–0,256 V** |
-   | **TMC2209**, Rsense 0,11 Ω | `I_RMS ≈ VREF × 1,77` | **0,16–0,18 V** |
-
-   > Sense-Widerstände unterscheiden sich zwischen Herstellern. Steht auf
-   > deinem Modul ein anderer Wert, gilt der.
-
-   **Zu viel Strom ist kein Sicherheitspolster, sondern der direkte Weg zum
-   überhitzten Motor.**
-
-   > **Wenn die Formel nicht greift.** Sie setzt einen bekannten
-   > Sense-Widerstand voraus — bei Modulen mit abweichender Strombelastbarkeit
-   > (etwa „2,5 A"-Ausführungen) steht der oft nirgends. Und Datenblätter
-   > billiger Motoren widersprechen sich: Das hier verwendete nennt 0,4 A,
-   > während 3,6 Ω pro Wicklung eher auf die 1-A-Klasse deuten.
-   >
-   > Dann gilt die **Temperatur** als Maßstab. Verlustleistung beider
-   > Wicklungen ist `P = 2 × I² × R`; für einen 42 × 34 mm NEMA17 sind 3–5 W
-   > üblich. Praktisch: fünf Minuten laufen lassen und anfassen. Handwarm bis
-   > deutlich warm ist gut, ab etwa 80 °C nimmt der Rotormagnet dauerhaft
-   > Schaden.
-   >
-   > Vorgehen: VREF **von oben herunter** so weit senken, bis die Pumpe gerade
-   > noch zuverlässig anläuft, dann rund 20 % Reserve draufgeben.
-7. 12 V wieder ausschalten.
-
-**Vorgehen später:** In Phase 2 den Strom in 0,05-V-Schritten erhöhen, bis
-die Pumpe unter Last keine Schritte mehr verliert. Danach nicht weiter
-erhöhen. Der Motor darf handwarm bis deutlich warm werden (ca. 60 °C sind
-für Schrittmotoren normal), aber nicht so heiß, dass man ihn nicht
-kurz anfassen kann.
+**Prüfen:** Beim Booten und im Ruhezustand ist die Relais-LED **aus**. Der
+10 kΩ Pulldown und die richtige `rinv`-Einstellung sichern das ab.
 
 ---
 
-## 10. Motor anschließen
+## 9. Förderrate kalibrieren (mit Wasser)
 
-1. **12 V ausgeschaltet.** Prüfen, nicht annehmen.
-2. Spulenpaare messen — **nicht aus der Farbfolge raten**. Am vorliegenden
-   Motor ergab die Messung:
-   * rot ↔ blau: **3,6 Ω** → Spule 1
-   * grün ↔ schwarz: **3,6 Ω** → Spule 2
-   * Adern verschiedener Spulen: **∞**
+Kommt der Motor über das Relais an Netzspannung (Abschnitt 10), wird die
+Förderrate bestimmt. **Mit Wasser, nicht mit Säure.** Vorgehen und Formel stehen
+in [INBETRIEBNAHME.md](INBETRIEBNAHME.md), Phase 3 — kurz:
 
-   Bei einem anderen Motor selbst messen. Ohne Messgerät: zwei Adern
-   kurzschließen und die Welle drehen — wird sie schwergängig, ist es ein Paar.
-3. Spule 1 (rot/blau) an KL2, Spule 2 (grün/schwarz) an KL3.
-4. Von KL2/KL3 zu den TMC2209-Sockelpins:
-   `KL2-1 → 1A`, `KL2-2 → 1B`, `KL3-1 → 2A`, `KL3-2 → 2B`.
-5. Motorleitungen verdrillen (je Spulenpaar) — reduziert die Abstrahlung
-   deutlich.
+1. Saug-/Druckschlauch einlegen, Saugseite ins Wasserglas.
+2. Entlüften: `run 30`, bis blasenfrei Wasser kommt.
+3. Definierte Zeit fahren: `run 60`, geförderte Menge messen (z. B. 9,4 ml).
+4. `mlps 60 9.4` → Firmware speichert die Förderrate (ml/s).
+5. Gegenprobe: `dose 5` → es müssen ca. 5 ml kommen.
 
-**Prüfen:** Durchgang zwischen KL2 und KL3 darf es nicht geben.
+---
+
+## 10. Netzseite verdrahten — durch eine befähigte Person
+
+> ⚠️ **230 V. Spannungsfrei arbeiten, im Gehäuse, mit Vorsicherung.** Dieser
+> Abschnitt beschreibt nur die Verbindungspunkte — die fachgerechte Ausführung
+> (Klemmen, Zugentlastung, Kriechstrecken, PE) liegt in der Verantwortung der
+> ausführenden Person.
+
+Anschlussplan:
+
+```text
+Netz L ──[Sicherung 1 A T]──┬── TSP-05 AC
+                            └── Relais COM
+Relais NO ───────────────────── Motor L
+Netz N ─────────────────────┬── TSP-05 AC
+                            └── Motor N
+PE ─────────────────────────── Motor/Aufbau (wo vorgesehen)
+```
+
+* **COM + NO** verwenden (nicht NC): stromlose Spule = Motor aus.
+* TSP-05-Eingang `AC/AC` ist ungepolt (L/N beliebig), der Relaiskontakt schaltet
+  aber ausdrücklich die **Phase (L)**.
+* Netzführende Adern in **H05VV-F 0,75 mm²**, mit Abstand zur Kleinspannung.
+
+**Prüfen (spannungsfrei):**
+* COM ↔ NO: nur Durchgang, wenn das Relais angezogen ist.
+* Kein Durchgang zwischen Netzseite und irgendeiner Kleinspannungs-/GND-Ader.
 
 ---
 
 ## 11. Abschließende Prüfliste vor dem ersten Volllauf
 
 > **Zuerst, stromlos: `GND iso` gegen Sternpunkt auf Durchgang prüfen.**
-> Es darf keiner bestehen. Diese Messung steht bewusst an erster Stelle —
-> sie ist in einer Minute gemacht und erspart tagelange Fehlersuche an einer
-> Messung, die scheinbar grundlos rauscht.
-
-Alles abhaken, bevor 12 V dauerhaft anliegen:
+> Es darf keiner bestehen.
 
 - [ ] Sichtprüfung mit Lupe: keine Lötbrücken, keine kalten Lötstellen
-- [ ] KL1 Plus ↔ Minus: kein Kurzschluss
 - [ ] 3,3-V-Netz ↔ GND: kein Kurzschluss
 - [ ] 5-V-Netz ↔ GND: kein Kurzschluss
-- [ ] 12-V-Netz ↔ 5-V-Netz: kein Durchgang
-- [ ] Alle GND am Sternpunkt, Durchgang zu jedem Modul
-- [ ] C1 richtig gepolt, direkt am TMC2209
-- [ ] R1 (EN-Pull-up) sitzt
-- [ ] MS1 und MS2 auf VIO
-- [ ] Sicherung 2 A träge in der 12-V-Zuleitung
-- [ ] Buck-Ausgang auf 5,0 V eingestellt und nachgemessen
+- [ ] Netzseite ↔ Kleinspannung/GND: **kein** Durchgang
+- [ ] Alle Kleinspannungs-GND am Sternpunkt; N **nicht** am Sternpunkt
+- [ ] C_bulk richtig gepolt an der 5-V-Schiene
 - [ ] D1 richtig gepolt (Ring zeigt zum ESP32)
-- [ ] TMC2209 richtig herum gesteckt
-- [ ] VREF passend zum **Datenblatt-Nennstrom** eingestellt (70–80 %)
-- [ ] Motorstecker fest, Spulen korrekt zugeordnet
-- [ ] Kühlkörper auf dem TMC2209
-- [ ] Sondenkabel getrennt von den Motorleitungen verlegt
+- [ ] 10 kΩ Pulldown am Relais-`S`
+- [ ] Relais-`+` an 5 V (nicht 3,3 V)
+- [ ] `set rinv` so gesetzt, dass Ruhe = Relais aus (via `run 3` verifiziert)
+- [ ] Vorsicherung 1 A träge in der Phase
+- [ ] 5 V liegen auf `VBUS`, nicht auf `3V3`
+- [ ] 5-V-Netzteil ausreichend dimensioniert (Spannung unter WLAN-Last > 4,7 V)
 - [ ] Firmware geflasht
 - [ ] Nichts an GPIO 2 oder 3 angeschlossen (Touch!)
-- [ ] 5 V liegen auf `VBUS`, nicht auf `3V3`
-- [ ] Buck-Converter für mindestens 1 A ausgelegt
-- [ ] Spannung am Displayboard unter Last gemessen (> 4,7 V bei laufendem Motor)
+- [ ] Sondenkabel getrennt von Netz-/Motorleitungen verlegt
+- [ ] Netzseite fachgerecht ausgeführt, alles im berührungssicheren Gehäuse
 
-**Einschaltreihenfolge:** immer erst USB/5 V (Logik), dann 12 V.
-**Ausschaltreihenfolge:** erst 12 V, dann Logik.
+**Einschaltreihenfolge:** immer erst USB/5 V (Logik), dann 230 V.
+**Ausschaltreihenfolge:** erst 230 V, dann Logik.
 
 ---
 
@@ -474,27 +402,25 @@ Alles abhaken, bevor 12 V dauerhaft anliegen:
 
 ![Fertig verdrahteter Aufbau](bilder/02-aufbau-verdrahtet.jpg)
 
-*Endzustand: Leistungsseite links (12 V, Treiber, Motorkabel), Messkette
-rechts oben. Das Displayboard ist im Gehäuse fixiert, die Motorleitung kreuzt
-die Platine mit Abstand zum I²C-Bus.*
+*(Das Foto zeigt den **früheren Stepper-Aufbau**. Im aktuellen Aufbau sitzen
+statt Treiber und Buck das Relaismodul und das AC/DC-Netzteil; die Netzseite ist
+räumlich von der Messkette getrennt.)*
 
-Am Board selbst wird nichts gelötet — Display und Touch sind integriert. Es
-geht nur um Befestigung und die Anbindung über KL6.
+Am Board selbst wird nichts gelötet — Display und Touch sind integriert. Es geht
+nur um Befestigung und die Anbindung.
 
-1. **Ausschnitt im Gehäusedeckel** anfertigen: sichtbare Fläche 536 × 240 px
-   auf 1,91 Zoll, also rund 43 × 19 mm. Etwas Rand einplanen, das Glas endet
-   nicht bündig mit der Anzeige.
-2. Board mit Abstandsbolzen M3 hinter dem Fenster befestigen. **Nicht** auf
-   die Rückseite drücken, dort liegen Bauteile.
-3. Verbindung zur Lochrasterplatine über KL6 stecken:
-   `5 V` (hinter D1), `GND`, `3V3`, `STEP`, `DIR`, `EN`, `SDA`, `SCL`.
-4. Die Leitung so verlegen, dass sie **nicht parallel zu den Motorleitungen**
-   läuft — sie führt sowohl den I²C-Bus als auch die Schrittimpulse.
-5. Den USB-C-Anschluss zugänglich lassen: er ist der Weg für Firmware und
-   serielle Konsole, wenn WLAN oder Display einmal nicht mitspielen.
+1. **Ausschnitt im Gehäusedeckel**: sichtbare Fläche 536 × 240 px auf 1,91 Zoll,
+   also rund 43 × 19 mm. Etwas Rand einplanen.
+2. Board mit Abstandsbolzen M3 hinter dem Fenster befestigen. **Nicht** auf die
+   Rückseite drücken, dort liegen Bauteile.
+3. Verbindung zur Lochrasterplatine stecken: `5 V` (hinter D1), `GND`, `3V3`,
+   Relais-`S`, `SDA`, `SCL`.
+4. Die Leitung so verlegen, dass sie **nicht parallel zu Netz-/Motorleitungen**
+   läuft.
+5. Den USB-C-Anschluss zugänglich lassen: Weg für Firmware und serielle Konsole.
 
-**Prüfen:** Mit eingeschaltetem Display und laufendem Motor die 5-V-Spannung
-am Displayboard messen. Fällt sie unter 4,7 V, ist der Buck zu klein.
+**Prüfen:** Mit eingeschaltetem Display und angezogenem Relais die 5-V-Spannung
+messen. Fällt sie unter 4,7 V, ist das Netzteil zu klein oder C_bulk zu klein.
 
 **Montageort:** Das AMOLED ist nicht für Dauerfeuchte gebaut. Im Technikraum
 gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
@@ -505,28 +431,25 @@ gehört es in ein Gehäuse mit Sichtfenster, nicht offen an die Wand.
 
 ![Pumpenkopf von außen](bilder/03-pumpenkopf.jpg)
 
-*Der Pumpenkopf von außen auf dem Gehäuse. Im Rotor sitzen drei Rollenlager,
-in der Mitte das 608er Kugellager der verstärkten Wellenaufnahme. Unten die
-beiden Schlauchenden — Saug- und Druckseite.*
+*(Das Foto zeigt den Pumpenkopf auf dem früheren NEMA17. Am AC-Synchronmotor
+sind Wellen-/Flanschmaße anders — Kopfaufnahme und Halter entsprechend anpassen.)*
 
-* Peristaltikkopf auf die NEMA17-Welle: Wellendurchmesser 5 mm prüfen,
-  Madenschraube auf die Abflachung setzen. Verwendet wird das 3D-Druckmodell
-  [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump)
-  von MakerWorld; die STL liegt unter
-  [../hardware/pumpe/](../hardware/pumpe/) im Repo. Die V2 hat die
-  **verstärkte Wellenaufnahme** — dort liegt das volle Pumpenmoment an, und
-  eine ausgeleierte Aufnahme fördert zu wenig, ohne dass es die Firmware
-  merken kann. Begründung in [../hardware/README.md](../hardware/README.md).
+* Peristaltikkopf auf die **Welle des AC-Synchronmotors**: Wellendurchmesser und
+  Abflachung/Passfeder des konkreten Motors messen, Aufnahme darauf auslegen.
+  Verwendet wird das 3D-Druckmodell
+  [V2 Peristaltic Pump](https://makerworld.com/de/models/2225892-v2-peristaltic-pump-water-pump-measuring-pump);
+  die STL liegt unter [../hardware/pumpe/](../hardware/pumpe/). Der V2-Kopf ist
+  für eine 5-mm-NEMA17-Welle gezeichnet — für den AC-Motor ggf. Adapter oder
+  angepasste Aufnahme.
 * Die Pumpe **oberhalb** des Säurebehälters montieren.
 * Saugseite: Schlauch mit Fußventil und Ansaugfilter im Kanister.
-* Druckseite: Impfventil (Rückschlagventil) im Bypass **nach** dem Filter
-  und **nach** der Wärmepumpe/Heizung, mit möglichst gutem Abstand
-  zur pH-Sonde — sonst misst die Sonde die frische Säure statt des
-  Poolwassers und die Regelung schwingt.
-* Sonde selbst: in einer Messzelle im Bypass oder mit Sondenhalter im
-  Rücklauf, immer **vor** dem Einspritzpunkt.
-* Schlauch als Verschleißteil betrachten: Wechselintervall notieren
-  (typisch 500–1000 Betriebsstunden) und regelmäßig auf Risse prüfen.
+* Druckseite: Impfventil (Rückschlagventil) im Bypass **nach** Filter und
+  Heizung/Wärmepumpe, mit gutem Abstand zur pH-Sonde — sonst misst die Sonde die
+  frische Säure statt des Poolwassers und die Regelung schwingt.
+* Sonde selbst: in einer Messzelle im Bypass oder mit Sondenhalter im Rücklauf,
+  immer **vor** dem Einspritzpunkt.
+* Schlauch als Verschleißteil betrachten: Wechselintervall notieren (typisch
+  500–1000 Betriebsstunden) und regelmäßig auf Risse prüfen.
 
 ---
 
@@ -535,17 +458,15 @@ beiden Schlauchenden — Saug- und Druckseite.*
 | Symptom | Wahrscheinliche Ursache |
 |---|---|
 | ADS1115 wird nicht gefunden | SDA/SCL vertauscht, GND fehlt, Pull-ups fehlen, ADDR offen |
-| Messwert springt stark | Sondenkabel zu lang/zu nah an Motorleitungen, GND nicht sternförmig |
+| Messwert springt stark | Sondenkabel zu lang/zu nah an Netz-/Motorleitungen, GND nicht sternförmig |
 | Messwert driftet langsam | Sonde alt oder ausgetrocknet, Kalibrierung fällig |
-| Motor brummt, dreht nicht | eine Spule falsch zugeordnet — Paare erneut durchmessen |
-| Motor läuft rau, verliert Schritte | VREF zu niedrig oder Schrittrate zu hoch |
-| TMC2209 sehr heiß | VREF zu hoch, Kühlkörper fehlt |
-| ESP startet neu, wenn der Motor anläuft | C1 fehlt/zu klein, Buck zu schwach, GND-Schleife |
-| 3200 Schritte ≠ 1 Umdrehung | MS1/MS2 nicht korrekt auf VIO |
+| Relais zieht nicht an | `+` an 3,3 V statt 5 V, `rinv` falsch, GPIO10/`S` vertauscht |
+| Relais fällt nicht ab / an beim Booten | `rinv` falsch (Board ist aktiv-HIGH) oder Pulldown fehlt |
+| Pumpe läuft, aber fördert nichts | Schlauch nicht entlüftet, Kanister leer, Impfventil zu |
+| ESP startet neu, wenn das Relais anzieht | C_bulk fehlt/zu klein, Netzteil zu schwach |
+| Display startet neu beim WLAN-Senden | Netzteil zu klein, C_bulk zu klein |
 | Firmware meldet dauerhaft „Sensorfehler" | pH-Board unversorgt, PO nicht angeschlossen, Spannung außerhalb 0,03–3,25 V |
-| Display startet neu, wenn der Motor anläuft | Buck zu klein oder 5-V-Leitung zu dünn |
 | Touch reagiert schlecht, seit der ADS1115 dran ist | ADS versehentlich auf dem Touchbus (GPIO2/3) statt auf GPIO13/14 |
-| Motor läuft ruckelig, Menge stimmt aber | normal: die Bildausgabe unterbricht die Schrittausgabe kurz |
 | Kein Bild, Konsole meldet „Display init failed" | Boardvariante oder Board-Einstellungen falsch |
-| ADS1115 wird heiß oder raucht | Falsche Spannung an `VDD` (12 V statt 3,3 V) oder Versorgung verpolt — Chip ersetzen, Ursache vorher finden |
+| ADS1115 wird heiß oder raucht | Falsche Spannung an `VDD` oder Versorgung verpolt — Chip ersetzen, Ursache vorher finden |
 | `Spannung unplausibel`, ADC roh = 0 | `A0` liegt auf GND statt auf `PO`, oder das pH-Board hat keine Versorgung |

@@ -1,317 +1,203 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1200" width="1280" height="1200" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" width="1200" height="860" font-family="Segoe UI, Arial, sans-serif">
 <style>
   .bx   { fill:#ffffff; stroke:#333333; stroke-width:2; }
-  .bxa  { fill:#f3f8f3; stroke:#2e7d32; stroke-width:2; }
-  .bxp  { fill:#fdf4f4; stroke:#b32b2b; stroke-width:2; }
-  .bxo  { fill:#fafafa; stroke:#999999; stroke-width:2; stroke-dasharray:6 4; }
-  .t    { font-size:15px; font-weight:600; fill:#111; }
+  .bxp  { fill:#fdf4f4; stroke:#c62828; stroke-width:2; }   /* Netzseite */
+  .bxi  { fill:#faf4fd; stroke:#7b1fa2; stroke-width:2; }   /* isolierte Messseite */
+  .bxc  { fill:#f3f8f3; stroke:#2e7d32; stroke-width:2; }   /* Steuerung */
+  .t    { font-size:15px; font-weight:700; fill:#111; }
   .s    { font-size:11px; fill:#555; }
   .p    { font-size:11px; fill:#111; }
   .lbl  { font-size:11px; fill:#333; }
   .note { font-size:12px; fill:#444; }
-  .w12  { stroke:#d32f2f; stroke-width:3; fill:none; }
-  .w5   { stroke:#ef6c00; stroke-width:2.5; fill:none; }
-  .w33  { stroke:#b58900; stroke-width:2.5; fill:none; }
-  .wg   { stroke:#000000; stroke-width:3; fill:none; }
-  .wsig { stroke:#1565c0; stroke-width:2; fill:none; }
-  .wana { stroke:#2e7d32; stroke-width:2; fill:none; }
-  .mr   { stroke:#d32f2f; stroke-width:2.5; fill:none; }
-  .mg   { stroke:#2e7d32; stroke-width:2.5; fill:none; }
-  .mb   { stroke:#1565c0; stroke-width:2.5; fill:none; }
-  .mk   { stroke:#000000; stroke-width:2.5; fill:none; }
-  .comp { stroke:#111; stroke-width:2; fill:#fff; }
-  .wrf  { stroke:#7b4fc9; stroke-width:2.5; fill:none; stroke-dasharray:9 6; }
-  .w5o  { stroke:#ef6c00; stroke-width:2.5; fill:none; stroke-dasharray:7 5; }
+  .warn { font-size:13px; font-weight:700; fill:#c62828; }
+  .mains{ stroke:#c62828; stroke-width:3.5; fill:none; }    /* 230 V */
+  .w5   { stroke:#ef6c00; stroke-width:2.5; fill:none; }    /* +5 V */
+  .wg   { stroke:#000000; stroke-width:3;   fill:none; }    /* GND */
+  .wsig { stroke:#1565c0; stroke-width:2;   fill:none; }    /* Signal/I2C */
+  .wana { stroke:#2e7d32; stroke-width:2;   fill:none; }    /* Analog */
   .iso  { stroke:#7b1fa2; stroke-width:2.5; fill:none; stroke-dasharray:10 6; }
-  .bxi  { fill:#faf4fd; stroke:#7b1fa2; stroke-width:2; }
-  .isot { font-size:12px; font-weight:700; fill:#7b1fa2; }
+  .hz   { stroke:#c62828; stroke-width:2;   fill:none; stroke-dasharray:8 5; }
 </style>
 
-<rect x="0" y="0" width="1280" height="1200" fill="#ffffff"/>
-<text x="24" y="34" font-size="22" font-weight="700" fill="#111">pH-Minus-Dosieranlage &#8211; Verdrahtungsplan</text>
-<text x="24" y="54" class="note">Ein Geraet: LilyGo T-Display S3 AMOLED (1,91&quot; QSPI, BOARD_AMOLED_191) &#183; Kreuzung ohne Punkt = keine Verbindung</text>
+<rect x="0" y="0" width="1200" height="860" fill="#ffffff"/>
+<text x="24" y="32" font-size="22" font-weight="700" fill="#111">pH-Minus-Dosieranlage &#8211; Verdrahtungsplan (Relais / AC-Motor)</text>
+<text x="24" y="52" class="note">Ein Geraet: LilyGo T-Display S3 AMOLED &#183; FW 2.3.0 &#183; Kreuzung ohne Punkt = keine Verbindung</text>
 
-<!-- ================= 12 V Bus oben ================= -->
-<!-- GND aussen (y=88), +12V innen (y=108) -->
-<path class="wg"  d="M 1190 620 L 1190 88 L 470 88 L 470 250"/>
-<path class="w12" d="M 1160 610 L 1160 108 L 500 108 L 500 210"/>
-<path class="w12" d="M 500 210 L 560 210"/>
-<path class="wg"  d="M 470 250 L 560 250"/>
+<!-- ===== Netz-Gefahrenzone ===== -->
+<rect x="24" y="70" width="360" height="250" rx="8" class="hz"/>
+<text x="34" y="90" class="warn">&#9888; 230 V &#8211; beruehrungssicher kapseln, Vorsicherung, Fachkraft</text>
 
-<!-- C1 zwischen 12V und GND direkt am Treiber -->
-<path class="w12" d="M 500 170 L 494 170"/>
-<line x1="494" y1="158" x2="494" y2="182" class="comp"/>
-<path d="M 486 158 L 486 182" class="comp"/>
-<path class="wg" d="M 486 170 L 470 170"/>
-<text x="462" y="150" text-anchor="end" class="lbl">C1</text>
-<text x="462" y="164" text-anchor="end" class="lbl">100 &#181;F</text>
-<text x="462" y="178" text-anchor="end" class="lbl">25 V</text>
-<circle cx="500" cy="170" r="3.5" fill="#d32f2f"/>
-<circle cx="470" cy="170" r="3.5" fill="#000"/>
+<!-- Netzeinspeisung -->
+<rect x="40" y="110" width="150" height="80" rx="6" class="bxp"/>
+<text x="115" y="140" text-anchor="middle" class="t">230 V ~</text>
+<text x="115" y="158" text-anchor="middle" class="s">Shelly-Kreis</text>
+<text x="115" y="174" text-anchor="middle" class="s">L &#183; N</text>
 
-<!-- ================= TMC2209 ================= -->
-<rect x="560" y="120" width="240" height="240" rx="6" class="bxp"/>
-<text x="680" y="146" text-anchor="middle" class="t">TMC2209</text>
-<text x="680" y="163" text-anchor="middle" class="s">Steppertreiber &#183; 1/16 Microstep</text>
-<text x="680" y="180" text-anchor="middle" class="s">VREF vor dem 1. Lauf einstellen!</text>
+<!-- Sicherung -->
+<rect x="212" y="118" width="60" height="26" rx="4" class="bxp"/>
+<text x="242" y="136" text-anchor="middle" class="lbl">F 1 A T</text>
 
-<text x="568" y="214" class="p">VMOT</text>
-<text x="568" y="254" class="p">GND</text>
-<text x="568" y="294" class="p">MS1</text>
-<text x="568" y="324" class="p">MS2</text>
-<text x="792" y="184" text-anchor="end" class="p">1A</text>
-<text x="792" y="214" text-anchor="end" class="p">1B</text>
-<text x="792" y="244" text-anchor="end" class="p">2A</text>
-<text x="792" y="274" text-anchor="end" class="p">2B</text>
-<text x="600" y="352" text-anchor="middle" class="p">EN</text>
-<text x="640" y="352" text-anchor="middle" class="p">STEP</text>
-<text x="682" y="352" text-anchor="middle" class="p">DIR</text>
-<text x="722" y="352" text-anchor="middle" class="p">VIO</text>
-<text x="762" y="352" text-anchor="middle" class="p">GND</text>
+<!-- TSP-05 -->
+<rect x="212" y="210" width="150" height="90" rx="6" class="bxp"/>
+<text x="287" y="238" text-anchor="middle" class="t">TSP-05</text>
+<text x="287" y="256" text-anchor="middle" class="s">230 V &#8594; 5 V</text>
+<text x="287" y="272" text-anchor="middle" class="s">&#8805; 1 A empfohlen</text>
+<text x="287" y="288" text-anchor="middle" class="s">(3 W grenzwertig)</text>
 
-<!-- MS1/MS2 auf VIO -->
-<path class="w33" d="M 560 290 L 520 290 L 520 320 L 560 320"/>
-<path class="w33" d="M 520 305 L 496 305"/>
-<text x="490" y="309" text-anchor="end" class="lbl">3,3 V (VIO)</text>
+<!-- L: Netz -> Sicherung -> TSP AC + Relais COM -->
+<path class="mains" d="M 190 131 L 212 131"/>
+<path class="mains" d="M 272 131 L 760 131"/>                      <!-- L-Schiene (230 V) -->
+<path class="mains" d="M 300 131 L 300 210"/>                      <!-- L zu TSP AC -->
+<path class="mains" d="M 760 131 L 760 660 L 712 660"/>           <!-- L zu Relais COM -->
+<circle cx="300" cy="131" r="3.5" fill="#c62828"/>
+<text x="360" y="126" class="lbl">L (Phase, 230 V)</text>
 
-<!-- ================= NEMA17 ================= -->
-<rect x="900" y="150" width="220" height="150" rx="6" class="bx"/>
-<text x="1010" y="176" text-anchor="middle" class="t">NEMA17</text>
-<text x="1010" y="193" text-anchor="middle" class="s">12 V &#183; 1,8&#176; &#183; ca. 28 Ncm</text>
-<text x="1010" y="288" text-anchor="middle" class="s">gemessen: 2x 3,6 Ohm</text>
-<text x="908" y="184" class="p">blau</text>
-<text x="908" y="214" class="p">rot</text>
-<text x="908" y="244" class="p">gr&#252;n</text>
-<text x="908" y="274" class="p">schwarz</text>
+<!-- N: Netz -> TSP AC + Motor N -->
+<path class="mains" d="M 190 170 L 340 170 L 340 210"/>            <!-- N zu TSP AC -->
+<path class="mains" d="M 190 170 L 190 740 L 810 740 L 810 700"/> <!-- N zu Motor (unter den Boxen) -->
+<circle cx="340" cy="170" r="3.5" fill="#c62828"/>
+<text x="360" y="165" class="lbl">N</text>
 
-<path class="mb" d="M 800 180 L 900 180"/>
-<path class="mr" d="M 800 210 L 900 210"/>
-<path class="mg" d="M 800 240 L 900 240"/>
-<path class="mk" d="M 800 270 L 900 270"/>
-<text x="850" y="174" text-anchor="middle" class="lbl">Spule 1</text>
-<text x="850" y="234" text-anchor="middle" class="lbl">Spule 2</text>
+<!-- ===== 5V / D1 / Cbulk ===== -->
+<!-- +Vo -->
+<path class="w5" d="M 362 245 L 470 245"/>
+<!-- D1 -->
+<path d="M 470 245 L 486 237 L 486 253 Z" fill="#fff" stroke="#111" stroke-width="2"/>
+<line x1="486" y1="237" x2="486" y2="253" stroke="#111" stroke-width="2"/>
+<text x="478" y="228" class="lbl">D1</text>
+<!-- +5V Bus -->
+<path class="w5" d="M 486 245 L 486 360 L 1140 360"/>
+<text x="1146" y="364" class="w5" fill="#ef6c00" font-size="12" font-weight="700">+5 V</text>
+<!-- Cbulk -->
+<path class="w5" d="M 430 245 L 430 268"/>
+<line x1="418" y1="268" x2="442" y2="268" stroke="#111" stroke-width="2"/>
+<line x1="422" y1="276" x2="438" y2="276" stroke="#111" stroke-width="2"/>
+<path class="wg" d="M 430 276 L 430 300"/>
+<text x="448" y="266" class="lbl">C_bulk</text>
+<text x="448" y="279" class="lbl">470&#8211;1000 &#181;F</text>
 
-<!-- ================= Netzteil ================= -->
-<rect x="900" y="440" width="220" height="120" rx="6" class="bxp"/>
-<text x="1010" y="470" text-anchor="middle" class="t">Netzteil 12 V DC</text>
-<text x="1010" y="490" text-anchor="middle" class="s">min. 2 A, Hohlstecker-Buchse</text>
-<text x="1010" y="508" text-anchor="middle" class="s">+ Sicherung 2 A tr&#228;ge</text>
-<text x="940" y="552" text-anchor="middle" class="p">+12V</text>
-<text x="1000" y="552" text-anchor="middle" class="p">GND</text>
+<!-- GND-Bus (Sternpunkt) -->
+<path class="wg" d="M 120 790 L 1140 790"/>
+<text x="1146" y="794" font-size="12" font-weight="700" fill="#000">GND</text>
+<text x="126" y="784" class="lbl">Sternpunkt (nur Kleinspannung, NICHT N)</text>
+<!-- TSP -Vo -> GND -->
+<path class="wg" d="M 362 280 L 400 280 L 400 790"/>
+<!-- Cbulk GND -> bus -->
+<path class="wg" d="M 430 300 L 430 790"/>
 
-<!-- ================= Buck ================= -->
-<rect x="900" y="640" width="220" height="130" rx="6" class="bx"/>
-<text x="1010" y="670" text-anchor="middle" class="t">Buck 12 V &#8594; 5 V</text>
-<text x="1010" y="689" text-anchor="middle" class="s">MP1584 / LM2596</text>
-<text x="1010" y="706" text-anchor="middle" class="s">VOR Anschluss auf 5,0 V</text>
-<text x="1010" y="722" text-anchor="middle" class="s">einstellen und messen!</text>
-<text x="940" y="634" text-anchor="middle" class="p">IN+</text>
-<text x="1000" y="634" text-anchor="middle" class="p">IN&#8722;</text>
-<text x="940" y="784" text-anchor="middle" class="p">OUT+</text>
-<text x="1000" y="784" text-anchor="middle" class="p">OUT&#8722;</text>
+<!-- ===== ESP ===== -->
+<rect x="470" y="400" width="240" height="150" rx="6" class="bxc"/>
+<text x="590" y="428" text-anchor="middle" class="t">T-Display S3 AMOLED</text>
+<text x="590" y="446" text-anchor="middle" class="s">misst &#183; regelt &#183; schaltet &#183; zeigt</text>
+<text x="482" y="474" class="p">VBUS(5V)</text>
+<text x="482" y="494" class="p">GND</text>
+<text x="700" y="474" text-anchor="end" class="p">3V3</text>
+<text x="700" y="494" text-anchor="end" class="p">GPIO10</text>
+<text x="700" y="514" text-anchor="end" class="p">GPIO13/14</text>
+<!-- VBUS from +5V bus -->
+<path class="w5" d="M 520 400 L 520 360"/>
+<circle cx="520" cy="360" r="3.5" fill="#ef6c00"/>
+<!-- GND -->
+<path class="wg" d="M 500 550 L 500 790"/>
+<circle cx="500" cy="790" r="3.5" fill="#000"/>
 
-<!-- 12V vom Netzteil zum Buck + nach oben zum TMC -->
-<path class="w12" d="M 940 560 L 940 640"/>
-<path class="wg"  d="M 1000 560 L 1000 640"/>
-<path class="w12" d="M 940 610 L 1160 610"/>
-<path class="wg"  d="M 1000 620 L 1190 620"/>
-<circle cx="940" cy="610" r="3.5" fill="#d32f2f"/>
-<circle cx="1000" cy="620" r="3.5" fill="#000"/>
+<!-- ===== Relais ===== -->
+<rect x="470" y="590" width="240" height="120" rx="6" class="bxc"/>
+<text x="590" y="616" text-anchor="middle" class="t">1-Kanal-Relais</text>
+<text x="590" y="633" text-anchor="middle" class="s">JQC-3FF-S-Z &#183; 5 V &#183; 10 A/250 V</text>
+<text x="482" y="660" class="p">S</text>
+<text x="482" y="680" class="p">+ (5V)</text>
+<text x="482" y="700" class="p">&#8722; (GND)</text>
+<text x="700" y="660" text-anchor="end" class="p">COM</text>
+<text x="700" y="700" text-anchor="end" class="p">NO</text>
+<!-- GPIO10 -> S (Signal) -->
+<path class="wsig" d="M 704 490 L 740 490 L 740 655 L 560 655"/>
+<text x="744" y="486" class="lbl">Relais-Signal</text>
+<!-- 10k Pulldown S -> GND -->
+<path class="wsig" d="M 540 655 L 540 730"/>
+<rect x="531" y="700" width="18" height="24" fill="#fff" stroke="#111"/>
+<text x="524" y="716" text-anchor="end" class="lbl">10k</text>
+<path class="wg" d="M 540 724 L 540 790"/>
+<!-- + from 5V bus -->
+<path class="w5" d="M 600 675 L 600 360"/>
+<circle cx="600" cy="360" r="3.5" fill="#ef6c00"/>
+<!-- - to GND -->
+<path class="wg" d="M 560 695 L 460 695 L 460 790"/>
 
-<!-- Schottky-Diode in der 5V-Leitung -->
-<path class="w5" d="M 940 770 L 940 830"/>
-<path d="M 932 806 L 948 806 L 940 820 Z" class="comp"/>
-<line x1="932" y1="820" x2="948" y2="820" class="comp"/>
-<text x="954" y="810" class="lbl">D1 SS34</text>
-<path class="w5" d="M 940 830 L 940 900 L 600 900 L 600 800"/>
-<path class="w5" d="M 600 900 L 552 900 L 552 800 L 546 800"/>
-<circle cx="600" cy="900" r="3.5" fill="#ef6c00"/>
-<path class="wg" d="M 1000 770 L 1000 935 L 660 935 L 660 800"/>
-<circle cx="660" cy="935" r="3.5" fill="#000"/>
+<!-- ===== Motor ===== -->
+<rect x="810" y="598" width="210" height="104" rx="6" class="bxp"/>
+<text x="915" y="626" text-anchor="middle" class="t">AC-Synchronmotor</text>
+<text x="915" y="644" text-anchor="middle" class="s">230 V &#183; konstante Drehzahl</text>
+<text x="915" y="660" text-anchor="middle" class="s">Peristaltikpumpe</text>
+<text x="822" y="680" class="p">L</text>
+<text x="822" y="700" class="p">N</text>
+<!-- Relais NO -> Motor L (230V) -->
+<path class="mains" d="M 712 700 L 770 700 L 770 674 L 810 674"/>
+<text x="722" y="694" class="lbl">NO</text>
+<circle cx="712" cy="700" r="3.5" fill="#c62828"/>
+<circle cx="810" cy="695" r="3.5" fill="#c62828"/>
 
-<!-- ================= T-Display S3 AMOLED ================= -->
-<rect x="560" y="440" width="240" height="360" rx="6" class="bx"/>
-<text x="680" y="468" text-anchor="middle" class="t">LilyGo T-Display S3 AMOLED</text>
-<text x="680" y="486" text-anchor="middle" class="s">1,91&quot; &#183; 536 x 240 &#183; Touch</text>
-<text x="680" y="502" text-anchor="middle" class="s">Messung, Regelung, Anzeige,</text>
-<text x="680" y="518" text-anchor="middle" class="s">Bedienung und Webinterface</text>
-<text x="680" y="690" text-anchor="middle" class="s">USB-C: Flashen und Konsole</text>
-<text x="680" y="712" text-anchor="middle" class="s">Display/Touch belegen intern</text>
-<text x="680" y="728" text-anchor="middle" class="s">5,6,7,9,17,18,47,48 und 2,3,21</text>
+<!-- ===== Isolationsbarriere Messseite ===== -->
+<path class="iso" d="M 862 70 L 862 560"/>
+<text x="872" y="86" class="p" fill="#7b1fa2" font-weight="700">galvanische Trennung (Messseite)</text>
 
-<text x="600" y="432" text-anchor="middle" class="p">GPIO10</text>
-<text x="640" y="432" text-anchor="middle" class="p">GPIO11</text>
-<text x="682" y="432" text-anchor="middle" class="p">GPIO12</text>
-<text x="722" y="432" text-anchor="middle" class="p">3V3</text>
-<text x="762" y="432" text-anchor="middle" class="p">GND</text>
-<text x="568" y="524" class="p">3V3</text>
-<text x="568" y="564" class="p">GND</text>
-<text x="568" y="604" class="p">GPIO13 (SDA1)</text>
-<text x="568" y="644" class="p">GPIO14 (SCL1)</text>
-<text x="600" y="792" text-anchor="middle" class="p">VBUS</text>
-<text x="660" y="792" text-anchor="middle" class="p">GND</text>
+<!-- Messseiten-Bloecke -->
+<rect x="880" y="100" width="250" height="60" rx="6" class="bxi"/>
+<text x="1005" y="126" text-anchor="middle" class="t">B0509S</text>
+<text x="1005" y="145" text-anchor="middle" class="s">5 V &#8594; 9 V isoliert</text>
 
-<!-- ESP <-> TMC -->
-<path class="wsig" d="M 600 440 L 600 360"/>
-<path class="wsig" d="M 640 440 L 640 360"/>
-<path class="wsig" d="M 680 440 L 680 360"/>
-<path class="w33"  d="M 720 440 L 720 360"/>
-<path class="wg"   d="M 760 440 L 760 360"/>
+<rect x="880" y="180" width="250" height="55" rx="6" class="bxi"/>
+<text x="1005" y="205" text-anchor="middle" class="t">AMS1117-5.0</text>
+<text x="1005" y="223" text-anchor="middle" class="s">&#8594; +5 V iso</text>
 
-<!-- R1: EN Pull-up nach 3V3 -->
-<path class="w33" d="M 600 400 L 545 400 L 520 400 L 520 520"/>
-<rect x="548" y="394" width="26" height="12" class="comp"/>
-<circle cx="600" cy="400" r="3.5" fill="#b58900"/>
-<circle cx="520" cy="520" r="3.5" fill="#b58900"/>
-<text x="516" y="392" text-anchor="end" class="lbl">R1 10 k&#8486;</text>
-<text x="516" y="406" text-anchor="end" class="lbl">EN sicher HIGH</text>
+<rect x="880" y="255" width="250" height="70" rx="6" class="bxi"/>
+<text x="1005" y="281" text-anchor="middle" class="t">ISO1540</text>
+<text x="1005" y="299" text-anchor="middle" class="s">I&#178;C-Trennung (SDA/SCL)</text>
+<text x="1005" y="315" text-anchor="middle" class="s">VCC1&#8592;3V3 &#183; VCC2&#8592;5V iso</text>
 
-<!-- ================= ADS1115 ================= -->
-<rect x="240" y="440" width="200" height="220" rx="6" class="bxa"/>
-<text x="340" y="470" text-anchor="middle" class="t">ADS1115</text>
-<text x="340" y="488" text-anchor="middle" class="s">16-Bit ADC, I&#178;C 0x48</text>
-<text x="340" y="506" text-anchor="middle" class="s">ADDR &#8594; GND</text>
-<text x="340" y="622" text-anchor="middle" class="s">VDD = +5 V iso</text>
-<text x="432" y="524" text-anchor="end" class="p">VDD</text>
-<text x="432" y="564" text-anchor="end" class="p">GND</text>
-<text x="432" y="604" text-anchor="end" class="p">SDA</text>
-<text x="432" y="644" text-anchor="end" class="p">SCL</text>
-<text x="290" y="652" text-anchor="middle" class="p">A0</text>
+<rect x="880" y="345" width="250" height="60" rx="6" class="bxi"/>
+<text x="1005" y="371" text-anchor="middle" class="t">ADS1115</text>
+<text x="1005" y="389" text-anchor="middle" class="s">16 bit &#183; A0 &#8592; PO (R2 10k)</text>
 
-<!-- VDD/GND des ADS1115 gehen NICHT mehr zum Displayboard, sondern auf die
-     isolierte Schiene unten links -->
-<path class="w5o" d="M 440 520 L 448 520 L 448 900"/>
-<path class="wg"  d="M 440 560 L 464 560 L 464 1000"/>
-<!-- I2C ueber den Isolator -->
-<path class="wsig" d="M 440 600 L 470 600"/>
-<path class="wsig" d="M 440 640 L 470 640"/>
-<path class="wsig" d="M 546 600 L 560 600"/>
-<path class="wsig" d="M 546 640 L 560 640"/>
+<rect x="880" y="425" width="250" height="60" rx="6" class="bxi"/>
+<text x="1005" y="451" text-anchor="middle" class="t">pH-Signalboard</text>
+<text x="1005" y="469" text-anchor="middle" class="s">V+ / G / PO</text>
 
-<!-- A0 <- PO mit Schutzwiderstand R2 -->
-<path class="wana" d="M 290 660 L 290 674"/>
-<rect x="284" y="674" width="12" height="26" class="comp"/>
-<path class="wana" d="M 290 700 L 290 720"/>
-<text x="306" y="694" class="lbl">R2 10 k&#8486;</text>
+<rect x="880" y="505" width="250" height="50" rx="6" class="bxi"/>
+<text x="1005" y="535" text-anchor="middle" class="t">pH-Sonde (BNC)</text>
 
-<!-- ================= pH-Board ================= -->
-<rect x="240" y="720" width="200" height="130" rx="6" class="bxa"/>
-<text x="340" y="748" text-anchor="middle" class="t">pH-Signalboard</text>
-<text x="340" y="766" text-anchor="middle" class="s">TO &#183; DO &#183; PO &#183; G &#183; G &#183; V+</text>
-<text x="340" y="800" text-anchor="middle" class="s">TO und DO bleiben frei</text>
-<text x="302" y="714" class="p">PO</text>
-<text x="300" y="864" text-anchor="middle" class="p">V+</text>
-<text x="360" y="864" text-anchor="middle" class="p">G</text>
-<text x="248" y="822" class="p">BNC</text>
+<!-- +5V bus -> B0509S +Vin -->
+<path class="w5" d="M 1090 360 L 1090 160"/>
+<circle cx="1090" cy="360" r="3.5" fill="#ef6c00"/>
+<text x="1096" y="180" class="lbl">+Vin</text>
+<!-- GND bus -> B0509S -Vin (letzte Verbindung zur Netzseite) -->
+<path class="wg" d="M 920 790 L 920 160"/>
+<circle cx="920" cy="790" r="3.5" fill="#000"/>
+<text x="926" y="180" class="lbl">&#8722;Vin</text>
 
-<!-- ================= pH-Sonde ================= -->
-<rect x="30" y="760" width="170" height="90" rx="6" class="bxa"/>
-<text x="115" y="790" text-anchor="middle" class="t">pH-Sonde</text>
-<text x="115" y="810" text-anchor="middle" class="s">BNC, hochohmig</text>
-<text x="115" y="828" text-anchor="middle" class="s">Kabel kurz halten</text>
-<path class="wana" d="M 200 818 L 240 818"/>
+<!-- iso Versorgungskette (vereinfacht) -->
+<path class="w5" d="M 1005 160 L 1005 180"/>
+<path class="w5" d="M 1005 235 L 1005 255"/>
+<path class="w5" d="M 1005 325 L 1005 345"/>
+<path class="wana" d="M 1005 405 L 1005 425"/>
+<path class="wana" d="M 1005 485 L 1005 505"/>
+<text x="1014" y="418" class="lbl">A0/PO</text>
 
-<!-- ================= GALVANISCHE TRENNUNG ================= -->
-<path class="iso" d="M 508 432 L 508 556"/>
-<path class="iso" d="M 508 684 L 508 730"/>
-<path class="iso" d="M 508 850 L 508 1130"/>
-<text x="508" y="434" text-anchor="middle" class="isot" font-size="11">TRENNSTELLE</text>
+<!-- ISO1540 <-> ESP (Wire1) -->
+<path class="wsig" d="M 704 512 L 820 512 L 820 300 L 880 300"/>
+<text x="726" y="508" class="lbl">GPIO13/14 (Wire1)</text>
+<path class="wsig" d="M 704 470 L 840 470 L 840 285 L 880 285"/>
+<text x="726" y="466" class="lbl">3V3 &#8594; VCC1</text>
 
-<!-- ISO1540: I2C-Isolator, sitzt auf der Trennstelle -->
-<rect x="470" y="556" width="76" height="128" rx="6" class="bxi"/>
-<text x="508" y="578" text-anchor="middle" class="isot">ISO1540</text>
-<text x="508" y="596" text-anchor="middle" class="s">SDA</text>
-<text x="508" y="614" text-anchor="middle" class="s">SCL</text>
-<text x="508" y="640" text-anchor="middle" class="s">VCC1</text>
-<text x="508" y="654" text-anchor="middle" class="s">3,3 V</text>
-<text x="508" y="672" text-anchor="middle" class="s">VCC2</text>
-<text x="470" y="700" text-anchor="middle" class="s">iso</text>
-<text x="546" y="700" text-anchor="middle" class="s">Netz</text>
+<!-- ===== Legende ===== -->
+<rect x="24" y="360" width="330" height="170" rx="8" fill="#fafafa" stroke="#ccc"/>
+<text x="40" y="384" class="t">Legende</text>
+<line x1="40" y1="404" x2="80" y2="404" class="mains"/><text x="90" y="408" class="lbl">230 V (Phase/Neutral)</text>
+<line x1="40" y1="428" x2="80" y2="428" class="w5"/><text x="90" y="432" class="lbl">+5 V</text>
+<line x1="40" y1="452" x2="80" y2="452" class="wg"/><text x="90" y="456" class="lbl">GND (Sternpunkt)</text>
+<line x1="40" y1="476" x2="80" y2="476" class="wsig"/><text x="90" y="480" class="lbl">Signal / I&#178;C</text>
+<line x1="40" y1="500" x2="80" y2="500" class="wana"/><text x="90" y="504" class="lbl">Analog (pH)</text>
+<line x1="200" y1="500" x2="240" y2="500" class="iso"/><text x="248" y="504" class="lbl">Trennstelle</text>
 
-<!-- Versorgung des Isolators: VCC1 aus 3,3 V, VCC2 aus der isolierten Schiene -->
-<path class="w33" d="M 546 660 L 560 660"/>
-<path class="w5o" d="M 470 672 L 448 672"/>
-<circle cx="448" cy="672" r="3.5" fill="#ef6c00"/>
-
-<!-- B0509S: isolierter DC-DC, sitzt ebenfalls auf der Trennstelle -->
-<rect x="470" y="730" width="76" height="120" rx="6" class="bxi"/>
-<text x="508" y="754" text-anchor="middle" class="isot">B0509S</text>
-<text x="508" y="772" text-anchor="middle" class="s">5 V &#8594; 9 V</text>
-<text x="508" y="788" text-anchor="middle" class="s">1 W, isol.</text>
-<text x="508" y="812" text-anchor="middle" class="s">Uebertrager</text>
-<text x="508" y="828" text-anchor="middle" class="s">statt Draht</text>
-
-<!-- Beide Ausgaenge verlassen den Wandler nach unten: 9 V links, Netzmasse
-     rechts der Trennstelle. Der Abstand zeigt die Trennung. -->
-<path class="w5o" d="M 490 850 L 490 1090 L 310 1090"/>
-<text x="400" y="1084" text-anchor="middle" class="lbl" fill="#ef6c00">9 V iso</text>
-<path class="wg"  d="M 526 850 L 526 990 L 660 990 L 660 935"/>
-<text x="590" y="984" text-anchor="middle" class="lbl">GND Netz</text>
-
-<!-- AMS1117-5.0 auf der isolierten Seite -->
-<!-- pH-Board: Versorgung als Netzname, nicht als Leitung quer durchs Bild -->
-<path class="w5o" d="M 300 850 L 300 900"/>
-<path class="wg"  d="M 360 850 L 360 1000"/>
-<circle cx="300" cy="900" r="3.5" fill="#ef6c00"/>
-<circle cx="360" cy="1000" r="3.5" fill="#000"/>
-
-<!-- ================= Legende ================= -->
-<rect x="30" y="440" width="185" height="256" rx="6" fill="#fbfbfb" stroke="#ccc" stroke-width="1.5"/>
-<text x="45" y="464" class="t">Legende</text>
-<line x1="45" y1="482" x2="80" y2="482" class="w12"/><text x="88" y="486" class="lbl">12 V</text>
-<line x1="45" y1="502" x2="80" y2="502" class="w5"/><text x="88" y="506" class="lbl">5 V</text>
-<line x1="45" y1="522" x2="80" y2="522" class="w33"/><text x="88" y="526" class="lbl">3,3 V</text>
-<line x1="45" y1="542" x2="80" y2="542" class="wg"/><text x="88" y="546" class="lbl">GND</text>
-<line x1="45" y1="562" x2="80" y2="562" class="wsig"/><text x="88" y="566" class="lbl">Digitalsignal</text>
-<line x1="45" y1="582" x2="80" y2="582" class="wana"/><text x="88" y="586" class="lbl">Analogsignal</text>
-<circle cx="62" cy="602" r="3.5" fill="#000"/><text x="88" y="606" class="lbl">Verbindung</text>
-<text x="45" y="626" class="lbl">Kreuzung ohne Punkt:</text>
-<text x="45" y="638" class="lbl" font-style="italic">keine Verbindung</text>
-<line x1="45" y1="660" x2="80" y2="660" class="w5o"/><text x="88" y="664" class="lbl">+5 V isoliert</text>
-<line x1="45" y1="680" x2="80" y2="680" class="iso"/><text x="88" y="684" class="lbl">Trennstelle</text>
-
-<!-- ================= Hinweise ================= -->
-<rect x="30" y="120" width="380" height="310" rx="6" fill="#fffdf5" stroke="#d9c98a" stroke-width="1.5"/>
-<text x="46" y="146" class="t">Vor dem Einschalten pr&#252;fen</text>
-<text x="46" y="170" class="note">1. Alle GND sternf&#246;rmig auf einen Punkt.</text>
-<text x="46" y="190" class="note">2. Buck-Ausgang OHNE Last auf 5,0 V einstellen.</text>
-<text x="46" y="210" class="note">3. Motorstecker nie bei eingeschaltetem VMOT ziehen.</text>
-<text x="46" y="230" class="note">4. C1 direkt an VMOT/GND des TMC2209.</text>
-<text x="46" y="250" class="note">5. VREF am TMC2209 einstellen, bevor 12 V an den</text>
-<text x="46" y="266" class="note">    Motor gehen (Startwert ca. 0,5 &#215; Nennstrom).</text>
-<text x="46" y="290" class="note">6. Spannung an PO messen, bevor sie an A0 geht.</text>
-<text x="46" y="306" class="note">    &#62; 3,2 V &#8594; zus&#228;tzlich Spannungsteiler vorsehen.</text>
-<text x="46" y="330" class="note" font-weight="600">7. GND iso NIE mit dem Sternpunkt verbinden &#8211;</text>
-<text x="46" y="346" class="note" font-weight="600">    stromlos auf Durchgang pruefen!</text>
-<text x="46" y="370" class="note">8. D1 verhindert R&#252;ckspeisung, wenn USB und</text>
-<text x="46" y="386" class="note">    Netzteil gleichzeitig stecken.</text>
-<text x="46" y="410" class="note" font-weight="600">9. GPIO 2 und 3 NICHT belegen - dort h&#228;ngt der</text>
-<text x="46" y="424" class="note" font-weight="600">    Touchcontroller, obwohl sie herausgef&#252;hrt sind.</text>
-
-
-<!-- ============ AMS1117 auf der isolierten Seite ============ -->
-<rect x="100" y="1040" width="210" height="100" rx="6" class="bxa"/>
-<text x="150" y="1058" text-anchor="middle" class="p">OUT</text>
-<text x="250" y="1058" text-anchor="middle" class="p">GND</text>
-<text x="300" y="1094" text-anchor="end" class="p">IN</text>
-<text x="205" y="1084" text-anchor="middle" class="t">AMS1117-5.0</text>
-<text x="205" y="1104" text-anchor="middle" class="s">9 V &#8594; geregelte 5 V</text>
-<text x="205" y="1122" text-anchor="middle" class="s">22 &#181;F + 100 nF am Ausgang</text>
-
-<!-- isolierte Schienen: OUT und GND je 100 mm frei nach oben -->
-<path class="w5o" d="M 150 1040 L 150 900 L 351 900 A 9 9 0 0 1 369 900 L 448 900"/>
-<path class="wg"  d="M 250 1040 L 250 1000 L 464 1000"/>
-<text x="182" y="894" class="lbl" fill="#ef6c00">+5 V iso</text>
-<text x="258" y="1018" class="lbl">GND iso &#8211; eigener Sternpunkt</text>
-
-<!-- ============ Hinweis zur isolierten Versorgung ============ -->
-<rect x="840" y="990" width="410" height="130" rx="6" class="bxi"/>
-<text x="856" y="1018" class="t" fill="#7b1fa2">Isolierte Versorgung</text>
-<text x="856" y="1042" class="note" font-size="11">Speist pH-Board V+, ADS1115 VDD und ISO1540 VCC2.</text>
-<text x="856" y="1060" class="note" font-size="11">10 &#181;F am Ausgang des B0509S, 22 &#181;F + 100 nF am</text>
-<text x="856" y="1076" class="note" font-size="11">AMS1117, je 100 nF direkt an jedem Verbraucher.</text>
-<text x="856" y="1102" class="note" font-size="11" font-weight="600" fill="#7b1fa2">Kein B0505S: ungeregelt, bei 12 % Last bis 6 V.</text>
-
-<text x="24" y="1165" class="note">Signalweg: pH-Sonde &#8594; BNC &#8594; pH-Signalboard &#8594; PO &#8594; R2 &#8594; ADS1115 A0 &#8594; ISO1540 &#8594; I&#178;C (Wire1) &#8594; ESP32-S3 &#8594; STEP/DIR/EN &#8594; TMC2209 &#8594; NEMA17 &#8594; Peristaltikpumpe</text>
-<text x="24" y="1181" class="note" fill="#7b1fa2">Links der violetten Linie liegt die Messseite. Sie hat keine Masseverbindung zur Netzseite &#8211; nur SDA/SCL im ISO1540 und die Energie im Uebertrager des B0509S gehen hinueber.</text>
+<text x="24" y="820" class="note">Pinbelegung und Netzliste im Detail: SCHALTPLAN.md &#183; Relais aktiv-LOW/HIGH vor Anschluss mit &#8222;run 3&#8220; pruefen (set rinv)</text>
 </svg>
