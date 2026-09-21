@@ -2,8 +2,13 @@
 
 ```text
 pumpe/Peristaltic_Pump_V2.stl     Peristaltikkopf, 3D-Druckteil
-datenblaetter/Steppermotor_DE.pdf Datenblatt des NEMA17 (deutsch, 18 Seiten)
+datenblaetter/Steppermotor_DE.pdf Datenblatt des NEMA17 (früherer Stepper-Aufbau)
 ```
+
+> **Ab Firmware 2.3.0: AC-Synchronmotor statt Schrittmotor.** Die Pumpe wird
+> jetzt über ein 1-Kanal-Relais nur ein-/ausgeschaltet; die Menge ergibt sich
+> aus der Laufzeit (ml/s). Das NEMA17-Datenblatt und der Schrittmotor-Abschnitt
+> unten beschreiben den **früheren** Aufbau und bleiben als Referenz erhalten.
 
 ---
 
@@ -35,10 +40,10 @@ in der Wellenaufnahme — und weicher Schlauch für den Pumpenkopf.
 
 ![Pumpenkopf montiert](../docs/bilder/03-pumpenkopf.jpg)
 
-*Der gedruckte Kopf montiert: drei Rollenlager im Rotor, in der Mitte das
-608er Kugellager der Wellenaufnahme.*
+*Der gedruckte Kopf montiert (hier auf dem früheren NEMA17): drei Rollenlager
+im Rotor, in der Mitte das 608er Kugellager der Wellenaufnahme.*
 
-### Verstärkte Wellenaufnahme
+### Anpassung an den Motor — verstärkte Wellenaufnahme
 
 Die **V2 des Modells hat eine verstärkte Wellenaufnahme** — genau die Stelle,
 an der das gesamte Pumpenmoment vom Motor auf den Rotor übergeht. Beim
@@ -48,15 +53,19 @@ liegt deutlich über dem Dauermoment.
 
 Eine dünn gedruckte Aufnahme leiert dort im Lauf der Zeit aus, die
 Madenschraube gräbt sich ein, und die Pumpe fördert dann zu wenig, ohne dass
-sich elektrisch etwas ändert — die Firmware zählt weiter exakte Schritte und
-verbucht Milliliter, die nie im Becken ankommen. **Das gehört zu den wenigen
-Fehlern, die die Firmware nicht bemerken kann** — wie ein leerer Kanister oder
-ein gerissener Schlauch: die Pumpe läuft, die Zählung stimmt, gefördert wird
+sich elektrisch etwas ändert — die Firmware verbucht weiter Milliliter nach
+Laufzeit, die nie im Becken ankommen. **Das gehört zu den wenigen Fehlern, die
+die Firmware nicht bemerken kann** — wie ein leerer Kanister oder ein
+gerissener Schlauch: die Pumpe läuft, die Zählung stimmt, gefördert wird
 nichts. Auffallen kann so etwas nur daran, dass der pH-Wert trotz Dosierung
 nicht nachgibt. Deshalb ist die verstärkte Fassung hier die richtige.
 
-Beim Aufziehen: Wellendurchmesser 5 mm prüfen und die Madenschraube auf die
-**Abflachung** der Welle setzen, nicht auf das runde Stück.
+> **Wellenaufnahme an den AC-Motor anpassen.** Der Kopf war ursprünglich für
+> die **5-mm-Welle des NEMA17** gezeichnet. Der jetzt verwendete
+> AC-Synchronmotor hat andere Wellen-/Flanschmaße — Wellendurchmesser,
+> Abflachung/Passfeder und Befestigung des konkreten Motors **messen** und die
+> Aufnahme (bzw. einen Adapter) darauf auslegen, bevor gedruckt wird. Die
+> Madenschraube gehört auf die Abflachung der Welle, nicht auf das runde Stück.
 
 Montage und Hydraulik: [../docs/LOETANLEITUNG.md](../docs/LOETANLEITUNG.md),
 Abschnitt 13.
@@ -66,7 +75,40 @@ Tygon, **kein Silikon** (quillt und wird von Säure angegriffen).
 
 ---
 
-## Schrittmotor
+## Pumpenmotor (AC-Synchronmotor)
+
+Aktuell treibt ein **AC-Synchron-Getriebemotor** die Pumpe — z. B. der im
+Aufbau verwendete McMETEOR der SRF63-Serie. Werte laut Typenschild:
+
+| | |
+|---|---|
+| Versorgung | 220–240 V AC, 50/60 Hz |
+| Leistung | 8 W |
+| Drehzahl | 10–12 U/min (Getriebeabtrieb) |
+| Drehrichtung | eine Richtung (CW) |
+| Isolationsklasse | F |
+
+Eigenschaften, die für die Firmware zählen:
+
+* **Konstante Drehzahl**, sobald Spannung anliegt — die Fördermenge ist damit
+  reine Funktion der **Laufzeit**. Kalibriert wird als `ml/s`
+  ([../docs/INBETRIEBNAHME.md](../docs/INBETRIEBNAHME.md), Phase 3).
+* **Nur ein/aus** über ein 1-Kanal-Relais (kein Drehzahl-, kein Richtungs-
+  wechsel). Verdrahtung und Sicherheit: [../docs/SCHALTPLAN.md](../docs/SCHALTPLAN.md)
+  und [../docs/LOETANLEITUNG.md](../docs/LOETANLEITUNG.md).
+* ⚠️ **230 V** — Aufbau der Netzseite durch eine befähigte Person.
+
+> Beim Motortausch die Werte des konkreten Typenschilds übernehmen (Spannung,
+> Leistung, Drehzahl, Drehrichtung) und die Förderrate `ml/s` neu kalibrieren.
+> Wellen-/Flanschmaße bestimmen die Pumpenkopf-Aufnahme (siehe oben).
+
+---
+
+## Schrittmotor (früherer Aufbau, nur noch Referenz)
+
+> Dieser Abschnitt gilt für den **früheren** Aufbau mit NEMA17 + TMC2209 und
+> ist seit Firmware 2.3.0 nicht mehr aktuell. Das Datenblatt bleibt im Repo,
+> weil die Datei referenziert und lizenziert dokumentiert ist.
 
 `datenblaetter/Steppermotor_DE.pdf` — „Quick Start Anleitung,
 Zweiphasen-Hybrid-Schrittmotor 42".
@@ -90,30 +132,18 @@ Seite 5 des Datenblatts, wörtlich:
 > Spule A (grünes Kabel, schwarzes Kabel)
 > Spule B (rotes Kabel, blaues Kabel).
 
-Das deckt sich mit der Widerstandsmessung bei der Inbetriebnahme (je 3,6 Ω
-zwischen den Adern eines Paares) und **widerspricht der ursprünglichen
-Projektbeschreibung**, die von rot+grün und blau+schwarz ausging. Verbindlich
-sind Datenblatt und Messung; die Verdrahtungspläne im `docs/`-Ordner sind
-entsprechend korrigiert.
+Das deckte sich mit der Widerstandsmessung bei der Inbetriebnahme (je 3,6 Ω
+zwischen den Adern eines Paares) und **widersprach der ursprünglichen
+Projektbeschreibung**, die von rot+grün und blau+schwarz ausging.
 
-### Zwei Stellen, an denen das Datenblatt nicht zum Aufbau passt
+### Zwei Stellen, an denen das Datenblatt nicht zum Aufbau passte
 
 **„Haltedrehmoment 28 Nm" ist ein Fehler im Datenblatt.** 28 N·m wäre die
 Größenordnung eines Industrieservos; ein NEMA17 mit 34 mm Baulänge liefert
-typisch 0,28 N·m. Gemeint sind offensichtlich **28 N·cm**. Für die Auslegung
-der Pumpe wurde mit dem plausiblen Wert gerechnet.
+typisch 0,28 N·m. Gemeint sind offensichtlich **28 N·cm**.
 
-**Der eingestellte Strom liegt über dem Nennstrom.** Das Datenblatt nennt
-0,4 A pro Phase. Im Betrieb steht VREF auf 1,2 V, was am verwendeten
-TMC2209-Modul rund **0,6 A** ergibt — ermittelt nicht aus dem Datenblatt des
-Treibers, sondern aus der Gehäusetemperatur (etwa 45 °C nach fünf Minuten
-Haltestrom). Mit 0,4 A rutschte der Pumpenkopf unter Last durch.
-
-Das ist eine bewusste Abweichung, kein Versehen: 45 °C sind für einen
-Schrittmotor unkritisch, die Wicklung verträgt deutlich mehr. Wer den Motor
-tauscht oder das Treibermodul wechselt, muss VREF neu bestimmen — der
-Umrechnungsfaktor unterscheidet sich je nach Shunt auf dem Modul erheblich
-und ist der häufigste Grund für „dreht nicht" oder „wird zu heiß".
-
-Details zur Ermittlung: [../docs/INBETRIEBNAHME.md](../docs/INBETRIEBNAHME.md),
-Phase 2.
+**Der eingestellte Strom lag über dem Nennstrom.** Das Datenblatt nennt
+0,4 A pro Phase; im Betrieb stand VREF auf 1,2 V (rund 0,6 A am verwendeten
+TMC2209-Modul), ermittelt über die Gehäusetemperatur. Mit 0,4 A rutschte der
+Pumpenkopf unter Last durch. Für den aktuellen AC-Aufbau ist das
+gegenstandslos.
