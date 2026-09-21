@@ -30,9 +30,9 @@ Aus dem ESP32-Core kommen ohne Zusatzinstallation: `WiFi`, `WebServer`,
 `ESPmDNS`, `ArduinoOTA`, `HTTPClient`, `Preferences`, `Wire`.
 
 Bewusst **nicht** benutzt: eine JSON-Bibliothek (das Statusobjekt wird von
-Hand gebaut, die HA-Antwort per Textsuche gelesen), ein ADS1115-Treiber
-(eigener in `Ads1115.cpp`) und eine Stepper-Bibliothek (die Schrittausgabe
-muss nicht blockierend sein, damit das Display flüssig bleibt).
+Hand gebaut, die HA-Antwort per Textsuche gelesen) und ein ADS1115-Treiber
+(eigener in `Ads1115.cpp`). Eine Motor-Bibliothek entfällt ohnehin — die Pumpe
+wird über ein Relais nur ein-/ausgeschaltet, die Menge folgt aus der Laufzeit.
 
 ### Zwei Versionen, die man nicht anheben darf
 

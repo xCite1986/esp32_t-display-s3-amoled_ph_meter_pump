@@ -1,8 +1,8 @@
 # Anzeige und Bedienung — T-Display S3 AMOLED
 
 Das Displayboard **ist** die Steuerung: pH-Wert, dosierte Menge der letzten
-24 Stunden, Zustand und Sperrgründe, dazu eine Freigabe für eine feste Anzahl
-Motorumdrehungen per Touch — mit Rückfrage.
+24 Stunden, Zustand und Sperrgründe, dazu eine Freigabe für eine feste Dosis
+(ml) per Touch — mit Rückfrage.
 
 ---
 
@@ -10,7 +10,7 @@ Motorumdrehungen per Touch — mit Rückfrage.
 
 ```text
 ┌──────────────────────────── T-Display S3 AMOLED ────────────────────────────┐
-│  PanelUi (LVGL)  ──liest──>  PHMeasurement · PHController · StepperPump     │
+│  PanelUi (LVGL)  ──liest──>  PHMeasurement · PHController · RelayPump       │
 │  Touch  ──manualDose()──>    dieselbe Pruefkette wie das Webinterface       │
 │  WebInterface    ──dieselben Objekte, dieselbe Mengenbilanz                 │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -35,22 +35,23 @@ verbucht keine Menge und prüft keine pH-Sperre — als Bedientaste wäre das ei
 Loch in der Mengenbilanz.
 
 > **Was das kostet:** Weil beides auf demselben Chip läuft, kann eine hängende
-> Oberfläche die Regelung mitreißen. Dagegen stehen die nicht blockierende
-> Schrittausgabe (die Dosiermenge bleibt exakt) und der EN-Pullup, der den
-> Treiber bei jedem Reset stromlos hält.
+> Oberfläche die Regelung mitreißen. Dagegen stehen die zeitgesteuerte
+> Relaisdosierung (die Laufzeit wird in der Hauptschleife überwacht und hart
+> begrenzt) und das Relais selbst: bei jedem Reset fällt die Spule ab und der
+> Motorkreis (Schließer NO) ist offen.
 
 ---
 
 ## 2. Hardware
 
 Display und Touch sind auf dem Board integriert — dafür ist nichts zu löten.
-Verdrahtet werden nur Versorgung, ADS1115 und TMC2209, siehe
+Verdrahtet werden nur Versorgung, ADS1115 und das Relaismodul, siehe
 [SCHALTPLAN.md](SCHALTPLAN.md).
 
 | | |
 |---|---|
 | Board | LilyGo T-Display S3 AMOLED, 536 × 240, Touch (`BOARD_AMOLED_191`) |
-| Versorgung | 5 V aus dem Buck-Converter (min. 1 A gesamt) oder USB-C |
+| Versorgung | 5 V aus dem AC/DC-Netzteil (≥ 1 A) oder USB-C |
 | Netz | WLAN 2,4 GHz; ohne Verbindung öffnet sich ein Einrichtungs-AP |
 
 ---
@@ -247,37 +248,30 @@ Eine Berührung weckt immer auf — **dieser erste Tipp löst bewusst nichts aus
 er weckt nur. Während einer laufenden Dosierung bleibt die Anzeige wach.
 
 Zeiten im Webinterface unter *Anzeige*: Standby-Zeit, Wanderintervall,
-Nachtfenster von/bis, Umdrehungen pro Freigabe. Der Nachtmodus greift nur bei
-gültiger Uhrzeit — ohne NTP bleibt es beim Standby.
+Nachtfenster von/bis, Dosis pro Touch-Freigabe [ml]. Der Nachtmodus greift nur
+bei gültiger Uhrzeit — ohne NTP bleibt es beim Standby.
 
 ---
 
-## 8. Wichtig: 5 Umdrehungen sind nicht automatisch erlaubt
+## 8. Die Touch-Dosis muss unter der Einzeldosis-Grenze bleiben
 
-Die Anlage rechnet Umdrehungen in Milliliter um und prüft **die ml**, nicht die
-Umdrehungen:
+Die Freigabe per Touch gibt eine **feste Dosis in ml** ab (Einstellung „Dosis
+pro Touch", `pdose`). Geprüft wird diese ml-Menge gegen die maximale
+Einzeldosis `maxs` — genau wie jede andere Dosierung:
 
-```text
-ml = Umdrehungen × Schritte_pro_Umdrehung ÷ Schritte_pro_ml
-```
+* Die Voreinstellung für `pdose` ist **10 ml**, die für die maximale
+  Einzeldosis `maxs` **5 ml**. Eine Touch-Freigabe über 10 ml würde also mit
+  „ueber max. Einzeldosis" abgelehnt.
 
-Mit den Werten vor der Pumpenkalibrierung (3200 Schritte/Umdrehung,
-1600 Schritte/ml) sind das:
+Das ist kein Fehler, sondern die Sicherheitsgrenze bei der Arbeit. Entweder:
 
-```text
-5 × 3200 ÷ 1600 = 10,0 ml
-```
+* `set pdose <ml>` (bzw. „Dosis pro Touch" im Webinterface) auf eine Menge
+  **unter** `maxs` setzen, **oder**
+* `set maxs <ml>` anheben — bewusst und mit Blick auf das Beckenvolumen,
+  nicht reflexartig.
 
-Die Voreinstellung für die maximale Einzeldosis ist **5,0 ml**. Eine Freigabe
-über 5 Umdrehungen würde also mit „ueber max. Einzeldosis" abgelehnt werden.
-Das ist kein Fehler, sondern die Sicherheitsgrenze bei der Arbeit.
-
-Nach Phase 3 (Pumpenkalibrierung) steht der echte Wert `Schritte/ml` fest.
-Dann entweder:
-
-* `revs` im Panel auf eine Zahl setzen, die unter `maxs` bleibt, **oder**
-* `set maxs <ml>` auf der Anlage anheben — bewusst und mit Blick auf das
-  Beckenvolumen, nicht reflexartig.
+Die tatsächliche Laufzeit der Pumpe für diese Menge ergibt sich aus der in
+Phase 3 kalibrierten Förderrate (`ml/s`).
 
 Die harte Obergrenze von 20 ml pro Einzeldosis bleibt in jedem Fall bestehen.
 

@@ -16,15 +16,14 @@ zusätzliche Software in Home Assistant einbinden — MQTT ist nicht nötig.
 | GET | `/api/status` | vollständiger Status als JSON |
 | GET | `/api/history` | 7-Tage-Verlauf, Stundenauflösung |
 | POST | `/api/dose?ml=3.0` | manuelle Dosierung |
-| POST | `/api/dose/revs?n=5` | Dosierung in Motorumdrehungen |
 | POST | `/api/stop` | Pumpe anhalten |
 | POST | `/api/estop` | Not-Halt, Automatik aus |
 | POST | `/api/clearfault` | Störung quittieren |
 | POST | `/api/auto?on=1` | Automatik ein/aus |
 | POST | `/api/settings?sp=7.2&dose=3` | Parameter setzen |
 | POST | `/api/cal?point=a&ph=7.00` | Kalibrierpunkt speichern |
-| POST | `/api/pump/run?steps=16000&dir=1` | Servicelauf |
-| POST | `/api/pump/calc?steps=16000&ml=9.4` | Schritte/ml berechnen |
+| POST | `/api/pump/run?secs=60` | Servicelauf (Sekunden) |
+| POST | `/api/pump/calc?secs=60&ml=9.4` | Förderrate ml/s berechnen |
 | POST | `/api/circ/test` | Umwälzprüfung sofort ausführen |
 | POST | `/api/daily/reset` | Tageszähler zurücksetzen |
 | POST | `/api/reboot` | Neustart |
@@ -38,17 +37,17 @@ Beispielantwort (gekürzt):
 
 ```json
 {
-  "fw": "2.0.0", "up": 84213,
+  "fw": "2.3.0", "up": 84213,
   "ph": 7.31, "phValid": true, "phStatus": "OK", "stable": true,
   "phAvg": 7.29, "avgOk": true, "spreadmV": 4.6,
   "volt": 1.71234, "raw": 14021, "slope": -238.4,
   "state": "Bereit", "locks": "Sollwert erreicht", "lockBits": 2048,
   "auto": true, "estop": false, "fault": false, "circ": "Umwaelzung laeuft",
-  "pump": { "run": false, "ml": 0.0, "target": 0.0 },
+  "pump": { "run": false, "ml": 0.0, "target": 0.0, "runS": 0, "targetS": 0.0 },
   "dose": { "today": 12.5, "remain": 47.5, "count": 4, "last": 3.0,
             "pauseS": 280, "total": 312.4, "last24h": 15.5 },
   "wifi": { "mode": "STA", "ip": "192.168.0.62", "rssi": -59 },
-  "cfg": { "sp": 7.20, "maxd": 60.00, "spml": 1702.1,
+  "cfg": { "sp": 7.20, "maxd": 60.00, "mlps": 0.157, "rinv": false,
            "filt": 30, "avgs": 600 }
 }
 ```

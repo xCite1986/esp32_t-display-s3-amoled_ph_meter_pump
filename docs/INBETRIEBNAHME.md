@@ -35,7 +35,7 @@ powershell -File scripts/build.ps1
 ## Phase 1 — ADS1115 und pH-Messung
 
 **Voraussetzung:** Lötanleitung Abschnitte 1–7 erledigt.
-TMC2209 nicht gesteckt, 12 V aus.
+Netzseite (230 V) noch nicht angeschlossen, Versorgung nur über USB-C.
 
 ```bash
 powershell -File scripts/flash.ps1 -Sketch i2c
@@ -67,152 +67,41 @@ siehe Fehlertabelle in der Lötanleitung.
 
 ---
 
-## Phase 2 — Motor und Treiber
+## Phase 2 — Relaistest
 
-> **Hinweis (ab Firmware 2.3.0):** Dieser Abschnitt beschreibt den früheren
-> Aufbau mit Schrittmotor (NEMA17) und TMC2209-Treiber. Wird stattdessen ein
-> AC-Synchronmotor über ein 1-Kanal-Relais verwendet, entfällt Phase 2
-> komplett — es gibt weder VREF noch Mikroschritte. Weiter geht es dann direkt
-> mit dem Relaistest und der Förderraten-Kalibrierung in **Phase 3**. Die
-> Hardware-Dokumente (Schaltplan, Lötanleitung, Teileliste) beschreiben noch
-> den Schrittmotor-Aufbau und werden separat überarbeitet.
+> **Ab Firmware 2.3.0.** Der frühere Stepper-Bring-up (TMC2209, VREF,
+> Mikroschritte) entfällt. Statt eines Motortreibers wird nur das
+> **1-Kanal-Relais** geprüft — vor Anschluss der Netzseite und mit
+> **abgezogener Pumpe**.
 
-**Voraussetzung:** VREF eingestellt (Lötanleitung Abschnitt 9),
-Motor angeschlossen (Abschnitt 10), Pumpenkopf **noch nicht** montiert.
+**Voraussetzung:** Relaismodul verdrahtet (`S`=GPIO10, `+`=5 V, `−`=GND,
+10 kΩ Pulldown an `S`); Pumpe/230 V **noch nicht** am Relaiskontakt.
 
 ```bash
-powershell -File scripts/flash.ps1 -Sketch motor
+powershell -File scripts/flash.ps1 -Sketch relay
 ```
 
-Danach 12 V einschalten und im Monitor:
-
-| Eingabe | Wirkung |
-|---|---|
-| `m 3200` | 3200 Schritte pro Umdrehung annehmen |
-| `s 400` | langsame Schrittrate zum Anfangen |
-| `t` | eine Umdrehung vor, eine zurück |
-| `r 800` | 800 Schritte vorwärts |
-| `l 800` | 800 Schritte rückwärts |
-| `e 0` | Treiber abschalten |
+Der Relais-Sketch kennt `on`, `off`, `p <s>` (Puls), `inv`, `status`. In der
+Hauptfirmware entsprechend: `run 3` (3 s Servicelauf), `set rinv 0|1`.
 
 Zu prüfen:
 
-1. **Dreht der Motor überhaupt?** Brummt er nur, sind die Spulenpaare
-   vertauscht — 12 V aus, Paare erneut durchmessen.
-2. **Ist eine Umdrehung wirklich eine Umdrehung?** Markierung auf die
-   Welle kleben, `t` ausführen. Passt es nicht, stimmt die
-   MS1/MS2-Beschaltung nicht.
-3. **Drehrichtung.** `r` soll die Richtung sein, in der die Pumpe später
-   fördert. Ist es andersherum, später in der Firmware `set invdir 1`
-   setzen — nicht umlöten.
-4. **Schrittrate hochtasten:** `s 800`, `s 1200`, `s 1600`. Sobald der
-   Motor Schritte verliert oder stehenbleibt, eine Stufe zurückgehen.
-   Der gefundene Wert kommt später in `set srate`.
-5. **VREF nachjustieren**, falls unter Last Schritte verloren gehen:
-   in 0,05-V-Schritten erhöhen, Motortemperatur im Auge behalten.
+1. **Ruhezustand aus.** Beim Booten und ohne Befehl muss das Relais
+   **abgefallen** sein (LED aus). Ist es angezogen, ist das Board aktiv-HIGH →
+   `set rinv 1` (bzw. `inv` im Sketch), dann erneut prüfen.
+2. **Schalten.** `run 3` bzw. `on`/`off`: das Relais klickt hörbar, die LED
+   folgt.
+3. **Selbsttätiges Ende.** Nach `run 3` fällt das Relais nach 3 s **von selbst**
+   ab — die Firmware begrenzt die Laufzeit.
 
-**Abbruchkriterium:** reproduzierbare, saubere Umdrehungen bei der
-gewünschten Schrittrate.
+**Abbruchkriterium:** Ruhe = Relais aus, `run 3` zieht sauber an und stoppt
+selbst. Das gefundene Ergebnis (aktiv-LOW/HIGH) ist die spätere Einstellung
+`rinv` in der Hauptfirmware.
 
-### Am Aufbau ermittelter Arbeitspunkt
-
-Diese Werte stammen aus der tatsächlichen Inbetriebnahme, nicht aus Formeln:
-
-| Größe | Wert | wie ermittelt |
-|---|---|---|
-| Mikroschritte | 1/16, **3200 Schritte/Umdr.** | 1600 Schritte = halbe Umdrehung, gezählt |
-| Chopper | **SpreadCycle** (`MS3` auf HIGH) | brachte das nutzbare Drehmoment |
-| VREF | **1,2 V** | über die Temperatur eingestellt |
-| daraus Strom | **≈ 0,6 A** | aus 45 °C bei Dauerhaltestrom zurückgerechnet |
-| Schrittrate | 800/s = 15 U/min | |
-| Beschleunigung | 2000/s² | |
-
-**Der Umrechnungsfaktor des Moduls liegt bei rund 0,5 A/V** statt der 1,77 A/V
-für 0,11 Ω Sense-Widerstand — ein Unterschied von Faktor 3,5. Nach Formel
-eingestellt (0,23 V) wäre die Pumpe nicht angelaufen.
-
-**Thermische Probe:** fünf Minuten Dauerhaltestrom ergaben rund 45 °C. Das ist
-der ungünstigste denkbare Fall — voller Strom bei Stillstand, ohne Gegen-EMK.
-Im Betrieb läuft der Motor Sekunden alle 30 Minuten und ist dazwischen dank
-`hold = 0` stromlos.
-
-### Wenn der Motor nicht dreht
-
-Der Reihe nach messen — jede Zeile schließt eine Ursache aus. Die Schrittzahl
-in der Weboberfläche zählt auch dann hoch, wenn am Motor nichts passiert: sie
-beweist nur, dass Impulse rausgehen, nicht dass sie Wirkung haben.
-
-| Messung | Sollwert | Bedeutung, wenn abweichend |
-|---|---|---|
-| `VMOT` gegen `GND` | **12 V** | unter 4,75 V arbeitet der Treiber außerhalb der Spezifikation |
-| `VIO` gegen `GND` | **3,3 V** | sagt **nichts** über VMOT aus — zwei getrennte Versorgungen |
-| `EN` gegen `GND` **während** eines Laufs | **0 V** | 3,3 V: Leitung zu GPIO10 unterbrochen, R1 hält den Pin hoch |
-| `1A` ↔ `1B` und `2A` ↔ `2B` am **leeren** Sockel | je **~3,6 Ω** | offen: Unterbrechung in Klemme, Litze oder Motorstecker |
-| `VREF` am Trimmerschleifer | **0,3–0,5 V** | 0 V: keine Stromvorgabe, der Motor zittert höchstens |
-
-**Symptome einordnen:**
-
-* *Nichts, völlig kraftlos* — kein Strom: VMOT, EN oder VREF prüfen.
-* *Hält die Position, rückt aber nie vor* — Strom ist da, Schrittimpulse
-  kommen nicht an. Siehe „DIR und STEP" unten.
-* *Zittern ohne Drehung* — entweder nur eine Spule bestromt (Wicklung nicht
-  durchgängig), oder **`DIR` hängt in der Luft**.
-* *Brummen, dreht schwer* — zu wenig Drehmoment: SpreadCycle einschalten,
-  Mikroschritte vergröbern, VREF anheben.
-* *Alle Werte stimmen, trotzdem nichts* — Treiber prüfen (siehe unten).
-
-**Der schnellste Test überhaupt:** `hold = 1` setzen und die Welle von Hand
-drehen. Rastet sie spürbar, sind Strom, Treiber, Motor und Verkabelung in
-Ordnung — dann liegt der Fehler ausschließlich bei `STEP` oder `DIR`.
-
-#### DIR und STEP
-
-Ein **floatender `DIR`-Eingang** erzeugt ein sehr irreführendes Bild: Der
-CMOS-Eingang nimmt jede Störung mit, die Richtung kippt ständig, und der Motor
-macht einen Schritt vor und einen zurück. Er zittert und brummt, dreht sich
-aber nicht — was leicht als Drehmomentproblem missverstanden wird.
-
-**Achtung, naheliegender Fehlgriff:** `GPIO15` liegt direkt neben `GPIO12` und
-ist in `Config.h` als UART-Reserve auf `INPUT` gesetzt, also hochohmig. Landet
-`DIR` dort statt auf `GPIO12`, entsteht genau dieses Bild.
-
-Ebenso wirkt ein **vertauschtes STEP/DIR**: Der statische Pegel auf `STEP`
-löst keine Schritte aus, der Impuls auf `DIR` ändert nur die Richtung. Der
-Motor hält, rückt aber nie vor.
-
-Am Pin messen hilft nicht — bei 4 µs Impulsdauer und 200 Schritten/s liegt das
-Tastverhältnis bei 0,08 %, ein Multimeter zeigt praktisch null. Also stromlos
-den **Durchgang** prüfen: `GPIO11` ↔ `STEP`, `GPIO12` ↔ `DIR`.
-
-#### TMC2209 auf einer A4988/DRV8825-Trägerkarte
-
-Diese Kombination ist verbreitet und verwirrend, weil die Karte die Pins nach
-dem **A4988** beschriftet:
-
-| Position | Aufdruck der Karte | TMC2209 hat dort |
-|---|---|---|
-| 2 | MS1 | MS1 |
-| 3 | MS2 | MS2 |
-| 4 | **MS3** | häufig **SPREAD** |
-
-`MS3` schaltet beim TMC2209 also nicht die Auflösung, sondern oft die
-Chopper-Betriebsart: **auf HIGH läuft er in SpreadCycle** statt StealthChop —
-deutlich mehr nutzbares Drehmoment unter Last, dafür hörbares Sirren statt
-nahezu lautlos. Für eine Dosierpumpe ist das der bessere Kompromiss.
-
-Verlass dich nicht auf die Beschriftung, sondern **zähle Umdrehungen**:
-1600 Schritte ergeben eine halbe Umdrehung bei 1/16 (3200/Umdr.) und eine
-ganze bei 1/8 (1600/Umdr.). Dieser Wert gehört in `sprev` — steht er falsch,
-dosiert die Anlage später um Faktor 2 daneben.
-
-> **Vor dem Aufgeben: Schutzabschaltung zurücksetzen.** Der TMC2209 rastet nach
-> Kurzschluss oder Übertemperatur ab und kommt von selbst nicht zurück. Dafür
-> muss **VMOT tatsächlich weg** — ein Reset des ESP32 genügt nicht. Also 12 V
-> und USB trennen, zehn Sekunden warten, neu einschalten.
-
-> **Nach jedem Ziehen des Moduls** die Ausrichtung mit dem Aufdruck vergleichen
-> und von der Seite prüfen, ob ein Pin untergeknickt ist. Verdreht eingesetzt
-> überlebt ein Stepstick das Einschalten meist nicht.
+> **Warum kein Motor-/VREF-Test mehr?** Der AC-Synchronmotor läuft mit fester
+> Drehzahl, sobald das Relais schließt — es gibt keinen Motorstrom
+> einzustellen und keine Schritte zu zählen. Die einzige „Kalibrierung" der
+> Pumpe ist die Förderrate `ml/s` in Phase 3.
 
 ---
 
@@ -307,11 +196,11 @@ darüber.
 
 Kostet nichts, dauert fünf Minuten und ist eindeutig.
 
-1. **12-V-Netzteil komplett aus der Steckdose ziehen** — nicht nur die Klemme
-   lösen. Es geht um die Netzverbindung, nicht um die Spannung.
+1. **Das 230-V-Netzteil (TSP-05) komplett aus der Steckdose ziehen** — nicht
+   nur die Klemme lösen. Es geht um die Netzverbindung, nicht um die Spannung.
 2. **USB-C des Displayboards an eine Powerbank.** Das funktioniert, weil
    `VBUS` board-intern parallel zur USB-Schiene liegt und das pH-Board hinter
-   D1 an derselben 5-V-Schiene hängt. D1 sperrt Richtung Buck.
+   D1 an derselben 5-V-Schiene hängt. D1 sperrt Richtung Netzteil.
 3. Sonde dort lassen, wo sie ist. Eine Minute warten, bis WLAN steht und der
    Messpuffer voll ist.
 4. Im Webinterface unter *Messwert* die Zeile *Spanne* ablesen.
